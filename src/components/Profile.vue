@@ -154,7 +154,6 @@ onMounted(async () => {
 
       <!-- Right: Carousel / Flowcharts -->
       <div class="col-md-8" data-aos="fade-up" data-aos-delay="100">
-        <h3 class="heading">Your Flowcharts</h3>
         <div v-if="flowcharts.length === 0" class="excerpt">You haven't generated any flowcharts yet.</div>
 
         <div v-else class="carousel-section">
