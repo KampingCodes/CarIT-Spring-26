@@ -39,6 +39,10 @@ export async function getUserData() {
   return serverGet('get-user-data');
 }
 
+export async function deleteFlowchart(index) {
+  return serverPost('delete-flowchart', { index });
+}
+
 /**
  * Update user data
  * Ex: { name: "John Doe" }
