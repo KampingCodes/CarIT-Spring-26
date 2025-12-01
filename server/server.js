@@ -3,7 +3,7 @@ import express from 'express';
 // import fs from 'fs';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
-import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart } from './user.js';
+import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart, deleteFlowchart } from './user.js';
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt, generateFlowchartPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
@@ -69,6 +69,18 @@ const validateAuth = auth({
   app.get('/api/get-flowcharts', validateAuth, async (req, res) => {
     const flowcharts = await getFlowcharts(req.headers.userid);
     res.send(flowcharts);
+  });
+
+  app.post('/api/delete-flowchart', validateAuth, async (req, res) => {
+    try {
+      const { index } = req.body;
+      const result = await deleteFlowchart(req.headers.userid, index);
+      if (result && result.success) return res.json({ success: true });
+      return res.status(400).json({ success: false, message: result });
+    } catch (err) {
+      console.error('Error deleting flowchart:', err);
+      return res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
   });
 
   app.get('/api/get-user-data', validateAuth, async (req, res) => {

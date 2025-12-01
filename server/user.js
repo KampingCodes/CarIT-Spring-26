@@ -135,3 +135,31 @@ export async function getFlowcharts(userid) {
   const res = await collection.findOne({ _id: userid });
   return res.flowcharts;
 }
+
+/**
+ * Delete a flowchart by index for a given user
+ * @param {string} userid
+ * @param {number} index
+ */
+export async function deleteFlowchart(userid, index) {
+  if (!userid || index === undefined || index === null) {
+    console.log("deleteFlowchart: Missing required fields");
+    return "Missing required fields";
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const res = await collection.findOne({ _id: userid });
+  if (!res || !Array.isArray(res.flowcharts)) {
+    console.log("deleteFlowchart: No flowcharts found for user", userid);
+    return "No flowcharts";
+  }
+
+  if (index < 0 || index >= res.flowcharts.length) {
+    console.log("deleteFlowchart: Index out of range", index);
+    return "Index out of range";
+  }
+
+  res.flowcharts.splice(index, 1);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: res.flowcharts } });
+  return { success: true };
+}
