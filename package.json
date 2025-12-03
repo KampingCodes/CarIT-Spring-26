@@ -32,5 +32,9 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "vite": "^6.4.0",
     "vite-plugin-mkcert": "^1.17.9"
+  },
+  "engines": {
+    "node": "22.x",
+    "npm": "9.x"
   }
 }
