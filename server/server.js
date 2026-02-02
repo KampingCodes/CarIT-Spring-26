@@ -33,7 +33,7 @@ const validateAuth = auth({
 
 /**
  * Start the server
- */
+ */d
 (function startServer() {
   app.get('/', (req, res) => {
     res.send('Server is running!');
