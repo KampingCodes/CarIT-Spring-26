@@ -5,7 +5,7 @@ import { themeColor } from "../items";
 import { RouterLink } from 'vue-router';
 
 const homeHeading = "Fix Your Car with Ai";
-const buttonTry = "Try it Out";
+const buttonTry = "Start";
 </script>
 
 <template>

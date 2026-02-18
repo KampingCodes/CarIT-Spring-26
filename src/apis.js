@@ -52,3 +52,50 @@ export async function deleteFlowchart(index) {
 export async function setUserData(params) {
   return serverPost('set-user-data', params);
 }
+
+/**
+ * Get car options (years, makes, models, trims) from database
+ * @param {Object} filters - Optional filters like { year: '2020', make: 'Toyota' }
+ * @returns {Object} Object containing arrays: { years, makes, models, trims }
+ */
+export async function getCarOptions(filters) {
+  return serverGet('car-options', filters);
+}
+
+/**
+ * Get user's garage (all saved vehicles)
+ * @returns {Array} Array of vehicles in the user's garage
+ */
+export async function getGarage() {
+  return serverGet('garage');
+}
+
+/**
+ * Add a vehicle to the user's garage
+ * @param {Object} vehicle - Vehicle data (year, make, model, trim, nickname, etc.)
+ * @returns {Object} Result with success status and car data
+ */
+export async function addGarageVehicle(vehicle) {
+  return serverPost('garage/add', vehicle);
+}
+
+/**
+ * Edit a vehicle in the user's garage
+ * @param {String} carId - The ID of the car to edit
+ * @param {Object} updates - Updated vehicle data
+ * @returns {Object} Result with success status
+ */
+export async function editGarageVehicle(carId, updates) {
+  return serverPost('garage/edit', { carId, updates });
+}
+
+/**
+ * Remove a vehicle from the user's garage
+ * @param {String} carId - The ID of the car to remove
+ * @returns {Object} Result with success status
+ */
+export async function removeGarageVehicle(carId) {
+  return serverPost('garage/remove', { carId });
+}
+
+

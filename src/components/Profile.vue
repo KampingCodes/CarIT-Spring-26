@@ -1,9 +1,10 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useCookies } from 'vue3-cookies';
 import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import { getSavedFlowcharts, getResponse, getUserData, setUserData } from '../apis.js';
+import MyGarage from './MyGarage.vue';
 
 // Profile state
 const { cookies } = useCookies();
@@ -67,7 +68,7 @@ async function ask(inputValue, responseRef, loadingRef) {
     let out = res;
     const prefix = 'Mocked response (client):';
     if (typeof out === 'string' && out.startsWith(prefix)) out = out.slice(prefix.length).trim();
-    const legacyOk = 'OK — received your request.';
+    const legacyOk = 'OK - received your request.';
     if (typeof out === 'string' && out.startsWith(legacyOk)) out = out.slice(legacyOk.length).trim();
     responseRef.value = out;
   } catch (err) {
@@ -152,8 +153,13 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Right: Carousel / Flowcharts -->
+      <!-- Right column -->
       <div class="col-md-8" data-aos="fade-up" data-aos-delay="100">
+
+        <!-- ===== Garage Section ===== -->
+        <MyGarage :editable="true" class="mb-4" />
+
+        <!-- ===== Flowcharts Section ===== -->
         <div v-if="flowcharts.length === 0" class="excerpt">You haven't generated any flowcharts yet.</div>
 
         <div v-else class="carousel-section">
@@ -206,6 +212,7 @@ onMounted(async () => {
 .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+/* Shake effects */
 .shake { animation: shake 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 .shake2 { animation: shake2 0.82s cubic-bezier(0.36, 0.07, 0.19, 0.97) both; }
 /* Strong, multi-axis shakes with rotation for an aggressive effect */

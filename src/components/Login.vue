@@ -6,9 +6,9 @@ import { login, logout, authState } from '../auth.js'
 <template>
   <div class="login-container">
     <div class="login-card">
-      <h1>Login</h1>
+      <h1>Get Started</h1>
       <div v-if="!authState.isAuthenticated">
-        <button @click="login" :disabled="authState.loginFailed">Login</button>
+        <button @click="login" :disabled="authState.loginFailed">Login / Sign Up</button>
       </div>
     
       <div v-if="authState.isAuthenticated">
