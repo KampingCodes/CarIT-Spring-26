@@ -4,6 +4,7 @@ import { useCookies } from 'vue3-cookies';
 import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import { getSavedFlowcharts, getResponse, getUserData, setUserData } from '../apis.js';
+import { authState } from '../auth.js';
 import MyGarage from './MyGarage.vue';
 
 // Profile state
@@ -100,9 +101,9 @@ const getDiagram = async (flowchartObj, idx) => {
   }
 };
 
-onMounted(async () => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', flowchart: { htmlLabels: true, curve: 'basis' } });
-  // load user info
+// Load user data
+async function loadUserData() {
+  if (!authState.isAuthenticated) return;
   try {
     const userData = await getUserData();
     if (userData?.name) Name.value = userData.name;
@@ -110,8 +111,11 @@ onMounted(async () => {
   } catch (e) {
     console.warn('Unable to fetch user data:', e?.message || e);
   }
+}
 
-  // load saved flowcharts
+// Load saved flowcharts
+async function loadFlowcharts() {
+  if (!authState.isAuthenticated) return;
   try {
     flowcharts.value = await getSavedFlowcharts();
     // initialize arrays
@@ -125,6 +129,28 @@ onMounted(async () => {
     });
   } catch (err) {
     console.error('Error loading saved flowcharts:', err);
+  }
+}
+
+onMounted(async () => {
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', flowchart: { htmlLabels: true, curve: 'basis' } });
+  // Load data if already authenticated
+  if (authState.isAuthenticated) {
+    await loadUserData();
+    await loadFlowcharts();
+  }
+});
+
+// Watch for authentication changes and reload data when user logs in
+watch(() => authState.isAuthenticated, async (isAuth) => {
+  if (isAuth) {
+    await loadUserData();
+    await loadFlowcharts();
+  } else {
+    // Clear data on logout
+    Name.value = '';
+    Email.value = '@example.com';
+    flowcharts.value = [];
   }
 });
 </script>
