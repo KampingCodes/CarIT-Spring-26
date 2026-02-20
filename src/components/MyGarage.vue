@@ -223,11 +223,10 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 
 /* Add/Edit form styling */
 .garage-form { 
-  border: 1px solid #e1e8ed; 
   border-radius: 10px; 
-  background: #f8f9fb; 
   padding: 20px;
   margin-bottom: 16px;
+  width: 100%;
 }
 
 .garage-form h5 {
@@ -324,6 +323,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
   background: #fff; 
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
   animation: modalSlideIn 0.2s ease-out;
+  padding: 20px;
 }
 
 @keyframes modalSlideIn {
@@ -399,6 +399,10 @@ watch(() => authState.isAuthenticated, (isAuth) => {
     padding: 20px 16px;
   }
   
+  .garage-form {
+    padding: 18px 16px;
+  }
+  
   .garage-card {
     padding: 14px 16px;
   }
@@ -421,6 +425,10 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 @media (min-width: 576px) and (max-width: 767px) {
   .garage-section {
     padding: 16px 12px;
+  }
+  
+  .garage-form {
+    padding: 16px 14px;
   }
   
   .garage-card {
@@ -452,6 +460,11 @@ watch(() => authState.isAuthenticated, (isAuth) => {
   .garage-section {
     padding: 16px;
     margin-top: 16px; /* Space from profile when stacked */
+  }
+  
+  .garage-form {
+    max-width: 100%;
+    padding: 16px;
   }
   
   .garage-section h4 {

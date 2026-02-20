@@ -107,20 +107,20 @@ defineExpose({ refreshCarOptions });
 </script>
 
 <template>
-  <div class="row g-2">
-    <div class="col-md-3">
+  <div class="row g-2 vehicle-selector-row">
+    <div class="col-3">
       <label class="form-label">Year</label>
       <SearchableSelect v-model="localVehicle.year" :options="yearOptions" placeholder="e.g. 2020" />
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
       <label class="form-label">Make</label>
       <SearchableSelect v-model="localVehicle.make" :options="makeOptions" placeholder="e.g. Honda" />
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
       <label class="form-label">Model</label>
       <SearchableSelect v-model="localVehicle.model" :options="modelOptions" placeholder="e.g. Civic" />
     </div>
-    <div class="col-md-3">
+    <div class="col-3">
       <label class="form-label">Trim</label>
       <SearchableSelect v-model="localVehicle.trim" :options="trimOptions" placeholder="e.g. SE" />
     </div>
@@ -131,5 +131,33 @@ defineExpose({ refreshCarOptions });
 .form-label {
   font-weight: 500;
   margin-bottom: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.vehicle-selector-row {
+  --bs-gutter-x: 0.5rem;
+}
+
+/* Make inputs more compact */
+.vehicle-selector-row :deep(.form-control) {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 575px) {
+  .vehicle-selector-row {
+    --bs-gutter-x: 0.25rem;
+  }
+  
+  .form-label {
+    font-size: 0.75rem;
+    margin-bottom: 0.15rem;
+  }
+  
+  .vehicle-selector-row :deep(.form-control) {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.8rem;
+  }
 }
 </style>
