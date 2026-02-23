@@ -33,7 +33,24 @@ const selectFlowchart = (idx) => { selectedIndex.value = idx; };
 const scrollCarousel = (direction) => {
   if (carouselScroll.value) {
     const scrollAmount = 220;
-    carouselScroll.value.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    const duration = 1000; // 1 second for smooth, visible scroll
+    const startScroll = carouselScroll.value.scrollLeft;
+    const targetScroll = startScroll + (direction === 'left' ? -scrollAmount : scrollAmount);
+    const startTime = Date.now();
+    
+    const animate = () => {
+      const now = Date.now();
+      const progress = Math.min((now - startTime) / duration, 1);
+      // Easing function for smooth deceleration
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+      carouselScroll.value.scrollLeft = startScroll + (targetScroll - startScroll) * easeProgress;
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    requestAnimationFrame(animate);
   }
 };
 
@@ -224,10 +241,10 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .profile-card { background: #fff; border-radius: 8px; box-shadow: none; text-align: center; }
 .profile-photo { width: 160px; height: 160px; object-fit: cover; border-radius: 50%; }
 .profile-info h4 { margin-top: 0.5rem; }
-.carousel-section { margin-top: 1rem; }
-.carousel-wrapper { display: flex; gap: 1rem; align-items: center; }
-.carousel-container { display: flex; gap: 1rem; overflow-x: auto; scroll-behavior: smooth; padding: 1rem 0; flex: 1; }
-.thumbnail-card { min-width: 200px; width: 200px; height: 220px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s ease; background: white; display: flex; flex-direction: column; }
+.carousel-section { margin-top: 1rem; max-width: 100%; }
+.carousel-wrapper { display: flex; gap: 1rem; align-items: center; justify-content: flex-start; }
+.carousel-container { display: flex; gap: 1rem; overflow-x: auto; scroll-behavior: smooth; padding: 1rem 0; max-width: calc(3 * 200px + 2 * 1rem); flex-shrink: 0; }
+.thumbnail-card { min-width: 200px; width: 200px; height: 220px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s ease; background: white; display: flex; flex-direction: column; flex-shrink: 0; }
 .thumbnail-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); border-color: #999; }
 .thumbnail-card.selected { border-color: #007bff; border-width: 3px; box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3); }
 .thumbnail-svg { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; }
