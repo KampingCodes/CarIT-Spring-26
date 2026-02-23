@@ -10,7 +10,7 @@ const URI = process.env.MONGODB_URI;
 export const client = new MongoClient(URI, {
   serverApi: {
     version: ServerApiVersion.v1,
-    strict: true,
+    strict: false,
     deprecationErrors: true,
   }
 });

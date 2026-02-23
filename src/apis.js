@@ -2,7 +2,7 @@ import { getToken, getUserID } from './auth.js';
 import axios from 'axios'
 
 async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `http://localhost:3001/api/${endpoint}`;
   const token = await getToken();
   const userid = getUserID();
   const config = { headers: { Authorization: `bearer ${token}`, userid } };
@@ -12,7 +12,7 @@ async function serverGet(endpoint, params) {
 }
 
 async function serverPost(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `http://localhost:3001/api/${endpoint}`;
   const token = await getToken();
   const userid = getUserID();
   const response = await axios.post(url, data, { headers: { Authorization: `Bearer ${token}`, userid } });
@@ -39,6 +39,10 @@ export async function getUserData() {
   return serverGet('get-user-data');
 }
 
+export async function deleteFlowchart(index) {
+  return serverPost('delete-flowchart', { index });
+}
+
 /**
  * Update user data
  * Ex: { name: "John Doe" }
@@ -48,3 +52,50 @@ export async function getUserData() {
 export async function setUserData(params) {
   return serverPost('set-user-data', params);
 }
+
+/**
+ * Get car options (years, makes, models, trims) from database
+ * @param {Object} filters - Optional filters like { year: '2020', make: 'Toyota' }
+ * @returns {Object} Object containing arrays: { years, makes, models, trims }
+ */
+export async function getCarOptions(filters) {
+  return serverGet('car-options', filters);
+}
+
+/**
+ * Get user's garage (all saved vehicles)
+ * @returns {Array} Array of vehicles in the user's garage
+ */
+export async function getGarage() {
+  return serverGet('garage');
+}
+
+/**
+ * Add a vehicle to the user's garage
+ * @param {Object} vehicle - Vehicle data (year, make, model, trim, nickname, etc.)
+ * @returns {Object} Result with success status and car data
+ */
+export async function addGarageVehicle(vehicle) {
+  return serverPost('garage/add', vehicle);
+}
+
+/**
+ * Edit a vehicle in the user's garage
+ * @param {String} carId - The ID of the car to edit
+ * @param {Object} updates - Updated vehicle data
+ * @returns {Object} Result with success status
+ */
+export async function editGarageVehicle(carId, updates) {
+  return serverPost('garage/edit', { carId, updates });
+}
+
+/**
+ * Remove a vehicle from the user's garage
+ * @param {String} carId - The ID of the car to remove
+ * @returns {Object} Result with success status
+ */
+export async function removeGarageVehicle(carId) {
+  return serverPost('garage/remove', { carId });
+}
+
+
