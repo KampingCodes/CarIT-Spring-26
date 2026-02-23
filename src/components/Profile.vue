@@ -9,6 +9,7 @@ import { getSavedFlowcharts, getResponse, getUserData, setUserData } from '../ap
 const { cookies } = useCookies();
 const Name = ref('');
 const Email = ref('@example.com');
+const ExperienceLevel = ref(1);
 const crashingOut = ref(Number(cookies.get('crashOut') || 0));
 const isShaking = ref(false);
 const isShaking2 = ref(false);
@@ -57,7 +58,7 @@ const doBarrelRoll = () => {
 };
 
 const editPage = () => { editMode.value = !editMode.value; if (!editMode.value) saveProfile(); };
-const saveProfile = () => { setUserData({ name: Name.value }); };
+const saveProfile = () => { setUserData({ name: Name.value, experienceLevel: Number(ExperienceLevel.value) }); };
 
 async function ask(inputValue, responseRef, loadingRef) {
   responseRef.value = '';
@@ -106,6 +107,7 @@ onMounted(async () => {
     const userData = await getUserData();
     if (userData?.name) Name.value = userData.name;
     if (userData?.email) Email.value = userData.email;
+    if (userData?.experienceLevel !== undefined && userData?.experienceLevel !== null) ExperienceLevel.value = userData.experienceLevel;
   } catch (e) {
     console.warn('Unable to fetch user data:', e?.message || e);
   }
@@ -143,6 +145,14 @@ onMounted(async () => {
               <input v-model="Name" class="form-control" />
             </div>
             <p class="mb-1">{{ Email }}</p>
+            <div v-if="!editMode">
+              <p class="mb-1">Experience Level: {{ ExperienceLevel }}</p>
+            </div>
+            <div v-else>
+              <select v-model="ExperienceLevel" class="form-select mb-2">
+                <option v-for="n in [1,2,3,4]" :key="n" :value="n">{{ n }}</option>
+              </select>
+            </div>
             <div class="d-grid gap-2 mb-4">
               <button class="btn btn-primary" @click="editPage">{{ editMode ? 'Save' : 'Edit Profile' }}</button>
               <button class="btn btn-success" @click="crashOut">Crash Out!</button>

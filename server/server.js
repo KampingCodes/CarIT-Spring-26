@@ -85,12 +85,12 @@ const validateAuth = auth({
 
   app.get('/api/get-user-data', validateAuth, async (req, res) => {
     const dbUser = await getUserDB(req.headers.userid);
-    let readData = filterFields(dbUser, ["name", "email"]);
+    let readData = filterFields(dbUser, ["name", "email", "experienceLevel"]);
     res.send(readData);
   });
 
   app.post('/api/set-user-data', validateAuth, async (req, res) => {
-    let setData = filterFields(req.body, ["name", "email"]);
+    let setData = filterFields(req.body, ["name", "email", "experienceLevel"]);
     await updateUserDB(req.headers.userid, setData);
     res.send({ success: true });
   })
