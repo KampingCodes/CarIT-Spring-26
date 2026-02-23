@@ -2,6 +2,8 @@
 import NaviBar from "./NaviBar.vue";
 import { useRoute } from "vue-router";
 import { addVehicle } from "../vehicles.js";
+import { authState } from "../auth.js";
+import MyGarage from './MyGarage.vue';
 
 const route = useRoute();
 
@@ -72,6 +74,9 @@ const formatField = (val, placeholder = "None") => {
           </tbody>
         </table>
       </div>
+
+      <!-- Garage section (logged-in users only) -->
+      <MyGarage v-if="authState.isAuthenticated" class="garage-section" />
     </div>
   </div>
 </template>
@@ -123,5 +128,12 @@ const formatField = (val, placeholder = "None") => {
 .vehicle-table tr:last-child th,
 .vehicle-table tr:last-child td {
   border-bottom: none;
+}
+
+/* Garage section styles */
+.garage-section {
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 2px solid #e6e6e6;
 }
 </style>

@@ -11,23 +11,20 @@ import { logout, authState } from '../auth.js'
           {{ siteName }}<span class="text-primary">.</span>
         </RouterLink>
         <ul class="js-clone-nav d-none d-lg-inline-block site-menu float-left">
-          <li class="active">
+          <li :class="{ active: $route.path === '/' }">
             <RouterLink to="/" class="nav-link">Home</RouterLink>
           </li>
-          <li><RouterLink to="/features" class="nav-link">Features</RouterLink></li>
-          <li><RouterLink to="/aboutus" class="nav-link">About us</RouterLink></li>
-          <li><RouterLink to="/service1" class="nav-link">Try it Out</RouterLink></li>
-          <li><RouterLink to="/flowcharts" class="nav-link">Your Flowcharts</RouterLink></li>
+          <li :class="{ active: $route.path === '/service1' }"><RouterLink to="/service1" class="nav-link">Start</RouterLink></li>
+          <li :class="{ active: $route.path === '/features' }"><RouterLink to="/features" class="nav-link">Features</RouterLink></li>
+          <li :class="{ active: $route.path === '/aboutus' }"><RouterLink to="/aboutus" class="nav-link">About us</RouterLink></li>
+          <li v-if="lI" :class="{ active: $route.path === '/flowcharts' }"><RouterLink to="/flowcharts" class="nav-link">Your Flowcharts</RouterLink></li>
         </ul>
         <ul
           class="js-clone-nav 
           -none mt-1 d-lg-inline-block site-menu float-right"
         >
-          <li class="cta-button-outline" style="margin-right: 5px;">
-            <RouterLink v-if="!lI" to="/login">Login</RouterLink>
-          </li>
           <li class="cta-primary">
-            <RouterLink v-if="!lI" to="/register" :style="[{ backgroundColor: themeColor }]">Register</RouterLink>
+            <RouterLink v-if="!lI" to="/login" :style="[{ backgroundColor: themeColor }]">Login / Sign Up</RouterLink>
           </li>
           <li class="cta-button-outline" style="margin-right: 5px;">
             <RouterLink v-if="lI" to="/profile" class="nav-link">Profile</RouterLink>
