@@ -13,6 +13,7 @@ import Login from './components/Login.vue';
 import AboutUs from './components/AboutUs.vue';
 import Register from './components/NewUser.vue';
 import FlowchartPage from './components/FlowchartPage.vue';
+import ExpLevelPopUp from './components/ExpLevelPopUp.vue';
 
 
 // Set up routes that are going to be used by RouterView
@@ -30,6 +31,7 @@ const routes = [
   { path: '/profile', component: Profile},
   { path: '/register', component: Register},
   { path: '/flowcharts', component: FlowchartPage },
+  { path: '/experience-level', component: ExpLevelPopUp },
 ];
 
 const router = createRouter({

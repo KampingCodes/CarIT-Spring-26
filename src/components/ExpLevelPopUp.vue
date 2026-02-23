@@ -1,12 +1,40 @@
 <script setup>
+import { useRouter } from 'vue-router';
 import { ref } from 'vue';
 import { authState } from '../auth.js';
 
 const isVisible = ref(true);
 
+const router = useRouter();
+
 const closePopup = () => {
   isVisible.value = false;
 };
+
+const selectedExperience = ref('');
+
+function handleSubmit() {
+  let experienceLevel = '';
+
+  if (selectedExperience.value == 'beginner') {
+    experienceLevel = 'beginner';
+  } else if (selectedExperience.value == 'intermediate') {
+    experienceLevel = 'intermediate';
+  } else if (selectedExperience.value == 'advanced') {
+    experienceLevel = 'advanced';
+  }
+
+  console.log("Selected experience level:", experienceLevel);
+
+  // router.push({
+  // path: '/experience-level',
+  // query: {experienceLevel: experienceLevel}
+  // });
+
+  closePopup();
+}
+
+
 </script>
 
 <template>
@@ -15,7 +43,21 @@ const closePopup = () => {
       <div class="popup-header">
         <button class="close-btn" @click="closePopup">&times;</button>
       </div>
-      <p class="popup-text">Testing</p>
+      <p class="popup-text">What's your Experience Level?</p>
+      <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <input v-model="selectedExperience" type="radio" id="beginner" name="experience" value="beginner">
+          <label for="beginner">Beginner - What's a car?</label>
+          <input v-model="selectedExperience" type="radio" id="intermediate" name="experience" value="intermediate">
+          <label for="intermediate">Intermediate - I know the basics</label>
+          <input v-model="selectedExperience" type="radio" id="advanced" name="experience" value="advanced">
+          <label for="advanced">Advanced - I'm a car expert</label>
+
+          <div class="submit-button">
+            <button class="submit-btn" type="submit">Submit</button>
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -74,4 +116,59 @@ const closePopup = () => {
   margin: 0;
   color: #333;
 }
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+input[type="radio"] {
+  display: none;
+}
+
+label {
+  display: block;
+  padding: 0.8rem;
+  background: #f0f0f0;
+  border-radius: 5px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+}
+
+label:hover {
+  background: #e0e0e0;
+}
+
+input[type="radio"]:checked + label {
+  background: #007bff;
+  color: white;
+}
+
+.submit-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.submit-btn {
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+  padding: 0.8rem 2rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.submit-btn:hover {
+    background-color: #0056b3;
+  }
+
+
 </style>
