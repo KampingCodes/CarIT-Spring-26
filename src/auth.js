@@ -27,8 +27,9 @@ export async function initAuth() {
 }
 
 // Get auth0 token
-export async function getToken() {
+export async function getToken(skipAuthCheck = false) {
   if (!authState.client) return;
+  if (!skipAuthCheck && !authState.isAuthenticated) return;
 
   return await authState.client.getTokenSilently({
     audience: import.meta.env.VITE_AUTH0_AUDIENCE,
@@ -53,7 +54,7 @@ async function tryLogin() {
 
 // Create account
 async function createUser() {
-  const token = await getToken();
+  const token = await getToken(true);
   if (!token) return;
   
   try {
@@ -84,7 +85,9 @@ export async function logout() {
 
 // put ID into vue3 cookies store
 export function getUserID() {
-  return authState.user.sub;
+  return authState.user?.sub;
 }
+
+
 
 
