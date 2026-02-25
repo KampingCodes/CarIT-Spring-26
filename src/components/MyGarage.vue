@@ -4,6 +4,8 @@ import { getGarage, addGarageVehicle, editGarageVehicle, removeGarageVehicle } f
 import { authState } from '../auth.js';
 import VehicleSelector from './VehicleSelector.vue';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps({
   editable: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false },
@@ -123,7 +125,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 </script>
 
 <template>
-  <div class="garage-section">
+  <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
       <button v-if="editable && authState.isAuthenticated" class="btn btn-primary btn-sm" @click="openAddForm" :disabled="showAddForm">+ Add Vehicle</button>
@@ -199,7 +201,8 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 <style scoped>
 /* Main section styling */
 .garage-section { 
-  position: relative; 
+  position: relative;
+  z-index: 0; /* Ensure navbar (z-index: 10) always stays on top */
   padding: 24px; 
   background: #ffffff; 
   border-radius: 12px; 
@@ -459,7 +462,6 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 @media (max-width: 575px) {
   .garage-section {
     padding: 16px;
-    margin-top: 16px; /* Space from profile when stacked */
   }
   
   .garage-form {
