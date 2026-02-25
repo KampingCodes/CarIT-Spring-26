@@ -110,19 +110,19 @@ defineExpose({ refreshCarOptions });
   <div class="row g-2 vehicle-selector-row">
     <div class="col-3">
       <label class="form-label">Year</label>
-      <SearchableSelect v-model="localVehicle.year" :options="yearOptions" placeholder="e.g. 2020" />
+      <SearchableSelect v-model="localVehicle.year" :options="yearOptions" placeholder="e.g. 2020" :number-only="true" :max-length="4" />
     </div>
     <div class="col-3">
       <label class="form-label">Make</label>
-      <SearchableSelect v-model="localVehicle.make" :options="makeOptions" placeholder="e.g. Honda" />
+      <SearchableSelect v-model="localVehicle.make" :options="makeOptions" placeholder="e.g. Honda" :capitalize="true" />
     </div>
     <div class="col-3">
       <label class="form-label">Model</label>
-      <SearchableSelect v-model="localVehicle.model" :options="modelOptions" placeholder="e.g. Civic" />
+      <SearchableSelect v-model="localVehicle.model" :options="modelOptions" placeholder="e.g. Civic" :capitalize="true" />
     </div>
     <div class="col-3">
       <label class="form-label">Trim</label>
-      <SearchableSelect v-model="localVehicle.trim" :options="trimOptions" placeholder="e.g. SE" />
+      <SearchableSelect v-model="localVehicle.trim" :options="trimOptions" placeholder="e.g. SE" :capitalize="true" />
     </div>
   </div>
 </template>

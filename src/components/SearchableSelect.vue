@@ -6,6 +6,9 @@ const props = defineProps({
   options: { type: Array, default: () => [] },
   placeholder: { type: String, default: 'Search or type...' },
   disabled: { type: Boolean, default: false },
+  numberOnly: { type: Boolean, default: false },
+  maxLength: { type: Number, default: null },
+  capitalize: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -16,6 +19,13 @@ const highlightIndex = ref(-1);
 const inputRef = ref(null);
 const listRef = ref(null);
 const isInternalUpdate = ref(false);
+const touched = ref(false);
+
+const isInvalid = computed(() => {
+  if (!props.numberOnly || !props.maxLength || !touched.value) return false;
+  const len = search.value.length;
+  return len > 0 && len < props.maxLength;
+});
 
 // Sync external value changes into the search box (but avoid loops)
 watch(() => props.modelValue, (val) => {
@@ -34,7 +44,20 @@ const filtered = computed(() => {
 const showDropdown = computed(() => isOpen.value && filtered.value.length > 0);
 
 function onInput(e) {
-  const newValue = e.target.value;
+  let newValue = e.target.value;
+
+  if (props.numberOnly) {
+    newValue = newValue.replace(/\D/g, '');
+    if (props.maxLength !== null) {
+      newValue = newValue.slice(0, props.maxLength);
+    }
+    // Force-sync DOM so stripped characters don't appear
+    e.target.value = newValue;
+  } else if (props.capitalize) {
+    newValue = newValue.replace(/\b\w/g, c => c.toUpperCase());
+    e.target.value = newValue;
+  }
+
   search.value = newValue;
   isInternalUpdate.value = true;
   emit('update:modelValue', newValue);
@@ -50,6 +73,7 @@ function selectOption(opt) {
   emit('update:modelValue', opt);
   isOpen.value = false;
   highlightIndex.value = -1;
+  touched.value = false;
 }
 
 function onFocus() {
@@ -58,10 +82,20 @@ function onFocus() {
 }
 
 function onBlur() {
+  touched.value = true;
   // Delay so click on option registers before close
   setTimeout(() => { 
     isOpen.value = false;
     highlightIndex.value = -1;
+    // Snap to exact DB string on case-insensitive match (e.g. "Cr-v" → "CR-V", "Se" → "SE")
+    if (props.capitalize && search.value) {
+      const match = props.options.find(opt => String(opt).toLowerCase() === search.value.toLowerCase());
+      if (match) {
+        search.value = String(match);
+        isInternalUpdate.value = true;
+        emit('update:modelValue', String(match));
+      }
+    }
   }, 200);
 }
 
@@ -109,7 +143,7 @@ function scrollToHighlighted() {
       @keydown="onKeydown"
       :placeholder="placeholder"
       :disabled="disabled"
-      class="form-control"
+      :class="['form-control', { 'ss-invalid': isInvalid }]"
       autocomplete="off"
     />
     <ul v-if="showDropdown" ref="listRef" class="ss-dropdown">
@@ -155,5 +189,9 @@ function scrollToHighlighted() {
 .ss-dropdown li.ss-highlighted {
   background: #007bff;
   color: #fff;
+}
+.ss-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: none !important;
 }
 </style>
