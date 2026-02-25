@@ -30,6 +30,16 @@ watch(localVehicle, (newVal) => {
 
 // Sync external changes - don't trigger cascading clears
 watch(() => props.modelValue, async (newVal) => {
+  // If the incoming value already matches localVehicle, this is just the parent
+  // reflecting our own emission back at us — skip to avoid blocking future updates.
+  if (
+    newVal.year === localVehicle.value.year &&
+    newVal.make === localVehicle.value.make &&
+    newVal.model === localVehicle.value.model &&
+    newVal.trim === localVehicle.value.trim
+  ) {
+    return;
+  }
   isUpdatingFromExternal.value = true;
   localVehicle.value = { ...newVal };
   await refreshCarOptions();
