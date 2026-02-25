@@ -1,11 +1,11 @@
 <script setup>
 import NaviBar from "./components/NaviBar.vue";
-import TestingPopup from "./components/ExpLevelPopUp.vue";
+import ExpLevelPopUp from "./components/ExpLevelPopUp.vue";
 
 </script>
 
 <template>
   <NaviBar />
-  <TestingPopup />
+  <ExpLevelPopUp />
   <router-view />
 </template>

@@ -1,43 +1,66 @@
 <script setup>
-import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+
+import { ref, onMounted, watch } from 'vue';
 import { authState } from '../auth.js';
+import { getUserData, setUserData } from '../apis.js';
 
-const isVisible = ref(true);
 
-const router = useRouter();
+const isVisible = ref(false);
+const ExperienceLevel = ref(null);
+
 
 const closePopup = () => {
   isVisible.value = false;
 };
 
-const selectedExperience = ref('');
+const selectedExperience = ref();
 
 function handleSubmit() {
-  let experienceLevel = '';
-
-  if (selectedExperience.value == 'beginner') {
-    experienceLevel = 'beginner';
-  } else if (selectedExperience.value == 'intermediate') {
-    experienceLevel = 'intermediate';
-  } else if (selectedExperience.value == 'advanced') {
-    experienceLevel = 'advanced';
-  }
+  
+  let experienceLevel = selectedExperience.value;
 
   console.log("Selected experience level:", experienceLevel);
 
-  // router.push({
-  // path: '/experience-level',
-  // query: {experienceLevel: experienceLevel}
-  // });
-
+  setUserData({ experienceLevel: experienceLevel });
+  
   closePopup();
 }
+
+// Check user experience level
+async function checkExperienceLevel() {
+  if (!authState.isAuthenticated) return;
+  try {
+    const userData = await getUserData();
+    ExperienceLevel.value = userData?.experienceLevel || null;
+    console.log("Fetched experience level:", ExperienceLevel.value);
+    
+    const validLevels = ['Beginner', 'Intermediate', 'Expert'];
+    // Show popup if experience level is null or not one of the valid options
+    if (ExperienceLevel.value === null || !validLevels.includes(ExperienceLevel.value)) {
+      isVisible.value = true;
+    }
+  } catch (err) {
+    console.warn('Unable to fetch user data:', err?.message || err);
+  }
+}
+
+// Check on mount
+onMounted(() => {
+  checkExperienceLevel();
+});
+
+// Watch for authentication changes
+watch(() => authState.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    checkExperienceLevel();
+  }
+});
 
 
 </script>
 
 <template>
+  <!-- checks if user is authenticated and experience level is null, Beginner, Intermediate, or Expert, then shows the popup -->
   <div v-if="authState.isAuthenticated && isVisible" class="popup-overlay">
     <div class="popup-content">
       <div class="popup-header">
@@ -46,12 +69,12 @@ function handleSubmit() {
       <p class="popup-text">What's your Experience Level?</p>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <input v-model="selectedExperience" type="radio" id="beginner" name="experience" value="beginner">
-          <label for="beginner">Beginner - What's a car?</label>
-          <input v-model="selectedExperience" type="radio" id="intermediate" name="experience" value="intermediate">
-          <label for="intermediate">Intermediate - I know the basics</label>
-          <input v-model="selectedExperience" type="radio" id="advanced" name="experience" value="advanced">
-          <label for="advanced">Advanced - I'm a car expert</label>
+          <input v-model="selectedExperience" type="radio" id="Beginner" name="experience" value="Beginner">
+          <label for="Beginner">Beginner - What's a car?</label>
+          <input v-model="selectedExperience" type="radio" id="Intermediate" name="experience" value="Intermediate">
+          <label for="Intermediate">Intermediate - I know the basics</label>
+          <input v-model="selectedExperience" type="radio" id="Expert" name="experience" value="Expert">
+          <label for="Expert">Expert - I know my car inside and out</label>
 
           <div class="submit-button">
             <button class="submit-btn" type="submit">Submit</button>
