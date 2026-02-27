@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { getCarOptions } from '../apis.js';
+import { authState } from '../auth.js';
 import SearchableSelect from './SearchableSelect.vue';
 
 const props = defineProps({
@@ -108,29 +109,41 @@ watch(() => localVehicle.value.model, (newVal, oldVal) => {
 });
 
 onMounted(() => {
-  if (props.autoLoad) {
+  if (!props.autoLoad) return;
+  if (authState.isAuthenticated) {
     refreshCarOptions();
+  } else {
+    const stop = watch(() => authState.isAuthenticated, (isAuth) => {
+      if (isAuth) {
+        refreshCarOptions();
+        stop();
+      }
+    });
   }
 });
 
-defineExpose({ refreshCarOptions });
+function isValidYear(val) {
+  return /^(18\d{2}|19\d{2}|2\d{3})$/.test(String(val));
+}
+
+defineExpose({ refreshCarOptions, isValidYear });
 </script>
 
 <template>
-  <div class="row g-2 vehicle-selector-row">
-    <div class="col-3">
+  <div class="vehicle-selector-row">
+    <div class="vs-field">
       <label class="form-label">Year</label>
-      <SearchableSelect v-model="localVehicle.year" :options="yearOptions" placeholder="e.g. 2020" :number-only="true" :max-length="4" />
+      <SearchableSelect v-model="localVehicle.year" :options="yearOptions" placeholder="e.g. 2020" :number-only="true" :max-length="4" :validator="isValidYear" invalid-message="Invalid year" />
     </div>
-    <div class="col-3">
+    <div class="vs-field">
       <label class="form-label">Make</label>
       <SearchableSelect v-model="localVehicle.make" :options="makeOptions" placeholder="e.g. Honda" :capitalize="true" />
     </div>
-    <div class="col-3">
+    <div class="vs-field">
       <label class="form-label">Model</label>
       <SearchableSelect v-model="localVehicle.model" :options="modelOptions" placeholder="e.g. Civic" :capitalize="true" />
     </div>
-    <div class="col-3">
+    <div class="vs-field">
       <label class="form-label">Trim</label>
       <SearchableSelect v-model="localVehicle.trim" :options="trimOptions" placeholder="e.g. SE" :capitalize="true" />
     </div>
@@ -138,36 +151,34 @@ defineExpose({ refreshCarOptions });
 </template>
 
 <style scoped>
+.vehicle-selector-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+  border-bottom: 1px solid #43434d;
+}
+
+.vs-field {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
 .form-label {
   font-weight: 500;
   margin-bottom: 0.25rem;
   font-size: 0.875rem;
+  display: block;
 }
 
-.vehicle-selector-row {
-  --bs-gutter-x: 0.5rem;
-}
-
-/* Make inputs more compact */
-.vehicle-selector-row :deep(.form-control) {
+.vs-field :deep(.form-control) {
   padding: 0.375rem 0.5rem;
   font-size: 0.875rem;
+  width: 100%;
+  border-bottom: none !important;
 }
 
-/* Responsive adjustments for very small screens */
-@media (max-width: 575px) {
-  .vehicle-selector-row {
-    --bs-gutter-x: 0.25rem;
-  }
-  
-  .form-label {
-    font-size: 0.75rem;
-    margin-bottom: 0.15rem;
-  }
-  
-  .vehicle-selector-row :deep(.form-control) {
-    padding: 0.3rem 0.4rem;
-    font-size: 0.8rem;
-  }
+.vs-field :deep(.form-control:focus) {
+  border-bottom: none !important;
+  box-shadow: none;
 }
 </style>

@@ -9,6 +9,8 @@ const props = defineProps({
   numberOnly: { type: Boolean, default: false },
   maxLength: { type: Number, default: null },
   capitalize: { type: Boolean, default: false },
+  validator: { type: Function, default: null },
+  invalidMessage: { type: String, default: 'Invalid' },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -22,9 +24,14 @@ const isInternalUpdate = ref(false);
 const touched = ref(false);
 
 const isInvalid = computed(() => {
-  if (!props.numberOnly || !props.maxLength || !touched.value) return false;
-  const len = search.value.length;
-  return len > 0 && len < props.maxLength;
+  if (!touched.value || search.value.length === 0) return false;
+  if (props.validator) {
+    return !props.validator(search.value);
+  }
+  if (props.numberOnly && props.maxLength) {
+    return search.value.length < props.maxLength;
+  }
+  return false;
 });
 
 // Sync external value changes into the search box (but avoid loops)
@@ -77,6 +84,7 @@ function selectOption(opt) {
 }
 
 function onFocus() {
+  touched.value = false;
   isOpen.value = true;
   highlightIndex.value = -1;
 }
@@ -146,6 +154,7 @@ function scrollToHighlighted() {
       :class="['form-control', { 'ss-invalid': isInvalid }]"
       autocomplete="off"
     />
+    <small v-if="isInvalid && invalidMessage" class="ss-invalid-msg">{{ invalidMessage }}</small>
     <ul v-if="showDropdown" ref="listRef" class="ss-dropdown">
       <li
         v-for="(opt, i) in filtered"
@@ -193,5 +202,16 @@ function scrollToHighlighted() {
 .ss-invalid {
   border-color: #dc3545 !important;
   box-shadow: none !important;
+}
+.ss-invalid-msg {
+  position: absolute;
+  top: 100%;
+  right: 6px;
+  margin-top: 0.15rem;
+  font-size: 0.7rem;
+  color: #dc3545;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1059;
 }
 </style>

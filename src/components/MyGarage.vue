@@ -45,6 +45,10 @@ const cancelForm = () => {
   resetGarageForm();
 };
 
+function isValidYear(val) {
+  return /^(18\d{2}|19\d{2}|2\d{3})$/.test(String(val));
+}
+
 const openEditForm = async (car) => {
   editingCarId.value = car._id;
   garageForm.value = { year: String(car.year), make: car.make, model: car.model, trim: car.trim || '' };
@@ -141,7 +145,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
       <h5>{{ editingCarId ? 'Edit Vehicle' : 'Add New Vehicle' }}</h5>
       <VehicleSelector ref="vehicleSelectorRef" v-model="garageForm" />
       <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model">
+        <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model || !isValidYear(garageForm.year)">
           {{ garageLoading ? 'Saving...' : (editingCarId ? 'Save Changes' : 'Add Vehicle') }}
         </button>
         <button class="btn btn-secondary" @click="cancelForm">Cancel</button>
