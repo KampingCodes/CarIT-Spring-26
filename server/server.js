@@ -98,8 +98,8 @@ const validateAuth = auth({
     res.send({ success: true });
   })
 
-  app.listen(3000, () => {
-    console.log('Server is running on port 3000');
+  app.listen(3001, () => {
+    console.log('Server is running on port 3001');
   });
 
   // https.createServer(options, app).listen(3000, () => {
