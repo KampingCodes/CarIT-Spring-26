@@ -15,6 +15,7 @@ import Register from './components/NewUser.vue';
 import FlowchartPage from './components/FlowchartPage.vue';
 
 
+
 // Set up routes that are going to be used by RouterView
 const routes = [
   { path: '/', name: 'Home', component: Home },

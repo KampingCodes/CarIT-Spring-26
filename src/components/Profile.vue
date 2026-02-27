@@ -11,6 +11,7 @@ import MyGarage from './MyGarage.vue';
 const { cookies } = useCookies();
 const Name = ref('');
 const Email = ref('@example.com');
+const ExperienceLevel = ref(null);
 const crashingOut = ref(Number(cookies.get('crashOut') || 0));
 const isShaking = ref(false);
 const isShaking2 = ref(false);
@@ -76,7 +77,7 @@ const doBarrelRoll = () => {
 };
 
 const editPage = () => { editMode.value = !editMode.value; if (!editMode.value) saveProfile(); };
-const saveProfile = () => { setUserData({ name: Name.value }); };
+const saveProfile = () => { setUserData({ name: Name.value, experienceLevel: ExperienceLevel.value}); };
 
 async function ask(inputValue, responseRef, loadingRef) {
   responseRef.value = '';
@@ -125,6 +126,7 @@ async function loadUserData() {
     const userData = await getUserData();
     if (userData?.name) Name.value = userData.name;
     if (userData?.email) Email.value = userData.email;
+    if (userData?.experienceLevel !== undefined && userData.experienceLevel !== null) ExperienceLevel.value = userData.experienceLevel;  
   } catch (e) {
     console.warn('Unable to fetch user data:', e?.message || e);
   }
@@ -187,6 +189,14 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
               <input v-model="Name" class="form-control" />
             </div>
             <p class="mb-1">{{ Email }}</p>
+            <div class="mb-1" style="padding-bottom: 10px;"><strong style="padding-right: 5px;">Experience Level:</strong>
+              <span v-if="!editMode">{{ ExperienceLevel }}</span>
+              <select v-else v-model="ExperienceLevel" class="form-select form-select-sm d-inline-block w-auto ms-2">
+                <option>Beginner</option>
+                <option>Intermediate</option>
+                <option>Expert</option>
+              </select>
+            </div>
             <div class="d-grid gap-2 mb-4">
               <button class="btn btn-primary" @click="editPage">{{ editMode ? 'Save' : 'Edit Profile' }}</button>
               <button class="btn btn-success" @click="crashOut">Crash Out!</button>
