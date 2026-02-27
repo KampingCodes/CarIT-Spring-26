@@ -4,6 +4,8 @@ import { getGarage, addGarageVehicle, editGarageVehicle, removeGarageVehicle } f
 import { authState } from '../auth.js';
 import VehicleSelector from './VehicleSelector.vue';
 
+defineOptions({ inheritAttrs: false });
+
 const props = defineProps({
   editable: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false },
@@ -42,6 +44,10 @@ const cancelForm = () => {
   editingCarId.value = null;
   resetGarageForm();
 };
+
+function isValidYear(val) {
+  return /^(18\d{2}|19\d{2}|2\d{3})$/.test(String(val));
+}
 
 const openEditForm = async (car) => {
   editingCarId.value = car._id;
@@ -123,7 +129,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 </script>
 
 <template>
-  <div class="garage-section">
+  <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
       <button v-if="editable && authState.isAuthenticated" class="btn btn-primary btn-sm" @click="openAddForm" :disabled="showAddForm">+ Add Vehicle</button>
@@ -139,7 +145,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
       <h5>{{ editingCarId ? 'Edit Vehicle' : 'Add New Vehicle' }}</h5>
       <VehicleSelector ref="vehicleSelectorRef" v-model="garageForm" />
       <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model">
+        <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model || !isValidYear(garageForm.year)">
           {{ garageLoading ? 'Saving...' : (editingCarId ? 'Save Changes' : 'Add Vehicle') }}
         </button>
         <button class="btn btn-secondary" @click="cancelForm">Cancel</button>
@@ -199,7 +205,8 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 <style scoped>
 /* Main section styling */
 .garage-section { 
-  position: relative; 
+  position: relative;
+  z-index: 0; /* Ensure navbar (z-index: 10) always stays on top */
   padding: 24px; 
   background: #ffffff; 
   border-radius: 12px; 
@@ -459,7 +466,6 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 @media (max-width: 575px) {
   .garage-section {
     padding: 16px;
-    margin-top: 16px; /* Space from profile when stacked */
   }
   
   .garage-form {

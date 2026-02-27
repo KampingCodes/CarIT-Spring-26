@@ -176,9 +176,9 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
 <template>
   <div class="container untree_co-section" :class="{ 'barrel-roll': isRolling, shake: isShaking, shake2: isShaking2 }">
-    <div class="row">
+    <div class="profile-layout">
       <!-- Left: Profile summary -->
-      <div class="col-md-4" data-aos="fade-up" data-aos-delay="0">
+      <div class="profile-sidebar" data-aos="fade-up" data-aos-delay="0">
         <div class="profile-card p-3">
           <img :src="personPhoto" alt="Profile" class="profile-photo" />
           <div class="profile-info mt-3">
@@ -207,7 +207,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
       </div>
 
       <!-- Right column -->
-      <div class="col-md-8" data-aos="fade-up" data-aos-delay="100">
+      <div class="profile-content" data-aos="fade-up" data-aos-delay="100">
 
         <!-- ===== Garage Section ===== -->
         <MyGarage :editable="true" class="mb-4" />
@@ -248,8 +248,53 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 </template>
 
 <style scoped>
+/* Profile layout: never breaks into separate rows above 950px */
+.profile-layout {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  flex-wrap: nowrap;
+}
+
+.profile-sidebar {
+  flex: 0 0 clamp(140px, 28%, 260px);
+  width: clamp(140px, 28%, 260px);
+  min-width: 0;
+}
+
+.profile-content {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* Stack vertically on screens ≤950px */
+@media (max-width: 950px) {
+  .profile-layout {
+    flex-wrap: wrap;
+  }
+  .profile-sidebar {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+  .profile-content {
+    flex: 0 0 100%;
+    width: 100%;
+  }
+}
+
+/* Between 950px and 992px the global CSS drops .untree_co-section padding-top
+   from 100px to 50px, but the navbar is ~70px tall — causing the content to
+   start physically inside the navbar area. This scoped override (higher
+   specificity via the [data-v-xxx] attribute selector) restores enough
+   clearance just for the profile page in this specific range. */
+@media (min-width: 951px) and (max-width: 991.98px) {
+  .untree_co-section {
+    padding-top: 90px;
+  }
+}
+
 .profile-card { background: #fff; border-radius: 8px; box-shadow: none; text-align: center; }
-.profile-photo { width: 160px; height: 160px; object-fit: cover; border-radius: 50%; }
+.profile-photo { width: min(160px, 100%); height: auto; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 50%; }
 .profile-info h4 { margin-top: 0.5rem; }
 .carousel-section { margin-top: 1rem; max-width: 100%; }
 .carousel-wrapper { display: flex; gap: 1rem; align-items: center; justify-content: flex-start; }
