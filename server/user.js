@@ -62,7 +62,7 @@ export async function createUser(userid, name, email) {
   const dbUser = await getUserDB(userid);
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
   // Use the provided email when creating a new user
-  const user = { _id: userid, name: name, flowcharts: [], email: email || "", attitude: "", crashOut: 0, garage: [] };
+  const user = { _id: userid, name: name, flowcharts: [], email: email || "", attitude: "", crashOut: 0, garage: [], experienceLevel: null };
 
   if (!dbUser) {
     // Create a user using the MongoClient

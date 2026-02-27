@@ -32,9 +32,17 @@ const route = useRoute();
 const router = useRouter();
 const vehicleStore = useVehicleStore();
 
+function isValidYear(val) {
+  return /^(18\d{2}|19\d{2}|2\d{3})$/.test(String(val));
+}
+
 async function submitVehicle() {
   if (!vehicleForm.value.year || !vehicleForm.value.make || !vehicleForm.value.model) {
     errorMessage.value = 'Please fill in Year, Make, and Model';
+    return;
+  }
+  if (!isValidYear(vehicleForm.value.year)) {
+    errorMessage.value = 'Please enter a valid year (e.g. 2020). Year must start with 18, 19, or 2.';
     return;
   }
 
