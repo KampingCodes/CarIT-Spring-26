@@ -67,6 +67,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
         <button class="close-btn" @click="closePopup">&times;</button>
       </div>
       <p class="popup-text">What's your Experience Level?</p>
+      <p class="popup-text" style="font-size: 1rem; color: gray; font-weight: normal; margin-top: 0.5rem;">This helps us tailor the experience to your needs so that we can help you fix your car in the best way possible.</p>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <input v-model="selectedExperience" type="radio" id="Beginner" name="experience" value="Beginner">
