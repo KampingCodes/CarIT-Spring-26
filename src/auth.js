@@ -59,7 +59,7 @@ async function createUser() {
   
   try {
     const res = await axios.post(
-      'http://localhost:3001/api/create-user',
+      'http://localhost:3000/api/create-user',
       {},
       { headers: { authorization: `Bearer ${token}` }, timeout: 3000 },
     );
