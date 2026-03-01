@@ -3,9 +3,10 @@ import { ref, watch, onMounted } from 'vue';
 import { useCookies } from 'vue3-cookies';
 import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
-import { getSavedFlowcharts, getResponse, getUserData, setUserData } from '../apis.js';
+import { getSavedFlowcharts, getResponse, getUserData, setUserData, deleteFlowchart } from '../apis.js';
 import { authState } from '../auth.js';
 import MyGarage from './MyGarage.vue';
+import ConfirmDialog from './ConfirmDialog.vue';
 
 // Profile state
 const { cookies } = useCookies();
@@ -29,8 +30,34 @@ const loading = ref([]);
 const error = ref([]);
 const selectedIndex = ref(0);
 const carouselScroll = ref(null);
+const confirmDialog = ref(null);
 
 const selectFlowchart = (idx) => { selectedIndex.value = idx; };
+
+const removeFlowchart = async (idx, event) => {
+  event.stopPropagation();
+  const confirmed = await confirmDialog.value.show('Are you sure you want to delete this flowchart?');
+  if (!confirmed) {
+    return;
+  }
+  try {
+    await deleteFlowchart(idx);
+    flowcharts.value.splice(idx, 1);
+    vehicles.value.splice(idx, 1);
+    issues.value.splice(idx, 1);
+    flowchartSvg.value.splice(idx, 1);
+    thumbnailSvg.value.splice(idx, 1);
+    loading.value.splice(idx, 1);
+    error.value.splice(idx, 1);
+    
+    if (selectedIndex.value >= flowcharts.value.length && flowcharts.value.length > 0) {
+      selectedIndex.value = flowcharts.value.length - 1;
+    }
+  } catch (err) {
+    console.error('Error deleting flowchart:', err);
+  }
+};
+
 const scrollCarousel = (direction) => {
   if (carouselScroll.value) {
     const scrollAmount = 220;
@@ -176,6 +203,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
 <template>
   <div class="container untree_co-section" :class="{ 'barrel-roll': isRolling, shake: isShaking, shake2: isShaking2 }">
+    <ConfirmDialog ref="confirmDialog" />
     <div class="profile-layout">
       <!-- Left: Profile summary -->
       <div class="profile-sidebar" data-aos="fade-up" data-aos-delay="0">
@@ -220,6 +248,13 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
             <button class="carousel-btn carousel-btn-left" @click="scrollCarousel('left')" :disabled="flowcharts.length <= 3">&#8249;</button>
             <div class="carousel-container" ref="carouselScroll">
               <div v-for="(flowchart, idx) in flowcharts" :key="idx" class="thumbnail-card" :class="{ selected: selectedIndex === idx }" @click="selectFlowchart(idx)">
+                <button 
+                  class="delete-btn" 
+                  @click="removeFlowchart(idx, $event)"
+                  title="Delete flowchart"
+                >
+                  ×
+                </button>
                 <div v-if="loading[idx]" class="thumbnail-loading"><div class="spinner"></div></div>
                 <div v-else-if="error[idx]" class="thumbnail-error">Error</div>
                 <div v-else v-html="thumbnailSvg[idx]" class="thumbnail-svg"></div>
@@ -299,13 +334,16 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .carousel-section { margin-top: 1rem; max-width: 100%; }
 .carousel-wrapper { display: flex; gap: 1rem; align-items: center; justify-content: flex-start; }
 .carousel-container { display: flex; gap: 1rem; overflow-x: auto; scroll-behavior: smooth; padding: 1rem 0; max-width: calc(3 * 200px + 2 * 1rem); flex-shrink: 0; }
-.thumbnail-card { min-width: 200px; width: 200px; height: 220px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s ease; background: white; display: flex; flex-direction: column; flex-shrink: 0; }
+.thumbnail-card { min-width: 200px; width: 200px; height: 220px; border: 2px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: all 0.3s ease; background: white; display: flex; flex-direction: column; flex-shrink: 0; position: relative; }
 .thumbnail-card:hover { transform: translateY(-4px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); border-color: #999; }
 .thumbnail-card.selected { border-color: #007bff; border-width: 3px; box-shadow: 0 4px 16px rgba(0, 123, 255, 0.3); }
 .thumbnail-svg { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 0.5rem; }
 .thumbnail-info { padding: 0.75rem; border-top: 1px solid #eee; background: #f9f9f9; }
 .carousel-btn { background: white; border: 2px solid #ddd; border-radius: 50%; width: 40px; height: 40px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .carousel-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.delete-btn { position: absolute; top: 4px; right: 4px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; z-index: 10; padding: 0; line-height: 1; }
+.delete-btn:hover { background: rgba(220, 53, 69, 1); transform: scale(1.1); }
+.delete-btn:active { transform: scale(0.95); }
 .flowchart-container { width: 100%; margin: 20px auto; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
 .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

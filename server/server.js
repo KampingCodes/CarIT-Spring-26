@@ -39,6 +39,7 @@ const validateAuth = auth({
     res.send('Server is running!');
   });
 
+
   app.post('/api/create-user', validateAuth, async (req, res) => {
     const user = await getUserAuth0(req.headers.authorization);
     const msg = await createUser(user.sub, user.name, user.email);
@@ -53,6 +54,7 @@ const validateAuth = auth({
   
   app.post('/api/gen-questions', validateAuth, async (req, res) => {
     const { vehicle, issues } = req.body;
+
     const msg = generateQuestionsPrompt(vehicle, issues);
     const response = await getResponse(msg);
     res.send(response);
@@ -60,6 +62,7 @@ const validateAuth = auth({
 
   app.post('/api/gen-flowchart', validateAuth, async (req, res) => {
     const { vehicle, issues, responses } = req.body;
+
     const msg = generateFlowchartPrompt(vehicle, issues, responses);
     const response = await getResponse(msg);
     await saveFlowchart(req.headers.userid, response, vehicle, issues, responses);

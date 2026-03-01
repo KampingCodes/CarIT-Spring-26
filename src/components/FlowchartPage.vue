@@ -1,7 +1,8 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
-import { getSavedFlowcharts } from '../apis';
+import { getSavedFlowcharts, deleteFlowchart } from '../apis';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
+import ConfirmDialog from './ConfirmDialog.vue';
 
 const flowcharts = ref([]);
 const vehicles = ref([]);
@@ -12,6 +13,7 @@ const loading = ref([]);
 const error = ref([]);
 const selectedIndex = ref(0);
 const carouselScroll = ref(null);
+const confirmDialog = ref(null);
 
 const selectedFlowchart = computed(() => {
   if (flowcharts.value.length === 0) return null;
@@ -55,6 +57,30 @@ const selectFlowchart = (idx) => {
   selectedIndex.value = idx;
 };
 
+const removeFlowchart = async (idx, event) => {
+  event.stopPropagation();
+  const confirmed = await confirmDialog.value.show('Are you sure you want to delete this flowchart?');
+  if (!confirmed) {
+    return;
+  }
+  try {
+    await deleteFlowchart(idx);
+    flowcharts.value.splice(idx, 1);
+    vehicles.value.splice(idx, 1);
+    issues.value.splice(idx, 1);
+    flowchartSvg.value.splice(idx, 1);
+    thumbnailSvg.value.splice(idx, 1);
+    loading.value.splice(idx, 1);
+    error.value.splice(idx, 1);
+    
+    if (selectedIndex.value >= flowcharts.value.length && flowcharts.value.length > 0) {
+      selectedIndex.value = flowcharts.value.length - 1;
+    }
+  } catch (err) {
+    console.error('Error deleting flowchart:', err);
+  }
+};
+
 const scrollCarousel = (direction) => {
   if (carouselScroll.value) {
     const scrollAmount = 220; // thumbnail width + gap
@@ -79,6 +105,7 @@ onMounted(async () => {
 
 <template>
   <div class="untree_co-home" id="home-section">
+    <ConfirmDialog ref="confirmDialog" />
     <div class="container">
       <div class="row align-items-start">
         <div class="col-12">
@@ -110,6 +137,14 @@ onMounted(async () => {
                   :class="{ selected: selectedIndex === idx }"
                   @click="selectFlowchart(idx)"
                 >
+                  <button 
+                    class="delete-btn" 
+                    @click="removeFlowchart(idx, $event)"
+                    title="Delete flowchart"
+                  >
+                    ×
+                  </button>
+                  
                   <div v-if="loading[idx]" class="thumbnail-loading">
                     <div class="spinner"></div>
                   </div>
@@ -231,6 +266,7 @@ onMounted(async () => {
   background: white;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .thumbnail-card:hover {
@@ -289,6 +325,36 @@ onMounted(async () => {
   font-size: 0.8rem;
   color: #666;
   margin-top: 0.25rem;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(220, 53, 69, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  font-size: 1.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  z-index: 10;
+  padding: 0;
+  line-height: 1;
+}
+
+.delete-btn:hover {
+  background: rgba(220, 53, 69, 1);
+  transform: scale(1.1);
+}
+
+.delete-btn:active {
+  transform: scale(0.95);
 }
 
 .carousel-btn {

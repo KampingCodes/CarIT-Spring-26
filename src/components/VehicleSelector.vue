@@ -1,7 +1,7 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
 import { getCarOptions } from '../apis.js';
-import { autoFillVehicleFromVIN } from './function.js';
+import { autoFillVehicleFromVIN } from './VINapi.js';
 import { authState } from '../auth.js';
 import SearchableSelect from './SearchableSelect.vue';
 
