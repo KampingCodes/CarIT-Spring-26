@@ -23,7 +23,7 @@ export async function initAuth() {
   });
 
   // Stay logged in
-  if (await authState.client.isAuthenticated()) tryLogin();
+  if (await authState.client.isAuthenticated()) await tryLogin();
 }
 
 // Get auth0 token
