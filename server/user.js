@@ -62,7 +62,7 @@ export async function createUser(userid, name, email) {
   const dbUser = await getUserDB(userid);
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
   // Use the provided email when creating a new user
-  const user = { _id: userid, name: name, flowcharts: [], email: email || "", attitude: "", crashOut: 0, garage: [], experienceLevel: null };
+  const user = { _id: userid, name: name, flowcharts: [], email: email || "", attitude: "", garage: [], experienceLevel: null, profilePicture: null, crashOut: 0 };
 
   if (!dbUser) {
     // Create a user using the MongoClient
@@ -322,4 +322,42 @@ export async function getCarOptions(filters = {}) {
     models: models.filter(Boolean).sort(),
     trims: trims.filter(Boolean).sort(),
   };
+}
+
+/**
+ * Increment the crashOut counter for a user
+ * Uses atomic $inc operator to avoid race conditions
+ * @param {string} userid The user identifier
+ * @returns {Object} The updated user document with the new crashOut value
+ */
+export async function incrementCrashOut(userid) {
+  if (!userid) {
+    console.log("incrementCrashOut: Missing userid");
+    return "Missing required fields";
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  
+  // Use atomic $inc operator to increment
+  const result = await collection.findOneAndUpdate(
+    { _id: userid },
+    { 
+      $inc: { crashOut: 1 }
+    },
+    { returnDocument: 'after' }
+  );
+
+  console.log("incrementCrashOut result:", result);
+
+  // findOneAndUpdate returns the document directly or in result.value depending on driver version
+  const userDoc = result && result.value ? result.value : result;
+
+  if (!userDoc) {
+    console.log("incrementCrashOut: User not found", userid);
+    return "User not found";
+  }
+
+  const newValue = userDoc.crashOut || 1;
+  console.log("incrementCrashOut: Updated crashOut to", newValue);
+  return { success: true, crashOut: newValue };
 }

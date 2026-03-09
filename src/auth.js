@@ -1,6 +1,7 @@
 import { reactive } from 'vue';
 import { createAuth0Client } from '@auth0/auth0-spa-js'
 import axios from 'axios'
+import router from './router.js'
 
 export const authState = reactive({
   client: null,
@@ -72,8 +73,15 @@ async function createUser() {
 
 // Login
 export async function login() {
-  await authState.client.loginWithPopup();
-  tryLogin();
+  try {
+    await authState.client.loginWithPopup();
+    await tryLogin();
+    // Redirect to profile after successful login
+    router.push('/profile');
+  } catch (err) {
+    console.error('Login error:', err);
+    authState.loginFailed = true;
+  }
 }
 
 // Logout
@@ -81,6 +89,8 @@ export async function logout() {
   await authState.client.logout({
     logoutParams: { returnTo: window.location.origin },
   })
+  // Redirect to home after logout
+  router.push('/');
 }
 
 // put ID into vue3 cookies store
