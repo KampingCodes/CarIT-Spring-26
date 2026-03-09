@@ -1,7 +1,7 @@
 <script setup>
 import { themeColor, siteName } from "../items";
 import { RouterLink } from 'vue-router';
-import { logout, authState } from '../auth.js'
+import { logout, login, authState } from '../auth.js'
 </script>
 <template>
   <nav class="site-nav dark js-site-navbar mb-5 site-navbar-target">
@@ -24,13 +24,13 @@ import { logout, authState } from '../auth.js'
           -none mt-1 d-lg-inline-block site-menu float-right"
         >
           <li class="cta-primary">
-            <RouterLink v-if="!lI" to="/login" :style="[{ backgroundColor: themeColor }]">Login / Sign Up</RouterLink>
+            <a v-if="!lI" @click="login" :style="[{ backgroundColor: themeColor, cursor: 'pointer' }]">Login / Sign Up</a>
           </li>
           <li class="cta-button-outline" style="margin-right: 5px;">
             <RouterLink v-if="lI" to="/profile" class="nav-link">Profile</RouterLink>
           </li>
           <li class="cta-primary">
-            <RouterLink v-if="lI" @click="loggingOut()" to="/" :style="[{ backgroundColor: themeColor }]">Log Out</RouterLink>
+            <a v-if="lI" @click="logout" :style="[{ backgroundColor: themeColor, cursor: 'pointer' }]">Log Out</a>
           </li>
         </ul>
         <a
@@ -51,11 +51,6 @@ export default {
   computed: {
     lI() {
       return authState.isAuthenticated
-    }
-  },
-  methods: {
-    loggingOut() {
-      logout();
     }
   }
 }

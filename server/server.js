@@ -3,7 +3,7 @@ import express from 'express';
 // import fs from 'fs';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
-import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions } from './user.js';
+import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut } from './user.js';
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt, generateFlowchartPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
@@ -17,7 +17,8 @@ import { getFields as filterFields } from './helper.js';
 // Create an Express app
 const app = express();
 
-app.use(express.json());
+// Increase JSON payload limit to handle base64-encoded images (3.75MB image + encoding overhead up to 5MB)
+app.use(express.json({ limit: '10mb' }));
 
 // Enable CORS
 app.use(cors({
@@ -88,7 +89,7 @@ const validateAuth = auth({
 
   app.get('/api/get-user-data', validateAuth, async (req, res) => {
     const dbUser = await getUserDB(req.headers.userid);
-    let readData = filterFields(dbUser, ["name", "email", "experienceLevel"]);
+    let readData = filterFields(dbUser, ["name", "email", "experienceLevel", "profilePicture", "crashOut"]);
     res.send(readData);
   });
 
@@ -96,6 +97,34 @@ const validateAuth = auth({
     let setData = filterFields(req.body, ["name", "email", "experienceLevel"]);
     await updateUserDB(req.headers.userid, setData);
     res.send({ success: true });
+  })
+
+  app.post('/api/upload-profile-picture', validateAuth, async (req, res) => {
+    try {
+      const { profilePicture } = req.body;
+      
+      if (!profilePicture || typeof profilePicture !== 'string') {
+        return res.status(400).json({ success: false, message: 'Invalid profile picture data' });
+      }
+
+      // Validate that it's a valid data URL
+      if (!profilePicture.startsWith('data:image/')) {
+        return res.status(400).json({ success: false, message: 'Invalid image format' });
+      }
+
+      // Validate size (base64 encoded)
+      const sizeInBytes = Buffer.byteLength(profilePicture, 'utf8');
+      const maxSizeBytes = 10 * 1024 * 1024; // 10MB after encoding
+      if (sizeInBytes > maxSizeBytes) {
+        return res.status(400).json({ success: false, message: 'Image too large' });
+      }
+
+      await updateUserDB(req.headers.userid, { profilePicture });
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error uploading profile picture:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
   })
 
   // ---- Car options endpoint ----
@@ -155,6 +184,20 @@ const validateAuth = auth({
       res.json(result);
     } catch (err) {
       console.error('Error removing from garage:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
+
+  // ---- Crash Out endpoint ----
+  app.post('/api/crash-out', validateAuth, async (req, res) => {
+    try {
+      console.log('Crash out endpoint called with userid:', req.headers.userid);
+      const result = await incrementCrashOut(req.headers.userid);
+      console.log('Crash out result:', result);
+      if (typeof result === 'string') return res.status(400).json({ success: false, message: result });
+      res.json(result);
+    } catch (err) {
+      console.error('Error incrementing crash out counter:', err);
       res.status(500).json({ success: false, message: err?.message || String(err) });
     }
   });
