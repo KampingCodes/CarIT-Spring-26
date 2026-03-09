@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue';
 import { getSavedFlowcharts, deleteFlowchart } from '../apis';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import ConfirmDialog from './ConfirmDialog.vue';
+import FlowchartViewer from './FlowchartViewer.vue';
 
 const flowcharts = ref([]);
 const vehicles = ref([]);
@@ -198,7 +199,12 @@ onMounted(async () => {
               <div v-else-if="selectedFlowchart.error" class="error">
                 {{ selectedFlowchart.error }}
               </div>
-              <div v-else v-html="selectedFlowchart.svg" class="flowchart-container"></div>
+              <FlowchartViewer
+                v-else
+                :svg="selectedFlowchart.svg"
+                :title="`${selectedFlowchart.vehicle?.make || 'Unknown'} ${selectedFlowchart.vehicle?.model || ''} ${selectedFlowchart.vehicle?.year ? `(${selectedFlowchart.vehicle.year})` : ''}`.trim()"
+                embedded-height="42rem"
+              />
             </div>
           </div>
         </div>
@@ -415,15 +421,6 @@ onMounted(async () => {
   border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
-}
-
-.flowchart-container {
-  width: 100%;
-  margin: 20px auto;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .loading,

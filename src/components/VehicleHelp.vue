@@ -6,6 +6,7 @@ import { getResponse, getFlowchart, getQuestions } from "../genai.js";
 import { getVehicles } from "../vehicles.js";
 import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
+import FlowchartViewer from './FlowchartViewer.vue';
 
 // Initialize mermaid only when component is mounted
 const initializeMermaid = () => {
@@ -224,7 +225,12 @@ onBeforeUnmount(() => {
             <!-- Flowchart Section -->
             <div v-else class="flowchart-section">
               <h3>Diagnostic Flowchart</h3>
-              <div v-if="flowchartSvg" v-html="flowchartSvg" class="flowchart-container"></div>
+              <FlowchartViewer
+                v-if="flowchartSvg"
+                :svg="flowchartSvg"
+                :title="`${vehicle.make || 'Unknown'} ${vehicle.model || ''} ${vehicle.year ? `(${vehicle.year})` : ''}`.trim()"
+                embedded-height="40rem"
+              />
               <div v-else class="loading">Generating flowchart...</div>
               <button 
                 @click="resetToQuestions" 
@@ -275,15 +281,6 @@ onBeforeUnmount(() => {
   background-color: #007bff;
   color: white;
   border-color: #007bff;
-}
-
-.flowchart-container {
-  margin: 20px 0;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: white;
-  overflow-x: auto;
 }
 
 .loading {

@@ -7,6 +7,7 @@ import { getSavedFlowcharts, getResponse, getUserData, setUserData, deleteFlowch
 import { authState } from '../auth.js';
 import MyGarage from './MyGarage.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
+import FlowchartViewer from './FlowchartViewer.vue';
 
 // Profile state
 const { cookies } = useCookies();
@@ -274,7 +275,13 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
             </div>
             <div v-if="loading[selectedIndex]" class="loading"><div class="spinner"></div> Loading flowchart...</div>
             <div v-else-if="error[selectedIndex]" class="error">{{ error[selectedIndex] }}</div>
-            <div v-else v-html="flowchartSvg[selectedIndex]" class="flowchart-container mt-2"></div>
+            <FlowchartViewer
+              v-else
+              :svg="flowchartSvg[selectedIndex]"
+              :title="`${vehicles[selectedIndex]?.make || 'Unknown'} ${vehicles[selectedIndex]?.model || ''} ${vehicles[selectedIndex]?.year ? `(${vehicles[selectedIndex].year})` : ''}`.trim()"
+              embedded-height="40rem"
+              class="mt-2"
+            />
           </div>
         </div>
       </div>
@@ -344,7 +351,6 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .delete-btn { position: absolute; top: 4px; right: 4px; background: rgba(220, 53, 69, 0.9); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-size: 1.5rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s ease; z-index: 10; padding: 0; line-height: 1; }
 .delete-btn:hover { background: rgba(220, 53, 69, 1); transform: scale(1.1); }
 .delete-btn:active { transform: scale(0.95); }
-.flowchart-container { width: 100%; margin: 20px auto; padding: 1rem; background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
 .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #007bff; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 0 auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
