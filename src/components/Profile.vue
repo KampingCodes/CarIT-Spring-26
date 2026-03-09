@@ -1,5 +1,6 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
+import 'primeicons/primeicons.css';
 
 import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
@@ -356,7 +357,6 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
             <!-- Crash Out Stats Section -->
             <div class="crash-out-section">
-              <div class="crash-out-header">Crash Out</div>
               <div class="crash-out-counter">{{ crashOutCount }}</div>
               <button 
                 class="btn btn-danger btn-sm w-100" 
@@ -376,46 +376,6 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
         <!-- ===== Garage Section ===== -->
         <MyGarage :editable="true" class="mb-5" />
 
-        <!-- ===== Flowcharts Section ===== -->
-        <div v-if="flowcharts.length > 0" class="section-header">
-          <h5 class="section-title">Saved Flowcharts</h5>
-          <p class="section-subtitle">Your previously generated diagnostic flowcharts</p>
-        </div>
-
-        <div v-if="flowcharts.length === 0" class="excerpt">You haven't generated any flowcharts yet.</div>
-
-        <div v-else class="carousel-section">
-          <div class="carousel-wrapper align-items-center">
-            <button class="carousel-btn carousel-btn-left" @click="scrollCarousel('left')" :disabled="flowcharts.length <= 3">&#8249;</button>
-            <div class="carousel-container" ref="carouselScroll">
-              <div v-for="(flowchart, idx) in flowcharts" :key="idx" class="thumbnail-card" :class="{ selected: selectedIndex === idx }" @click="selectFlowchart(idx)">
-                <i
-                  class="pi pi-trash delete-icon"
-                  @click="removeFlowchart(idx, $event)"
-                  title="Delete flowchart"
-                ></i>
-                <div v-if="loading[idx]" class="thumbnail-loading"><div class="spinner"></div></div>
-                <div v-else-if="error[idx]" class="thumbnail-error">Error</div>
-                <div v-else v-html="thumbnailSvg[idx]" class="thumbnail-svg"></div>
-                <div class="thumbnail-info">
-                  <div class="thumbnail-title">{{ vehicles[idx]?.make }} {{ vehicles[idx]?.model }}</div>
-                  <div class="thumbnail-subtitle">{{ vehicles[idx]?.year }}</div>
-                </div>
-              </div>
-            </div>
-            <button class="carousel-btn carousel-btn-right" @click="scrollCarousel('right')" :disabled="flowcharts.length <= 3">&#8250;</button>
-          </div>
-
-          <div v-if="flowcharts[selectedIndex]" class="selected-flowchart-section mt-3">
-            <div class="flowchart-header">
-              <h4>{{ vehicles[selectedIndex]?.make || 'Unknown' }} {{ vehicles[selectedIndex]?.model || '' }} ({{ vehicles[selectedIndex]?.year || '' }})</h4>
-              <p><strong>Issues:</strong> {{ issues[selectedIndex] }}</p>
-            </div>
-            <div v-if="loading[selectedIndex]" class="loading"><div class="spinner"></div> Loading flowchart...</div>
-            <div v-else-if="error[selectedIndex]" class="error">{{ error[selectedIndex] }}</div>
-            <div v-else v-html="flowchartSvg[selectedIndex]" class="flowchart-container mt-2"></div>
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -468,14 +428,14 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .profile-card {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   padding: 1.5rem 1rem;
   text-align: center;
   transition: box-shadow 0.3s ease;
 }
 
 .profile-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Profile Photo */
@@ -493,7 +453,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   display: block;
   transition: opacity 0.2s ease;
   border: 3px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .profile-photo.cursor-pointer {
@@ -502,7 +462,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
 .profile-photo.cursor-pointer:hover {
   opacity: 0.85;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .photo-indicator {
@@ -599,15 +559,15 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 }
 
 .btn-danger {
-  background: #dc3545;
+  background: #007bff;
   border: none;
   color: white;
 }
 
 .btn-danger:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
-  background: #c82333;
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  background: #0056b3;
 }
 
 .btn-danger:active:not(:disabled) {
@@ -640,7 +600,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .crash-out-counter {
   font-size: 2rem;
   font-weight: 700;
-  color: #dc3545;
+  color: #007bff;
 }
 
 /* ===== Section Headers ===== */
@@ -775,7 +735,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   position: absolute;
   top: 6px;
   right: 6px;
-  color: #dc3545;
+  color: #000;
   font-size: 1rem;
   cursor: pointer;
   transition: transform 0.15s ease, color 0.15s ease;
@@ -783,7 +743,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 }
 
 .delete-icon:hover {
-  color: #b02a37;
+  color: #333;
   transform: scale(1.1);
 }
 
@@ -866,19 +826,19 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 /* ===== Shake Animation ===== */
 @keyframes shake {
   0%, 100% { transform: translateX(0) translateY(0); }
-  10% { transform: translateX(-15px) translateY(-15px); }
-  20% { transform: translateX(15px) translateY(15px); }
-  30% { transform: translateX(-15px) translateY(15px); }
-  40% { transform: translateX(15px) translateY(-15px); }
-  50% { transform: translateX(-20px) translateY(-20px); }
-  60% { transform: translateX(20px) translateY(20px); }
-  70% { transform: translateX(-20px) translateY(20px); }
-  80% { transform: translateX(20px) translateY(-20px); }
-  90% { transform: translateX(-10px) translateY(-10px); }
+  10% { transform: translateX(-30px) translateY(-30px); }
+  20% { transform: translateX(30px) translateY(30px); }
+  30% { transform: translateX(-30px) translateY(30px); }
+  40% { transform: translateX(30px) translateY(-30px); }
+  50% { transform: translateX(-40px) translateY(-40px); }
+  60% { transform: translateX(40px) translateY(40px); }
+  70% { transform: translateX(-40px) translateY(40px); }
+  80% { transform: translateX(40px) translateY(-40px); }
+  90% { transform: translateX(-20px) translateY(-20px); }
 }
 
 .shake-animation {
-  animation: shake 0.6s ease-in-out;
+  animation: shake 0.4s linear;
 }
 
 /* ===== Mobile Improvements ===== */
