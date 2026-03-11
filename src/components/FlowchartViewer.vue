@@ -403,7 +403,7 @@ onBeforeUnmount(() => {
     <div class="flowchart-viewer__toolbar">
       <div class="flowchart-viewer__hint">
         <span>Drag to pan</span>
-        <span>|</span>
+        <span> - </span>
         <span>Scroll or pinch to zoom</span>
       </div>
       <div class="flowchart-viewer__actions">
@@ -426,7 +426,6 @@ onBeforeUnmount(() => {
       <div ref="inlineStage" class="flowchart-viewer__stage" v-html="svg"></div>
     </div>
 
-    <p class="flowchart-viewer__note">Use fullscreen on phones for easier pinch-and-pan navigation.</p>
 
     <Teleport to="body">
       <div v-if="isFullscreen" class="flowchart-viewer__overlay" @click.self="closeFullscreen">
@@ -450,6 +449,7 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </Teleport>
+    <div class="flowchart-viewer__bottom-spacer"></div>
   </div>
 </template>
 
@@ -465,14 +465,6 @@ onBeforeUnmount(() => {
   gap: 1rem;
   margin-bottom: 0.75rem;
   flex-wrap: wrap;
-}
-
-.flowchart-viewer__hint {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  color: #6c757d;
-  font-size: 0.95rem;
 }
 
 .flowchart-viewer__actions {
@@ -580,6 +572,12 @@ onBeforeUnmount(() => {
   font-size: 0.95rem;
 }
 
+.flowchart-viewer__bottom-spacer {
+  width: 100%;
+  height: 3.5rem;
+  flex-shrink: 0;
+}
+
 .flowchart-viewer__overlay {
   position: fixed;
   inset: 0;
@@ -655,6 +653,10 @@ onBeforeUnmount(() => {
   .flowchart-viewer__viewport--fullscreen {
     height: calc(100vh - 13rem);
     min-height: 20rem;
+  }
+
+  .flowchart-viewer__bottom-spacer {
+    height: 4.5rem;
   }
 }
 </style>
