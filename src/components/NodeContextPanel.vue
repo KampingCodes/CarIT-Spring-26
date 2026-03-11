@@ -93,7 +93,7 @@ const refineFlowchart = () => {
       >
         <div class="node-context-header">
           <div>
-            <p class="node-context-eyebrow">Flowchart node context</p>
+            <p class="node-context-eyebrow">Flowchart node context (BETA)</p>
             <h3 id="node-context-title" class="node-context-title">{{ panelTitle }}</h3>
             <p id="node-context-description" class="node-context-description">
               Add guided details and optional free-form notes to make the next branch more specific.
