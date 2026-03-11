@@ -1,8 +1,10 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
+import 'primeicons/primeicons.css';
 import { getSavedFlowcharts, deleteFlowchart } from '../apis';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import ConfirmDialog from './ConfirmDialog.vue';
+import FlowchartViewer from './FlowchartViewer.vue';
 
 const flowcharts = ref([]);
 const vehicles = ref([]);
@@ -137,13 +139,11 @@ onMounted(async () => {
                   :class="{ selected: selectedIndex === idx }"
                   @click="selectFlowchart(idx)"
                 >
-                  <button 
-                    class="delete-btn" 
+                  <i
+                    class="pi pi-trash delete-icon"
                     @click="removeFlowchart(idx, $event)"
                     title="Delete flowchart"
-                  >
-                    ×
-                  </button>
+                  ></i>
                   
                   <div v-if="loading[idx]" class="thumbnail-loading">
                     <div class="spinner"></div>
@@ -198,7 +198,12 @@ onMounted(async () => {
               <div v-else-if="selectedFlowchart.error" class="error">
                 {{ selectedFlowchart.error }}
               </div>
-              <div v-else v-html="selectedFlowchart.svg" class="flowchart-container"></div>
+              <FlowchartViewer
+                v-else
+                :svg="selectedFlowchart.svg"
+                :title="`${selectedFlowchart.vehicle?.make || 'Unknown'} ${selectedFlowchart.vehicle?.model || ''} ${selectedFlowchart.vehicle?.year ? `(${selectedFlowchart.vehicle.year})` : ''}`.trim()"
+                embedded-height="42rem"
+              />
             </div>
           </div>
         </div>
@@ -327,33 +332,23 @@ onMounted(async () => {
   margin-top: 0.25rem;
 }
 
-.delete-btn {
+.delete-icon {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  background: rgba(220, 53, 69, 0.9);
-  color: white;
-  border: none;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
-  font-size: 1.5rem;
+  top: 6px;
+  right: 6px;
+  color: #000;
+  font-size: 1rem;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
+  transition: transform 0.15s ease, color 0.15s ease;
   z-index: 10;
-  padding: 0;
-  line-height: 1;
 }
 
-.delete-btn:hover {
-  background: rgba(220, 53, 69, 1);
+.delete-icon:hover {
+  color: #333;
   transform: scale(1.1);
 }
 
-.delete-btn:active {
+.delete-icon:active {
   transform: scale(0.95);
 }
 
@@ -415,15 +410,6 @@ onMounted(async () => {
   border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
-}
-
-.flowchart-container {
-  width: 100%;
-  margin: 20px auto;
-  padding: 1rem;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .loading,

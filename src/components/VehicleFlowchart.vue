@@ -4,6 +4,7 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import { getFlowchart } from '../apis.js';
+import FlowchartViewer from './FlowchartViewer.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -62,16 +63,21 @@ onMounted(() => {
 <template>
   <div class="untree_co-section" id="features-section">
     <div class="container">
-      <div style="max-width:800px;margin:20px auto;">
+      <div class="flowchart-page-shell">
         <h2>Vehicle Help</h2>
         <p><strong>Vehicle:</strong> {{ vehicle.make || 'Unknown' }} {{ vehicle.model || '' }} ({{ vehicle.year || '' }})</p>
         <p><strong>Issues submitted:</strong> {{ issues }}</p>
-        <div style="margin-top:1rem;">
-          <div class="container" style="max-width:800px;margin:20px auto;">
+        <div class="flowchart-page-content">
+          <div class="flowchart-viewer-card">
             <h3>Diagnostic Flowchart</h3>
             <div v-if="loading" class="loading">Generating flowchart...</div>
             <div v-else-if="error" class="error">Error: {{ error }}</div>
-            <div v-else v-html="flowchartSvg" class="flowchart-container"></div>
+            <FlowchartViewer
+              v-else
+              :svg="flowchartSvg"
+              :title="`${vehicle.make || 'Unknown'} ${vehicle.model || ''} ${vehicle.year ? `(${vehicle.year})` : ''}`.trim()"
+              embedded-height="40rem"
+            />
             <button @click="goBack" class="btn btn-secondary mt-4">Back to Questions</button>
           </div>
         </div>
@@ -81,6 +87,19 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.flowchart-page-shell {
+  max-width: 1200px;
+  margin: 20px auto;
+}
+
+.flowchart-page-content {
+  margin-top: 1rem;
+}
+
+.flowchart-viewer-card {
+  margin: 20px auto;
+}
+
 .question-card {
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -116,15 +135,6 @@ onMounted(() => {
   background-color: #007bff;
   color: white;
   border-color: #007bff;
-}
-
-.flowchart-container {
-  margin: 20px 0;
-  padding: 20px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  background-color: white;
-  overflow-x: auto;
 }
 
 .loading {

@@ -210,7 +210,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
   padding: 24px; 
   background: #ffffff; 
   border-radius: 12px; 
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   min-width: 0; /* Allow flex shrinking */
 }
 
@@ -260,7 +260,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 }
 
 .garage-card:hover { 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); 
   border-color: #c8d6e5;
   transform: translateY(-1px);
 }

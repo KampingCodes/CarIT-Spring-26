@@ -54,6 +54,15 @@ export async function setUserData(params) {
 }
 
 /**
+ * Upload profile picture
+ * @param {string} base64Image The base64 encoded image data
+ * @returns Success
+ */
+export async function uploadProfilePicture(base64Image) {
+  return serverPost('upload-profile-picture', { profilePicture: base64Image });
+}
+
+/**
  * Get car options (years, makes, models, trims) from database
  * @param {Object} filters - Optional filters like { year: '2020', make: 'Toyota' }
  * @returns {Object} Object containing arrays: { years, makes, models, trims }
@@ -68,6 +77,14 @@ export async function getCarOptions(filters) {
  */
 export async function getGarage() {
   return serverGet('garage');
+}
+
+/**
+ * Increment crash out counter
+ * @returns {Object} Contains the updated crashOut value
+ */
+export async function crashOut() {
+  return serverPost('crash-out', {});
 }
 
 /**
