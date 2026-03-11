@@ -3,10 +3,15 @@ import express from 'express';
 // import fs from 'fs';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
-import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut } from './user.js';
+import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut } from './user.js';
 import { client } from './mongo.js';
-import { getResponse, generateQuestionsPrompt, generateFlowchartPrompt } from './genai.js';
+import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
+import {
+  generateInitialFlowchartForUser,
+  refineFlowchartFromNode,
+  saveFlowchartNodeContextForUser
+} from './flowchartRefinement.js';
 
 // const options = {
 //   key: fs.readFileSync('CARIT_PRIVATEKEY.key'),
@@ -62,12 +67,49 @@ const validateAuth = auth({
   });
 
   app.post('/api/gen-flowchart', validateAuth, async (req, res) => {
-    const { vehicle, issues, responses } = req.body;
+    try {
+      const { vehicle, issues, responses } = req.body;
+      const flowchartRecord = await generateInitialFlowchartForUser({
+        userid: req.headers.userid,
+        vehicle,
+        issues,
+        responses
+      });
+      res.json(flowchartRecord);
+    } catch (err) {
+      console.error('Error generating flowchart:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
 
-    const msg = generateFlowchartPrompt(vehicle, issues, responses);
-    const response = await getResponse(msg);
-    await saveFlowchart(req.headers.userid, response, vehicle, issues, responses);
-    res.send(response);
+  app.post('/api/save-flowchart-node-context', validateAuth, async (req, res) => {
+    try {
+      const { flowchartId, nodeId, nodeLabel, nodeContext } = req.body;
+      const updatedFlowchart = await saveFlowchartNodeContextForUser({
+        userid: req.headers.userid,
+        flowchartId,
+        nodeId,
+        nodeLabel,
+        nodeContext
+      });
+      res.json(updatedFlowchart);
+    } catch (err) {
+      console.error('Error saving flowchart node context:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/refine-flowchart-node', validateAuth, async (req, res) => {
+    try {
+      const updatedFlowchart = await refineFlowchartFromNode({
+        userid: req.headers.userid,
+        ...req.body
+      });
+      res.json(updatedFlowchart);
+    } catch (err) {
+      console.error('Error refining flowchart node:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
   });
 
   app.get('/api/get-flowcharts', validateAuth, async (req, res) => {
@@ -77,8 +119,8 @@ const validateAuth = auth({
 
   app.post('/api/delete-flowchart', validateAuth, async (req, res) => {
     try {
-      const { index } = req.body;
-      const result = await deleteFlowchart(req.headers.userid, index);
+      const { flowchartId } = req.body;
+      const result = await deleteFlowchart(req.headers.userid, flowchartId);
       if (result && result.success) return res.json({ success: true });
       return res.status(400).json({ success: false, message: result });
     } catch (err) {

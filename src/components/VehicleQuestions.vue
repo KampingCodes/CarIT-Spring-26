@@ -45,7 +45,7 @@ const proceedToFlowchart = () => {
   const answers = Object.entries(userAnswers.value).map(([questionId, optionId]) => {
     const question = questions.value.find(q => q.id === questionId)
     const option = question.options.find(opt => opt.id === optionId)
-    return { question: question.text, option: option.text }
+    return { question: question.text, answer: option.text, option: option.text }
   });
 
   const encodedAnswers = JSON.stringify(answers)

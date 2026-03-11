@@ -31,6 +31,14 @@ export async function getFlowchart(vehicle, issues, responses) {
   return serverPost('gen-flowchart', { vehicle, issues, responses });
 }
 
+export async function saveFlowchartNodeContext(flowchartId, nodeId, nodeLabel, nodeContext) {
+  return serverPost('save-flowchart-node-context', { flowchartId, nodeId, nodeLabel, nodeContext });
+}
+
+export async function refineFlowchartNode(payload) {
+  return serverPost('refine-flowchart-node', payload);
+}
+
 export async function getSavedFlowcharts() {
   return serverGet('get-flowcharts');
 }
@@ -39,8 +47,8 @@ export async function getUserData() {
   return serverGet('get-user-data');
 }
 
-export async function deleteFlowchart(index) {
-  return serverPost('delete-flowchart', { index });
+export async function deleteFlowchart(flowchartId) {
+  return serverPost('delete-flowchart', { flowchartId });
 }
 
 /**

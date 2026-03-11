@@ -21,6 +21,8 @@ const props = defineProps({
   }
 });
 
+const emit = defineEmits(['node-activate']);
+
 const isFullscreen = ref(false);
 const inlineViewport = ref(null);
 const inlineStage = ref(null);
@@ -48,6 +50,8 @@ const contexts = {
     wheelHandler: null,
     pointerDownHandler: null,
     pointerUpHandler: null,
+    clickHandler: null,
+    keydownHandler: null,
     windowBlurHandler: null,
     resetFrame: null,
     viewport: inlineViewport,
@@ -58,6 +62,8 @@ const contexts = {
     wheelHandler: null,
     pointerDownHandler: null,
     pointerUpHandler: null,
+    clickHandler: null,
+    keydownHandler: null,
     windowBlurHandler: null,
     resetFrame: null,
     viewport: fullscreenViewport,
@@ -149,7 +155,7 @@ const fitDiagram = (mode, allowShrink = true) => {
   const padding = mode === 'fullscreen' ? 48 : 32;
   const viewportWidth = Math.max(viewportElement.clientWidth - padding, 1);
   const viewportHeight = Math.max(viewportElement.clientHeight - padding, 1);
-  prepareSvg(stageElement);
+  const metrics = prepareSvg(stageElement) || getContentMetrics(stageElement);
   const { x: contentX, y: contentY, width, height } = metrics;
 
   const fitScale = Math.min(viewportWidth / width, viewportHeight / height);
@@ -257,6 +263,7 @@ const resetView = () => {
 const destroyPanzoom = (mode) => {
   const context = getContext(mode);
   const viewportElement = context.viewport.value;
+  const stageElement = context.stage.value;
 
   if (viewportElement && context.wheelHandler) {
     viewportElement.removeEventListener('wheel', context.wheelHandler);
@@ -269,6 +276,14 @@ const destroyPanzoom = (mode) => {
   if (viewportElement && context.pointerUpHandler) {
     viewportElement.removeEventListener('pointerup', context.pointerUpHandler);
     viewportElement.removeEventListener('pointercancel', context.pointerUpHandler);
+  }
+
+  if (stageElement && context.clickHandler) {
+    stageElement.removeEventListener('click', context.clickHandler);
+  }
+
+  if (stageElement && context.keydownHandler) {
+    stageElement.removeEventListener('keydown', context.keydownHandler);
   }
 
   if (context.pointerUpHandler) {
@@ -284,6 +299,8 @@ const destroyPanzoom = (mode) => {
   context.wheelHandler = null;
   context.pointerDownHandler = null;
   context.pointerUpHandler = null;
+  context.clickHandler = null;
+  context.keydownHandler = null;
   context.windowBlurHandler = null;
 
   if (context.resetFrame) {
@@ -310,6 +327,7 @@ const initPanzoom = async (mode) => {
   }
 
   prepareSvg(stageElement);
+  enableInteractiveNodes(stageElement);
 
   context.instance = Panzoom(stageElement, {
     minScale: MIN_SCALE,
@@ -349,8 +367,57 @@ const initPanzoom = async (mode) => {
   window.addEventListener('pointerup', context.pointerUpHandler);
   window.addEventListener('blur', context.windowBlurHandler);
 
+  context.clickHandler = (event) => {
+    const nodeElement = event.target?.closest?.('.node');
+    if (!nodeElement || !stageElement.contains(nodeElement)) {
+      return;
+    }
+
+    emitNodeActivation(nodeElement);
+  };
+
+  context.keydownHandler = (event) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    const nodeElement = event.target?.closest?.('.node');
+    if (!nodeElement || !stageElement.contains(nodeElement)) {
+      return;
+    }
+
+    event.preventDefault();
+    emitNodeActivation(nodeElement);
+  };
+
+  stageElement.addEventListener('click', context.clickHandler);
+  stageElement.addEventListener('keydown', context.keydownHandler);
+
   resetToStart(mode);
   scheduleResetToStart(mode);
+};
+
+const enableInteractiveNodes = (stageElement) => {
+  const nodeElements = stageElement?.querySelectorAll?.('.node') || [];
+
+  nodeElements.forEach((nodeElement) => {
+    nodeElement.setAttribute('tabindex', '0');
+    nodeElement.setAttribute('role', 'button');
+    nodeElement.classList.add('flowchart-node--interactive');
+    const label = getNodeLabel(nodeElement);
+    nodeElement.setAttribute('aria-label', label ? `Enhance context for ${label}` : 'Enhance context for flowchart node');
+  });
+};
+
+const emitNodeActivation = (nodeElement) => {
+  const nodeId = nodeElement.getAttribute('id') || '';
+  const label = getNodeLabel(nodeElement);
+  emit('node-activate', { nodeId, label, rawId: nodeId });
+};
+
+const getNodeLabel = (nodeElement) => {
+  const labelElement = nodeElement.querySelector('.nodeLabel, .label, text');
+  return labelElement?.textContent?.replace(/\s+/g, ' ').trim() || '';
 };
 
 const openFullscreen = async () => {
@@ -563,6 +630,20 @@ onBeforeUnmount(() => {
 .flowchart-viewer__stage :deep(.label),
 .flowchart-viewer__stage :deep(foreignObject) {
   pointer-events: none;
+}
+
+.flowchart-viewer__stage :deep(.flowchart-node--interactive) {
+  cursor: pointer;
+}
+
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible rect),
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible polygon),
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible path),
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover rect),
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover polygon),
+.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover path) {
+  stroke: #0d6efd !important;
+  stroke-width: 3px !important;
 }
 
 .flowchart-viewer__note {

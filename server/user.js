@@ -1,6 +1,9 @@
 import { DATABASE, USER_COLLECTION, CARS_COLLECTION } from './config.js';
 import { client } from './mongo.js';
 import { ObjectId } from 'mongodb';
+import { randomUUID } from 'crypto';
+
+const MAX_FLOWCHARTS = 5;
 
 /**
  * Get user data from the database
@@ -102,23 +105,38 @@ export async function createUser(userid, name, email) {
  * @param {string} issues Vehicle issue description
  * @param {Array<Object>} responses User responses
  */
-export async function saveFlowchart(userid, flowchart, vehicle, issues, responses) {
-  if (!userid || !flowchart || !vehicle || !issues || !responses) {
+export async function saveFlowchart(userid, flowchartData) {
+  if (!userid || !flowchartData?.flowchart || !flowchartData?.vehicle || !flowchartData?.issues || !flowchartData?.responses) {
     console.log("saveFlowchart: Missing required fields");
     return "Missing required fields";
   }
 
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
-  const MAX_FLOWCHARTS = 5;
 
-  const res = await collection.findOne({ _id: userid });
-  if (res.flowcharts.length >= MAX_FLOWCHARTS) {
-    res.flowcharts.shift();
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) {
+    return "User not found";
   }
-  res.flowcharts.push({
-    flowchart, vehicle, issues, responses
-  });
-  await collection.updateOne({ _id: userid }, { $set: res });
+
+  const timestamp = new Date().toISOString();
+  const newRecord = {
+    flowchartId: randomUUID(),
+    flowchart: flowchartData.flowchart,
+    mermaidCode: extractMermaidCode(flowchartData.flowchart, flowchartData.mermaidCode),
+    vehicle: flowchartData.vehicle,
+    issues: flowchartData.issues,
+    responses: normalizeResponses(flowchartData.responses),
+    nodeContexts: normalizeNodeContexts(flowchartData.nodeContexts),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    lastRefinedNodeId: '',
+    lastRefinedNodeLabel: ''
+  };
+
+  flowcharts.push(newRecord);
+  const nextFlowcharts = sortFlowchartsByUpdatedAt(flowcharts).slice(0, MAX_FLOWCHARTS);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: nextFlowcharts } });
+  return newRecord;
 }
 
 /**
@@ -133,36 +151,252 @@ export async function getFlowcharts(userid) {
   }
 
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
-  const res = await collection.findOne({ _id: userid });
-  return res.flowcharts;
+  const { flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  return sortFlowchartsByUpdatedAt(flowcharts);
 }
 
 /**
- * Delete a flowchart by index for a given user
+ * Delete a flowchart by id for a given user
  * @param {string} userid
- * @param {number} index
+ * @param {string} flowchartId
  */
-export async function deleteFlowchart(userid, index) {
-  if (!userid || index === undefined || index === null) {
+export async function deleteFlowchart(userid, flowchartId) {
+  if (!userid || !flowchartId) {
     console.log("deleteFlowchart: Missing required fields");
     return "Missing required fields";
   }
 
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
-  const res = await collection.findOne({ _id: userid });
-  if (!res || !Array.isArray(res.flowcharts)) {
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user || !Array.isArray(flowcharts)) {
     console.log("deleteFlowchart: No flowcharts found for user", userid);
     return "No flowcharts";
   }
 
-  if (index < 0 || index >= res.flowcharts.length) {
-    console.log("deleteFlowchart: Index out of range", index);
-    return "Index out of range";
+  const nextFlowcharts = flowcharts.filter((flowchart) => flowchart.flowchartId !== flowchartId);
+  if (nextFlowcharts.length === flowcharts.length) {
+    console.log("deleteFlowchart: Flowchart not found", flowchartId);
+    return "Flowchart not found";
   }
 
-  res.flowcharts.splice(index, 1);
-  await collection.updateOne({ _id: userid }, { $set: { flowcharts: res.flowcharts } });
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: nextFlowcharts } });
   return { success: true };
+}
+
+export async function updateFlowchartNodeContext(userid, flowchartId, nodeId, nodeContext) {
+  if (!userid || !flowchartId || !nodeId || !nodeContext) {
+    console.log("updateFlowchartNodeContext: Missing required fields");
+    return "Missing required fields";
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) {
+    return "User not found";
+  }
+
+  const flowchart = flowcharts.find((item) => item.flowchartId === flowchartId);
+  if (!flowchart) {
+    return "Flowchart not found";
+  }
+
+  flowchart.nodeContexts = {
+    ...normalizeNodeContexts(flowchart.nodeContexts),
+    [nodeId]: {
+      ...(flowchart.nodeContexts?.[nodeId] || {}),
+      ...nodeContext,
+      nodeId,
+      updatedAt: nodeContext.updatedAt || new Date().toISOString()
+    }
+  };
+
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts } });
+  return flowchart;
+}
+
+export async function overwriteFlowchart(userid, flowchartId, updates) {
+  if (!userid || !flowchartId || !updates?.flowchart || !updates?.mermaidCode) {
+    console.log("overwriteFlowchart: Missing required fields");
+    return "Missing required fields";
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) {
+    return "User not found";
+  }
+
+  const targetIndex = flowcharts.findIndex((item) => item.flowchartId === flowchartId);
+  if (targetIndex === -1) {
+    return "Flowchart not found";
+  }
+
+  const existing = flowcharts[targetIndex];
+  const updatedAt = new Date().toISOString();
+  const mergedNodeContexts = normalizeNodeContexts({
+    ...existing.nodeContexts,
+    ...updates.nodeContexts
+  });
+
+  const nextRecord = {
+    ...existing,
+    vehicle: updates.vehicle || existing.vehicle,
+    issues: updates.issues || existing.issues,
+    responses: normalizeResponses(updates.responses || existing.responses),
+    flowchart: updates.flowchart,
+    mermaidCode: extractMermaidCode(updates.flowchart, updates.mermaidCode),
+    nodeContexts: mergedNodeContexts,
+    updatedAt,
+    lastRefinedNodeId: updates.lastRefinedNodeId || existing.lastRefinedNodeId || '',
+    lastRefinedNodeLabel: updates.lastRefinedNodeLabel || existing.lastRefinedNodeLabel || ''
+  };
+
+  flowcharts[targetIndex] = nextRecord;
+  const sortedFlowcharts = sortFlowchartsByUpdatedAt(flowcharts);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: sortedFlowcharts } });
+  return nextRecord;
+}
+
+async function getNormalizedUserFlowcharts(collection, userid) {
+  const user = await collection.findOne({ _id: userid });
+  if (!user) {
+    return { user: null, flowcharts: [] };
+  }
+
+  const { flowcharts, mutated } = normalizeFlowchartList(user.flowcharts || []);
+  if (mutated) {
+    await collection.updateOne({ _id: userid }, { $set: { flowcharts } });
+  }
+
+  return { user, flowcharts };
+}
+
+function normalizeFlowchartList(flowcharts) {
+  let mutated = false;
+  const total = flowcharts.length;
+  const normalized = flowcharts.map((flowchart, index) => {
+    const result = normalizeFlowchartRecord(flowchart, index, total);
+    if (result.didMutate) {
+      mutated = true;
+    }
+    return result.record;
+  });
+
+  return { flowcharts: sortFlowchartsByUpdatedAt(normalized), mutated };
+}
+
+function normalizeFlowchartRecord(flowchart, index, total) {
+  const fallbackDate = new Date(Date.now() - (total - index) * 1000).toISOString();
+  const createdAt = isValidDate(flowchart?.createdAt) ? flowchart.createdAt : fallbackDate;
+  const updatedAt = isValidDate(flowchart?.updatedAt) ? flowchart.updatedAt : createdAt;
+  const flowchartId = typeof flowchart?.flowchartId === 'string' && flowchart.flowchartId.trim()
+    ? flowchart.flowchartId
+    : randomUUID();
+  const record = {
+    flowchartId,
+    flowchart: typeof flowchart?.flowchart === 'string' ? flowchart.flowchart : '',
+    mermaidCode: extractMermaidCode(flowchart?.flowchart, flowchart?.mermaidCode),
+    vehicle: flowchart?.vehicle || {},
+    issues: typeof flowchart?.issues === 'string' ? flowchart.issues : '',
+    responses: normalizeResponses(flowchart?.responses),
+    nodeContexts: normalizeNodeContexts(flowchart?.nodeContexts),
+    createdAt,
+    updatedAt,
+    lastRefinedNodeId: typeof flowchart?.lastRefinedNodeId === 'string' ? flowchart.lastRefinedNodeId : '',
+    lastRefinedNodeLabel: typeof flowchart?.lastRefinedNodeLabel === 'string' ? flowchart.lastRefinedNodeLabel : ''
+  };
+
+  const didMutate = !flowchart?.flowchartId
+    || !isValidDate(flowchart?.createdAt)
+    || !isValidDate(flowchart?.updatedAt)
+    || !flowchart?.mermaidCode
+    || !flowchart?.nodeContexts
+    || normalizeResponses(flowchart?.responses).length !== (Array.isArray(flowchart?.responses) ? flowchart.responses.length : 0);
+
+  return { record, didMutate };
+}
+
+function normalizeResponses(responses = []) {
+  if (!Array.isArray(responses)) {
+    return [];
+  }
+
+  return responses
+    .map((response) => {
+      const question = normalizeText(response?.question);
+      const answer = normalizeText(response?.answer) || normalizeText(response?.option);
+      return question && answer
+        ? { question, answer, option: answer }
+        : null;
+    })
+    .filter(Boolean);
+}
+
+function normalizeNodeContexts(nodeContexts = {}) {
+  if (!nodeContexts || typeof nodeContexts !== 'object' || Array.isArray(nodeContexts)) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(nodeContexts)
+      .map(([nodeId, context]) => {
+        if (!nodeId) {
+          return null;
+        }
+
+        const guidedPromptKey = normalizeText(context?.guidedPromptKey);
+        const guidedPromptLabel = normalizeText(context?.guidedPromptLabel);
+        const freeText = normalizeText(context?.freeText);
+        const nodeLabel = normalizeText(context?.nodeLabel);
+        return [nodeId, {
+          nodeId,
+          nodeLabel,
+          guidedPromptKey,
+          guidedPromptLabel,
+          freeText,
+          lastMode: normalizeText(context?.lastMode) || (guidedPromptKey ? 'guided' : freeText ? 'freeText' : ''),
+          updatedAt: isValidDate(context?.updatedAt) ? context.updatedAt : new Date().toISOString()
+        }];
+      })
+      .filter(Boolean)
+  );
+}
+
+function sortFlowchartsByUpdatedAt(flowcharts = []) {
+  return [...flowcharts].sort((left, right) => {
+    const leftTime = Date.parse(left?.updatedAt || left?.createdAt || 0);
+    const rightTime = Date.parse(right?.updatedAt || right?.createdAt || 0);
+    return rightTime - leftTime;
+  });
+}
+
+function extractMermaidCode(flowchart = '', fallback = '') {
+  if (typeof fallback === 'string' && fallback.trim()) {
+    return fallback.trim();
+  }
+
+  if (typeof flowchart !== 'string') {
+    return '';
+  }
+
+  const match = flowchart.match(/```mermaid\s*([\s\S]*?)```/i);
+  if (match) {
+    return match[1].trim();
+  }
+
+  return flowchart.trim().startsWith('graph TD') ? flowchart.trim() : '';
+}
+
+function normalizeText(value) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  return value.replace(/\s+/g, ' ').trim();
+}
+
+function isValidDate(value) {
+  return typeof value === 'string' && !Number.isNaN(Date.parse(value));
 }
 
 /**

@@ -1,32 +1,43 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import 'primeicons/primeicons.css';
-import { getSavedFlowcharts, deleteFlowchart } from '../apis';
-import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
+import { deleteFlowchart, getSavedFlowcharts, refineFlowchartNode, saveFlowchartNodeContext } from '../apis';
+import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
+import NodeContextPanel from './NodeContextPanel.vue';
+import { buildMermaidNodeMap, normalizeFlowchartRecord, resolveNodeSelection, upsertFlowchartRecord } from '../flowchart-utils.js';
 
 const flowcharts = ref([]);
-const vehicles = ref([]);
-const issues = ref([]);
-const flowchartSvg = ref([]);
-const thumbnailSvg = ref([]);
-const loading = ref([]);
-const error = ref([]);
-const selectedIndex = ref(0);
+const flowchartSvg = ref({});
+const thumbnailSvg = ref({});
+const loading = ref({});
+const error = ref({});
+const selectedFlowchartId = ref('');
 const carouselScroll = ref(null);
 const confirmDialog = ref(null);
+const selectedNode = ref(null);
+const panelOpen = ref(false);
+const savingContext = ref(false);
+const refiningFlowchart = ref(false);
 
 const selectedFlowchart = computed(() => {
   if (flowcharts.value.length === 0) return null;
+  const activeId = selectedFlowchartId.value || flowcharts.value[0]?.flowchartId;
+  const record = flowcharts.value.find((flowchart) => flowchart.flowchartId === activeId) || flowcharts.value[0];
+  if (!record) return null;
   return {
-    vehicle: vehicles.value[selectedIndex.value],
-    issues: issues.value[selectedIndex.value],
-    responses: flowcharts.value[selectedIndex.value]?.responses,
-    svg: flowchartSvg.value[selectedIndex.value],
-    loading: loading.value[selectedIndex.value],
-    error: error.value[selectedIndex.value]
+    ...record,
+    svg: flowchartSvg.value[record.flowchartId],
+    loading: loading.value[record.flowchartId],
+    error: error.value[record.flowchartId]
   };
+});
+
+const nodeMap = computed(() => buildMermaidNodeMap(selectedFlowchart.value?.mermaidCode || ''));
+const currentNodeContext = computed(() => {
+  const nodeId = selectedNode.value?.nodeId;
+  return nodeId ? selectedFlowchart.value?.nodeContexts?.[nodeId] || {} : {};
 });
 
 const getVehicleDisplayName = (vehicle = {}) => {
@@ -47,54 +58,59 @@ const getVehicleCardSubtitle = (vehicle = {}) => {
   return parts.join(' - ');
 };
 
-const getDiagram = async (flowchartObj, idx) => {
-  loading.value[idx] = true;
-  error.value[idx] = null;
-  vehicles.value[idx] = flowchartObj.vehicle;
-  issues.value[idx] = flowchartObj.issues;
-  
+const getDiagram = async (flowchartObj) => {
+  const flowchartId = flowchartObj.flowchartId;
+  loading.value = { ...loading.value, [flowchartId]: true };
+  error.value = { ...error.value, [flowchartId]: null };
+
   try {
-    const mermaidMatch = flowchartObj.flowchart.match(/```mermaid\n([\s\S]*?)\n```/);
-    if (!mermaidMatch) throw new Error('Mermaid code block not found');
-    const code = mermaidMatch[1].trim();
+    const code = flowchartObj.mermaidCode;
+    if (!code) throw new Error('This saved flowchart does not contain valid Mermaid data yet.');
     await mermaid.parse(code);
     
     // Generate full-size flowchart
-    const { svg } = await mermaid.render(`flowchart-${idx}`, code);
-    flowchartSvg.value[idx] = svg;
+    const { svg } = await mermaid.render(`flowchart-${flowchartId}`, code);
+    flowchartSvg.value = { ...flowchartSvg.value, [flowchartId]: svg };
     
     // Generate thumbnail (same SVG, will be styled smaller)
-    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${idx}`, code);
-    thumbnailSvg.value[idx] = thumbSvg;
+    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${flowchartId}`, code);
+    thumbnailSvg.value = { ...thumbnailSvg.value, [flowchartId]: thumbSvg };
   } catch (err) {
-    error.value[idx] = err.message;
+    error.value = { ...error.value, [flowchartId]: err.message };
   } finally {
-    loading.value[idx] = false;
+    loading.value = { ...loading.value, [flowchartId]: false };
   }
 };
 
-const selectFlowchart = (idx) => {
-  selectedIndex.value = idx;
+const selectFlowchart = (flowchartId) => {
+  selectedFlowchartId.value = flowchartId;
 };
 
-const removeFlowchart = async (idx, event) => {
+const removeFlowchart = async (flowchartId, event) => {
   event.stopPropagation();
   const confirmed = await confirmDialog.value.show('Are you sure you want to delete this flowchart?');
   if (!confirmed) {
     return;
   }
   try {
-    await deleteFlowchart(idx);
-    flowcharts.value.splice(idx, 1);
-    vehicles.value.splice(idx, 1);
-    issues.value.splice(idx, 1);
-    flowchartSvg.value.splice(idx, 1);
-    thumbnailSvg.value.splice(idx, 1);
-    loading.value.splice(idx, 1);
-    error.value.splice(idx, 1);
-    
-    if (selectedIndex.value >= flowcharts.value.length && flowcharts.value.length > 0) {
-      selectedIndex.value = flowcharts.value.length - 1;
+    await deleteFlowchart(flowchartId);
+    flowcharts.value = flowcharts.value.filter((flowchart) => flowchart.flowchartId !== flowchartId);
+
+    const nextMainSvg = { ...flowchartSvg.value };
+    const nextThumbSvg = { ...thumbnailSvg.value };
+    const nextLoading = { ...loading.value };
+    const nextError = { ...error.value };
+    delete nextMainSvg[flowchartId];
+    delete nextThumbSvg[flowchartId];
+    delete nextLoading[flowchartId];
+    delete nextError[flowchartId];
+    flowchartSvg.value = nextMainSvg;
+    thumbnailSvg.value = nextThumbSvg;
+    loading.value = nextLoading;
+    error.value = nextError;
+
+    if (selectedFlowchartId.value === flowchartId) {
+      selectedFlowchartId.value = flowcharts.value[0]?.flowchartId || '';
     }
   } catch (err) {
     console.error('Error deleting flowchart:', err);
@@ -119,8 +135,74 @@ onMounted(async () => {
   });
   
   flowcharts.value = await getSavedFlowcharts();
-  flowcharts.value.forEach(getDiagram);
+  flowcharts.value = flowcharts.value.map((flowchart, index) => normalizeFlowchartRecord(flowchart, index));
+  selectedFlowchartId.value = flowcharts.value[0]?.flowchartId || '';
+  await Promise.all(flowcharts.value.map(getDiagram));
 });
+
+const handleNodeActivate = (selection) => {
+  const resolved = resolveNodeSelection(selection, nodeMap.value);
+  if (!resolved?.nodeId) {
+    return;
+  }
+
+  selectedNode.value = resolved;
+  panelOpen.value = true;
+};
+
+const closeNodePanel = () => {
+  panelOpen.value = false;
+};
+
+const saveNodeContext = async (nodeContext) => {
+  if (!selectedFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
+    return;
+  }
+
+  savingContext.value = true;
+  try {
+    const updatedRecord = await saveFlowchartNodeContext(
+      selectedFlowchart.value.flowchartId,
+      selectedNode.value.nodeId,
+      selectedNode.value.label,
+      nodeContext
+    );
+    flowcharts.value = upsertFlowchartRecord(flowcharts.value, normalizeFlowchartRecord(updatedRecord, selectedFlowchart.value.flowchartId));
+  } catch (err) {
+    console.error('Error saving node context:', err);
+  } finally {
+    savingContext.value = false;
+  }
+};
+
+const refineFromNode = async (nodeContext) => {
+  if (!selectedFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
+    return;
+  }
+
+  refiningFlowchart.value = true;
+  try {
+    const updatedRecord = await refineFlowchartNode({
+      flowchartId: selectedFlowchart.value.flowchartId,
+      vehicle: selectedFlowchart.value.vehicle,
+      issues: selectedFlowchart.value.issues,
+      responses: selectedFlowchart.value.responses,
+      mermaidCode: selectedFlowchart.value.mermaidCode,
+      nodeId: selectedNode.value.nodeId,
+      nodeLabel: selectedNode.value.label,
+      nodeContext
+    });
+    const normalizedRecord = normalizeFlowchartRecord(updatedRecord, selectedFlowchart.value.flowchartId);
+    flowcharts.value = upsertFlowchartRecord(flowcharts.value, normalizedRecord);
+    selectedFlowchartId.value = normalizedRecord.flowchartId;
+    await getDiagram(normalizedRecord);
+    panelOpen.value = false;
+  } catch (err) {
+    console.error('Error refining flowchart:', err);
+  } finally {
+    refiningFlowchart.value = false;
+  }
+};
 </script>
 
 <template>
@@ -152,31 +234,31 @@ onMounted(async () => {
               <div class="carousel-container" ref="carouselScroll">
                 <div 
                   v-for="(flowchart, idx) in flowcharts" 
-                  :key="idx"
+                  :key="flowchart.flowchartId"
                   class="thumbnail-card"
-                  :class="{ selected: selectedIndex === idx }"
-                  @click="selectFlowchart(idx)"
+                  :class="{ selected: selectedFlowchartId === flowchart.flowchartId }"
+                  @click="selectFlowchart(flowchart.flowchartId)"
                 >
                   <i
                     class="pi pi-trash delete-icon"
-                    @click="removeFlowchart(idx, $event)"
+                    @click="removeFlowchart(flowchart.flowchartId, $event)"
                     title="Delete flowchart"
                   ></i>
                   
-                  <div v-if="loading[idx]" class="thumbnail-loading">
+                  <div v-if="loading[flowchart.flowchartId]" class="thumbnail-loading">
                     <div class="spinner"></div>
                   </div>
-                  <div v-else-if="error[idx]" class="thumbnail-error">
+                  <div v-else-if="error[flowchart.flowchartId]" class="thumbnail-error">
                     Error
                   </div>
-                  <div v-else v-html="thumbnailSvg[idx]" class="thumbnail-svg"></div>
+                  <div v-else v-html="thumbnailSvg[flowchart.flowchartId]" class="thumbnail-svg"></div>
                   
                   <div class="thumbnail-info">
                     <div class="thumbnail-title">
-                      {{ getVehicleCardTitle(vehicles[idx]) }}
+                      {{ getVehicleCardTitle(flowchart.vehicle) }}
                     </div>
-                    <div v-if="getVehicleCardSubtitle(vehicles[idx])" class="thumbnail-subtitle">
-                      {{ getVehicleCardSubtitle(vehicles[idx]) }}
+                    <div v-if="getVehicleCardSubtitle(flowchart.vehicle)" class="thumbnail-subtitle">
+                      {{ getVehicleCardSubtitle(flowchart.vehicle) }}
                     </div>
                   </div>
                 </div>
@@ -196,12 +278,13 @@ onMounted(async () => {
               <div class="flowchart-header">
                 <h2>{{ getVehicleDisplayName(selectedFlowchart.vehicle) }}</h2>
                 <p><strong>Issues:</strong> {{ selectedFlowchart.issues }}</p>
+                <p class="flowchart-context-hint">Click any node to add context and refine a more specific downstream branch.</p>
               </div>
 
               <div v-if="selectedFlowchart.responses" class="responses-section">
                 <div v-for="(response, idx) in selectedFlowchart.responses" :key="idx" class="response-item">
                   <strong>{{ response.question }}</strong><br/>
-                  {{ response.option }}
+                  {{ response.answer }}
                 </div>
               </div>
 
@@ -217,12 +300,24 @@ onMounted(async () => {
                 :svg="selectedFlowchart.svg"
                 :title="getVehicleDisplayName(selectedFlowchart.vehicle)"
                 embedded-height="42rem"
+                @node-activate="handleNodeActivate"
               />
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <NodeContextPanel
+      :open="panelOpen"
+      :node="selectedNode"
+      :context="currentNodeContext"
+      :saving="savingContext"
+      :refining="refiningFlowchart"
+      @close="closeNodePanel"
+      @save="saveNodeContext"
+      @refine="refineFromNode"
+    />
   </div>
 </template>
 
