@@ -100,22 +100,18 @@ async function addCarToDatabase(vehicle) {
             data-aos="fade-up"
             data-aos-delay="0"
             :style="[{ color: themeColor }]"
-            >Vehicle Information</span
+            ></span
           >
           <h3 class="heading mb-4" data-aos="fade-up" data-aos-delay="100">
             {{ service1SubHeading }}
           </h3>
           <div class="mb-4" data-aos="fade-up" data-aos-delay="200">
             <p>
-              Please ensure all fields are filled out accurately to help us provide the best results possible. 
-              Don't know your vehicle details? No worries! You can find this information on your vehicle's registration document or insurance card.
-              If you're still unsure, you can visit the site below to decode your vehicle's identification number(VIN).
+              Please ensure all fields are filled out accurately to help us provide the best results possible.
+              Don’t know your vehicle details? No worries! You can find this information on your vehicle’s registration document or insurance card.
+              If you’re still unsure, simply enter your vehicle’s identification number (VIN), 
+              and the system will automatically retrieve your vehicle’s information for you.
             </p>
-            <div style="margin-left: 1.2em; margin-bottom: 1.2em;">
-              <a href="https://vpic.nhtsa.dot.gov/decoder/" target="_blank" rel="noopener" style="text-decoration: underline; color: #007bff;">
-                NHTSA's free VIN decoder
-              </a>
-            </div>
             <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
             <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model">
               <button class="btn btn-primary submit-btn" @click="submitVehicle" :disabled="saving">
