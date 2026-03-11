@@ -6,7 +6,7 @@ import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
 import NodeContextPanel from './NodeContextPanel.vue';
-import { buildMermaidNodeMap, normalizeFlowchartRecord, resolveNodeSelection, upsertFlowchartRecord } from '../flowchart-utils.js';
+import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection, upsertFlowchartRecord } from '../flowchart-utils.js';
 
 const flowcharts = ref([]);
 const flowchartSvg = ref({});
@@ -66,14 +66,16 @@ const getDiagram = async (flowchartObj) => {
   try {
     const code = flowchartObj.mermaidCode;
     if (!code) throw new Error('This saved flowchart does not contain valid Mermaid data yet.');
-    await mermaid.parse(code);
+    const renderCode = prepareMermaidForRender(code);
+    await mermaid.parse(renderCode);
     
     // Generate full-size flowchart
-    const { svg } = await mermaid.render(`flowchart-${flowchartId}`, code);
+    const { svg } = await mermaid.render(`flowchart-${flowchartId}`, renderCode);
     flowchartSvg.value = { ...flowchartSvg.value, [flowchartId]: svg };
     
     // Generate thumbnail (same SVG, will be styled smaller)
-    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${flowchartId}`, code);
+    const thumbnailCode = prepareMermaidForRender(code, { wrapAt: 18 });
+    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${flowchartId}`, thumbnailCode);
     thumbnailSvg.value = { ...thumbnailSvg.value, [flowchartId]: thumbSvg };
   } catch (err) {
     error.value = { ...error.value, [flowchartId]: err.message };

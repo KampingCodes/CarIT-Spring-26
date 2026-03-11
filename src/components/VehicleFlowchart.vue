@@ -10,6 +10,7 @@ import {
   buildMermaidNodeMap,
   normalizeDiagnosticResponses,
   normalizeFlowchartRecord,
+  prepareMermaidForRender,
   resolveNodeSelection
 } from '../flowchart-utils.js';
 
@@ -60,8 +61,9 @@ const renderDiagram = async (mermaidCode) => {
     throw new Error('Mermaid code block not found');
   }
 
-  await mermaid.parse(mermaidCode);
-  const { svg } = await mermaid.render(`diagnostic-flowchart-${Date.now()}`, mermaidCode);
+  const renderCode = prepareMermaidForRender(mermaidCode);
+  await mermaid.parse(renderCode);
+  const { svg } = await mermaid.render(`diagnostic-flowchart-${Date.now()}`, renderCode);
   flowchartSvg.value = svg;
 };
 

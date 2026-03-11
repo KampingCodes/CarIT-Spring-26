@@ -632,6 +632,19 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 
+.flowchart-viewer__stage :deep(foreignObject) {
+  overflow: visible;
+}
+
+.flowchart-viewer__stage :deep(foreignObject div),
+.flowchart-viewer__stage :deep(foreignObject span),
+.flowchart-viewer__stage :deep(foreignObject p) {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  word-break: break-word;
+}
+
 .flowchart-viewer__stage :deep(.flowchart-node--interactive) {
   cursor: pointer;
 }

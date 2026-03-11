@@ -138,6 +138,19 @@ export function sortFlowchartsByUpdatedAt(flowcharts = []) {
   });
 }
 
+export function prepareMermaidForRender(mermaidCode = '', options = {}) {
+  if (typeof mermaidCode !== 'string' || !mermaidCode.trim()) {
+    return mermaidCode;
+  }
+
+  const { wrapAt = 24 } = options;
+
+  return mermaidCode
+    .split('\n')
+    .map((line) => wrapMermaidLine(line, wrapAt))
+    .join('\n');
+}
+
 function normalizeText(value) {
   if (typeof value !== 'string') {
     return '';
@@ -170,4 +183,49 @@ function normalizeNodeContexts(nodeContexts = {}) {
       })
       .filter(Boolean)
   );
+}
+
+function wrapMermaidLine(line, wrapAt) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('graph ')) {
+    return line;
+  }
+
+  return line
+    .replace(/\(\[(.*?)\]\)/g, (_, label) => `([${wrapLabelText(label, wrapAt)}])`)
+    .replace(/\[(.*?)\]/g, (_, label) => `[${wrapLabelText(label, wrapAt)}]`)
+    .replace(/\{(.*?)\}/g, (_, label) => `{${wrapLabelText(label, Math.max(16, wrapAt - 4))}}`)
+    .replace(/\((?!\[)(.*?)\)/g, (_, label) => `(${wrapLabelText(label, wrapAt)})`);
+}
+
+function wrapLabelText(label, wrapAt) {
+  const normalized = normalizeText(String(label).replace(/<br\s*\/?>/gi, ' '));
+  if (!normalized || normalized.length <= wrapAt) {
+    return normalized;
+  }
+
+  const words = normalized.split(' ');
+  const lines = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    if (!currentLine) {
+      currentLine = word;
+      continue;
+    }
+
+    if (`${currentLine} ${word}`.length > wrapAt) {
+      lines.push(currentLine);
+      currentLine = word;
+      continue;
+    }
+
+    currentLine = `${currentLine} ${word}`;
+  }
+
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+
+  return lines.join('<br/>');
 }
