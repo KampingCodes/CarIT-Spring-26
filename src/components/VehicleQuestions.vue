@@ -15,8 +15,13 @@ const loading = ref(false)
 const error = ref(null)
 const questions = ref([])
 const userAnswers = ref({})
+const customAnswers = ref({})
 
-const canProceed = computed(() => questions.value.every(q => userAnswers.value[q.id]))
+const canProceed = computed(() => 
+  questions.value.every(q => 
+    userAnswers.value[q.id] || customAnswers.value[q.id]?.trim()
+  )
+)
 
 const handleAnswer = (questionId, optionId) => {
   userAnswers.value[questionId] = optionId
@@ -42,11 +47,19 @@ const getFeedback = async () => {
 const proceedToFlowchart = () => {
   if (!canProceed.value) return
 
-  const answers = Object.entries(userAnswers.value).map(([questionId, optionId]) => {
-    const question = questions.value.find(q => q.id === questionId)
-    const option = question.options.find(opt => opt.id === optionId)
-    return { question: question.text, option: option.text }
-  });
+  const answers = questions.value.map(question => {
+    // Use custom answer if provided, otherwise use selected option
+    if (customAnswers.value[question.id]?.trim()) {
+      return { 
+        question: question.text, 
+        option: customAnswers.value[question.id].trim() 
+      }
+    } else {
+      const optionId = userAnswers.value[question.id]
+      const option = question.options.find(opt => opt.id === optionId)
+      return { question: question.text, option: option.text }
+    }
+  })
 
   const encodedAnswers = JSON.stringify(answers)
   router.push({
@@ -84,6 +97,16 @@ onMounted(getFeedback)
             >
               {{ opt.text }}
             </div>
+          </div>
+          <div class="custom-answer-section">
+            <p class="custom-label">Or enter a custom answer:</p>
+            <input
+              type="text"
+              v-model="customAnswers[q.id]"
+              :placeholder="`Enter custom answer for: ${q.text}`"
+              class="custom-input"
+              @input="userAnswers[q.id] = null"
+            />
           </div>
         </div>
         <button @click="proceedToFlowchart" :disabled="!canProceed" class="btn btn-primary mt-4">
@@ -153,5 +176,39 @@ onMounted(getFeedback)
   border: 1px solid #dc3545;
   border-radius: 4px;
   margin-top: 10px;
+}
+
+.custom-answer-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.custom-label {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 8px;
+  font-style: italic;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.custom-input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.custom-input::placeholder {
+  color: #999;
 }
 </style>
