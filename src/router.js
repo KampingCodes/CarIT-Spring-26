@@ -19,7 +19,7 @@ import FlowchartPage from './components/FlowchartPage.vue';
 // Set up routes that are going to be used by RouterView
 const routes = [
   { path: '/', name: 'Home', component: Home },
-  { path: '/service1', name: 'Service1', component: VehicleInfo },
+  { path: '/VehicleInfo', name: 'VehicleInfo', component: VehicleInfo },
   { path: '/problemdescription', name: 'ProblemDescription', component: ProblemDesc },
   { path: '/features', name: 'Features', component: Features },
   { path: '/login', name: 'Login', component: Login },

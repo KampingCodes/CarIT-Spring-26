@@ -35,7 +35,7 @@ const buttonTry = "Start";
               </div>
               <p data-aos="fade-up" data-aos-delay="0">
                 <RouterLink
-                  to="/service1"
+                  to="/VehicleInfo"
                   class="btn btn-primary"
                   style="margin-right: 5px"
                   :style="[
