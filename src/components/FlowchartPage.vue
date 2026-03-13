@@ -1,12 +1,12 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import 'primeicons/primeicons.css';
-import { deleteFlowchart, getSavedFlowcharts, refineFlowchartNode, saveFlowchartNodeContext } from '../apis';
+import { deleteFlowchart, getSavedFlowcharts } from '../apis';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
 import NodeContextPanel from './NodeContextPanel.vue';
-import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection, upsertFlowchartRecord } from '../flowchart-utils.js';
+import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection } from '../flowchart-utils.js';
 
 const flowcharts = ref([]);
 const flowchartSvg = ref({});
@@ -18,8 +18,6 @@ const carouselScroll = ref(null);
 const confirmDialog = ref(null);
 const selectedNode = ref(null);
 const panelOpen = ref(false);
-const savingContext = ref(false);
-const refiningFlowchart = ref(false);
 
 const selectedFlowchart = computed(() => {
   if (flowcharts.value.length === 0) return null;
@@ -35,10 +33,6 @@ const selectedFlowchart = computed(() => {
 });
 
 const nodeMap = computed(() => buildMermaidNodeMap(selectedFlowchart.value?.mermaidCode || ''));
-const currentNodeContext = computed(() => {
-  const nodeId = selectedNode.value?.nodeId;
-  return nodeId ? selectedFlowchart.value?.nodeContexts?.[nodeId] || {} : {};
-});
 
 const getVehicleDisplayName = (vehicle = {}) => {
   const { year, make, model, trim } = vehicle || {};
@@ -155,56 +149,6 @@ const handleNodeActivate = (selection) => {
 const closeNodePanel = () => {
   panelOpen.value = false;
 };
-
-const saveNodeContext = async (nodeContext) => {
-  if (!selectedFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
-    return;
-  }
-
-  savingContext.value = true;
-  try {
-    const updatedRecord = await saveFlowchartNodeContext(
-      selectedFlowchart.value.flowchartId,
-      selectedNode.value.nodeId,
-      selectedNode.value.label,
-      nodeContext
-    );
-    flowcharts.value = upsertFlowchartRecord(flowcharts.value, normalizeFlowchartRecord(updatedRecord, selectedFlowchart.value.flowchartId));
-  } catch (err) {
-    console.error('Error saving node context:', err);
-  } finally {
-    savingContext.value = false;
-  }
-};
-
-const refineFromNode = async (nodeContext) => {
-  if (!selectedFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
-    return;
-  }
-
-  refiningFlowchart.value = true;
-  try {
-    const updatedRecord = await refineFlowchartNode({
-      flowchartId: selectedFlowchart.value.flowchartId,
-      vehicle: selectedFlowchart.value.vehicle,
-      issues: selectedFlowchart.value.issues,
-      responses: selectedFlowchart.value.responses,
-      mermaidCode: selectedFlowchart.value.mermaidCode,
-      nodeId: selectedNode.value.nodeId,
-      nodeLabel: selectedNode.value.label,
-      nodeContext
-    });
-    const normalizedRecord = normalizeFlowchartRecord(updatedRecord, selectedFlowchart.value.flowchartId);
-    flowcharts.value = upsertFlowchartRecord(flowcharts.value, normalizedRecord);
-    selectedFlowchartId.value = normalizedRecord.flowchartId;
-    await getDiagram(normalizedRecord);
-    panelOpen.value = false;
-  } catch (err) {
-    console.error('Error refining flowchart:', err);
-  } finally {
-    refiningFlowchart.value = false;
-  }
-};
 </script>
 
 <template>
@@ -280,7 +224,7 @@ const refineFromNode = async (nodeContext) => {
               <div class="flowchart-header">
                 <h2>{{ getVehicleDisplayName(selectedFlowchart.vehicle) }}</h2>
                 <p><strong>Issues:</strong> {{ selectedFlowchart.issues }}</p>
-                <p class="flowchart-context-hint">Click any node to add context and refine a more specific downstream branch.</p>
+                <p class="flowchart-context-hint">Click any node to open the example popup.</p>
               </div>
 
               <div v-if="selectedFlowchart.responses" class="responses-section">
@@ -313,12 +257,7 @@ const refineFromNode = async (nodeContext) => {
     <NodeContextPanel
       :open="panelOpen"
       :node="selectedNode"
-      :context="currentNodeContext"
-      :saving="savingContext"
-      :refining="refiningFlowchart"
       @close="closeNodePanel"
-      @save="saveNodeContext"
-      @refine="refineFromNode"
     />
   </div>
 </template>

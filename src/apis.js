@@ -7,16 +7,33 @@ async function serverGet(endpoint, params) {
   const userid = getUserID();
   const config = { headers: { Authorization: `bearer ${token}`, userid } };
   if (params) config.params = params;
-  const response = await axios.get(url, config);
-  return response.data;
+  try {
+    const response = await axios.get(url, config);
+    return response.data;
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 }
 
 async function serverPost(endpoint, data) {
   const url = `http://localhost:3000/api/${endpoint}`;
   const token = await getToken();
   const userid = getUserID();
-  const response = await axios.post(url, data, { headers: { Authorization: `Bearer ${token}`, userid } });
-  return response.data;
+  try {
+    const response = await axios.post(url, data, { headers: { Authorization: `Bearer ${token}`, userid } });
+    return response.data;
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
+}
+
+function normalizeApiError(err) {
+  const message = err?.response?.data?.message || err?.message || 'Request failed';
+  const normalizedError = new Error(message);
+  normalizedError.status = err?.response?.status || err?.status || 500;
+  normalizedError.retryAfterSeconds = err?.response?.data?.retryAfterSeconds || null;
+  normalizedError.cause = err;
+  return normalizedError;
 }
 
 export async function getResponse(contents) {
@@ -29,14 +46,6 @@ export async function getQuestions(vehicle, issues) {
 
 export async function getFlowchart(vehicle, issues, responses) {
   return serverPost('gen-flowchart', { vehicle, issues, responses });
-}
-
-export async function saveFlowchartNodeContext(flowchartId, nodeId, nodeLabel, nodeContext) {
-  return serverPost('save-flowchart-node-context', { flowchartId, nodeId, nodeLabel, nodeContext });
-}
-
-export async function refineFlowchartNode(payload) {
-  return serverPost('refine-flowchart-node', payload);
 }
 
 export async function getSavedFlowcharts() {

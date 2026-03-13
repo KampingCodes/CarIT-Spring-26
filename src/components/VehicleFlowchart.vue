@@ -3,7 +3,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
-import { getFlowchart, refineFlowchartNode, saveFlowchartNodeContext } from '../apis.js';
+import { getFlowchart } from '../apis.js';
 import FlowchartViewer from './FlowchartViewer.vue';
 import NodeContextPanel from './NodeContextPanel.vue';
 import {
@@ -32,16 +32,10 @@ const error = ref(null);
 const currentFlowchart = ref(null);
 const selectedNode = ref(null);
 const panelOpen = ref(false);
-const savingContext = ref(false);
-const refiningFlowchart = ref(false);
 
 const answers = ref(parseAnswers(route.query.answers));
 
 const nodeMap = computed(() => buildMermaidNodeMap(currentFlowchart.value?.mermaidCode || ''));
-const currentNodeContext = computed(() => {
-  const nodeId = selectedNode.value?.nodeId;
-  return nodeId ? currentFlowchart.value?.nodeContexts?.[nodeId] || {} : {};
-});
 
 const getVehicleDisplayName = (vehicleDetails = {}) => {
   const parts = [vehicleDetails.year, vehicleDetails.make, vehicleDetails.model, vehicleDetails.trim].filter(Boolean);
@@ -97,58 +91,6 @@ const closeNodePanel = () => {
   panelOpen.value = false;
 };
 
-const saveNodeContext = async (nodeContext) => {
-  if (!currentFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
-    return;
-  }
-
-  savingContext.value = true;
-  error.value = null;
-
-  try {
-    const updatedRecord = await saveFlowchartNodeContext(
-      currentFlowchart.value.flowchartId,
-      selectedNode.value.nodeId,
-      selectedNode.value.label,
-      nodeContext
-    );
-    currentFlowchart.value = normalizeFlowchartRecord(updatedRecord, currentFlowchart.value.flowchartId);
-  } catch (err) {
-    error.value = err?.message || 'Unable to save node context';
-  } finally {
-    savingContext.value = false;
-  }
-};
-
-const refineFromNode = async (nodeContext) => {
-  if (!currentFlowchart.value?.flowchartId || !selectedNode.value?.nodeId) {
-    return;
-  }
-
-  refiningFlowchart.value = true;
-  error.value = null;
-
-  try {
-    const updatedRecord = await refineFlowchartNode({
-      flowchartId: currentFlowchart.value.flowchartId,
-      vehicle: currentFlowchart.value.vehicle,
-      issues: currentFlowchart.value.issues,
-      responses: currentFlowchart.value.responses,
-      mermaidCode: currentFlowchart.value.mermaidCode,
-      nodeId: selectedNode.value.nodeId,
-      nodeLabel: selectedNode.value.label,
-      nodeContext
-    });
-    currentFlowchart.value = normalizeFlowchartRecord(updatedRecord, currentFlowchart.value.flowchartId);
-    await renderDiagram(currentFlowchart.value.mermaidCode);
-    panelOpen.value = false;
-  } catch (err) {
-    error.value = err?.message || 'Unable to refine flowchart';
-  } finally {
-    refiningFlowchart.value = false;
-  }
-};
-
 const goBack = () => {
   router.push({ path: '/vehicle-questions', query: route.query });
 };
@@ -188,7 +130,7 @@ function parseAnswers(encodedAnswers) {
             <div class="flowchart-card-header">
               <div>
                 <h3>Diagnostic Flowchart</h3>
-                <p class="flowchart-helper-text">Click or keyboard-select any node to add context and refine the next branch.</p>
+                <p class="flowchart-helper-text">Click or keyboard-select any node to open the example popup.</p>
               </div>
             </div>
 
@@ -212,12 +154,7 @@ function parseAnswers(encodedAnswers) {
   <NodeContextPanel
     :open="panelOpen"
     :node="selectedNode"
-    :context="currentNodeContext"
-    :saving="savingContext"
-    :refining="refiningFlowchart"
     @close="closeNodePanel"
-    @save="saveNodeContext"
-    @refine="refineFromNode"
   />
 </template>
 

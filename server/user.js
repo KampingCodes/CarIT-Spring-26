@@ -200,17 +200,22 @@ export async function updateFlowchartNodeContext(userid, flowchartId, nodeId, no
     return "Flowchart not found";
   }
 
+  const updatedAt = new Date().toISOString();
+
   flowchart.nodeContexts = {
     ...normalizeNodeContexts(flowchart.nodeContexts),
     [nodeId]: {
       ...(flowchart.nodeContexts?.[nodeId] || {}),
       ...nodeContext,
       nodeId,
-      updatedAt: nodeContext.updatedAt || new Date().toISOString()
+      updatedAt: nodeContext.updatedAt || updatedAt
     }
   };
 
-  await collection.updateOne({ _id: userid }, { $set: { flowcharts } });
+  flowchart.updatedAt = updatedAt;
+
+  const sortedFlowcharts = sortFlowchartsByUpdatedAt(flowcharts);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: sortedFlowcharts } });
   return flowchart;
 }
 

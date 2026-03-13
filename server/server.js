@@ -7,11 +7,7 @@ import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, delet
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
-import {
-  generateInitialFlowchartForUser,
-  refineFlowchartFromNode,
-  saveFlowchartNodeContextForUser
-} from './flowchartRefinement.js';
+import { generateInitialFlowchartForUser } from './flowchartGeneration.js';
 
 // const options = {
 //   key: fs.readFileSync('CARIT_PRIVATEKEY.key'),
@@ -36,6 +32,42 @@ const validateAuth = auth({
   audience: process.env.AUTH0_AUDIENCE,
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}/`,
 });
+
+function sendApiError(res, err, fallbackMessage) {
+  const status = Number(err?.status) || 500;
+  const retryAfterSeconds = getRetryAfterSeconds(err);
+  const isQuotaError = status === 429;
+  const message = isQuotaError
+    ? `AI request limit reached. Please wait ${retryAfterSeconds ? `${retryAfterSeconds} seconds` : 'a bit'} and try again.`
+    : err?.message || fallbackMessage;
+
+  if (retryAfterSeconds) {
+    res.set('Retry-After', String(retryAfterSeconds));
+  }
+
+  return res.status(isQuotaError ? 429 : status).json({
+    success: false,
+    message,
+    retryAfterSeconds: retryAfterSeconds || null
+  });
+}
+
+function getRetryAfterSeconds(err) {
+  const retryDelay = err?.errorDetails
+    ?.find((detail) => detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')
+    ?.retryDelay;
+
+  if (typeof retryDelay !== 'string') {
+    return null;
+  }
+
+  const match = retryDelay.match(/(\d+(?:\.\d+)?)s/i);
+  if (!match) {
+    return null;
+  }
+
+  return Math.max(1, Math.ceil(Number(match[1])));
+}
 
 /**
  * Start the server
@@ -78,37 +110,7 @@ const validateAuth = auth({
       res.json(flowchartRecord);
     } catch (err) {
       console.error('Error generating flowchart:', err);
-      res.status(500).json({ success: false, message: err?.message || String(err) });
-    }
-  });
-
-  app.post('/api/save-flowchart-node-context', validateAuth, async (req, res) => {
-    try {
-      const { flowchartId, nodeId, nodeLabel, nodeContext } = req.body;
-      const updatedFlowchart = await saveFlowchartNodeContextForUser({
-        userid: req.headers.userid,
-        flowchartId,
-        nodeId,
-        nodeLabel,
-        nodeContext
-      });
-      res.json(updatedFlowchart);
-    } catch (err) {
-      console.error('Error saving flowchart node context:', err);
-      res.status(500).json({ success: false, message: err?.message || String(err) });
-    }
-  });
-
-  app.post('/api/refine-flowchart-node', validateAuth, async (req, res) => {
-    try {
-      const updatedFlowchart = await refineFlowchartFromNode({
-        userid: req.headers.userid,
-        ...req.body
-      });
-      res.json(updatedFlowchart);
-    } catch (err) {
-      console.error('Error refining flowchart node:', err);
-      res.status(500).json({ success: false, message: err?.message || String(err) });
+      sendApiError(res, err, 'Unable to generate flowchart');
     }
   });
 
