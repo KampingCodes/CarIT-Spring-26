@@ -224,7 +224,6 @@ const closeNodePanel = () => {
               <div class="flowchart-header">
                 <h2>{{ getVehicleDisplayName(selectedFlowchart.vehicle) }}</h2>
                 <p><strong>Issues:</strong> {{ selectedFlowchart.issues }}</p>
-                <p class="flowchart-context-hint">Click any node to open the example popup.</p>
               </div>
 
               <div v-if="selectedFlowchart.responses" class="responses-section">
