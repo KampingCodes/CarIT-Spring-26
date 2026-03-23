@@ -14,7 +14,7 @@ import { logout, login, authState } from '../auth.js'
           <li :class="{ active: $route.path === '/' }">
             <RouterLink to="/" class="nav-link">Home</RouterLink>
           </li>
-          <li :class="{ active: $route.path === '/service1' }"><RouterLink to="/service1" class="nav-link">Start</RouterLink></li>
+          <li :class="{ active: $route.path === '/VehicleInfo' }"><RouterLink to="/VehicleInfo" class="nav-link">Start</RouterLink></li>
           <li :class="{ active: $route.path === '/features' }"><RouterLink to="/features" class="nav-link">Features</RouterLink></li>
           <li :class="{ active: $route.path === '/aboutus' }"><RouterLink to="/aboutus" class="nav-link">About us</RouterLink></li>
           <li v-if="lI" :class="{ active: $route.path === '/flowcharts' }"><RouterLink to="/flowcharts" class="nav-link">Your Flowcharts</RouterLink></li>

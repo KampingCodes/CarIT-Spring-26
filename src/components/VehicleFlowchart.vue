@@ -23,6 +23,11 @@ const flowchartSvg = ref('');
 const loading = ref(false);
 const error = ref(null);
 
+const getVehicleDisplayName = (vehicleDetails = {}) => {
+  const parts = [vehicleDetails.year, vehicleDetails.make, vehicleDetails.model, vehicleDetails.trim].filter(Boolean);
+  return parts.join(' ') || 'Unknown vehicle';
+};
+
 const initializeMermaid = () => {
   mermaid.initialize({
     startOnLoad: false,
@@ -65,7 +70,7 @@ onMounted(() => {
     <div class="container">
       <div class="flowchart-page-shell">
         <h2>Vehicle Help</h2>
-        <p><strong>Vehicle:</strong> {{ vehicle.make || 'Unknown' }} {{ vehicle.model || '' }} ({{ vehicle.year || '' }})</p>
+        <p><strong>Vehicle:</strong> {{ getVehicleDisplayName(vehicle) }}</p>
         <p><strong>Issues submitted:</strong> {{ issues }}</p>
         <div class="flowchart-page-content">
           <div class="flowchart-viewer-card">
@@ -75,7 +80,7 @@ onMounted(() => {
             <FlowchartViewer
               v-else
               :svg="flowchartSvg"
-              :title="`${vehicle.make || 'Unknown'} ${vehicle.model || ''} ${vehicle.year ? `(${vehicle.year})` : ''}`.trim()"
+              :title="getVehicleDisplayName(vehicle)"
               embedded-height="40rem"
             />
             <button @click="goBack" class="btn btn-secondary mt-4">Back to Questions</button>

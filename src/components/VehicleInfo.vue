@@ -95,20 +95,23 @@ async function addCarToDatabase(vehicle) {
     <div class="container">
       <div class="row justify-content-between">
         <div class="col-lg-4">
+          <span
+            class="caption"
+            data-aos="fade-up"
+            data-aos-delay="0"
+            :style="[{ color: themeColor }]"
+            ></span
+          >
           <h3 class="heading mb-4" data-aos="fade-up" data-aos-delay="100">
             {{ service1SubHeading }}
           </h3>
           <div class="mb-4" data-aos="fade-up" data-aos-delay="200">
             <p>
-              Please ensure all fields are filled out accurately to help us provide the best results possible. 
-              Don't know your vehicle details? No worries! You can find this information on your vehicle's registration document or insurance card.
-              If you're still unsure, you can visit the site below to decode your vehicle's identification number(VIN).
+              Please ensure all fields are filled out accurately to help us provide the best results possible.
+              Don’t know your vehicle details? No worries! You can find this information on your vehicle’s registration document or insurance card.
+              If you’re still unsure, simply enter your vehicle’s identification number (VIN), 
+              and the system will automatically retrieve your vehicle’s information for you.
             </p>
-            <div style="margin-left: 1.2em; margin-bottom: 1.2em;">
-              <a href="https://vpic.nhtsa.dot.gov/decoder/" target="_blank" rel="noopener" style="text-decoration: underline; color: #007bff;">
-                NHTSA's free VIN decoder
-              </a>
-            </div>
             <div v-if="errorMessage" class="alert alert-danger">{{ errorMessage }}</div>
             <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model">
               <button class="btn btn-primary submit-btn" @click="submitVehicle" :disabled="saving">
@@ -118,21 +121,21 @@ async function addCarToDatabase(vehicle) {
           </div>
         </div>
         <div class="col-lg-7" data-aos="fade-up" data-aos-delay="400">
-          <div class="vehicle-selector p-4 rounded shadow bg-light">
+          <!-- Garage picker for logged-in users -->
+          <div v-if="authState.isAuthenticated" class="garage-picker">
+            <MyGarage ref="garageRef" :selectable="true" @select="onGarageSelect" />
+            <div class="divider-text mt-3">
+              <span>or enter a new vehicle</span>
+            </div>
+          </div>
+
+          <div class="vehicle-selector">
             <h5 class="mb-3">Select Your Vehicle</h5>
             <VehicleSelector v-model="vehicleForm" />
             <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model" class="alert alert-success mt-3">
               <strong>Selected Vehicle:</strong><br />
               {{ vehicleForm.year }} {{ vehicleForm.make }} {{ vehicleForm.model }} {{ vehicleForm.trim }}
             </div>
-          </div>
-
-          <!-- Garage picker for logged-in users -->
-          <div v-if="authState.isAuthenticated" class="garage-picker mt-3">
-            <div class="divider-text">
-              <span>or pick from your garage</span>
-            </div>
-            <MyGarage ref="garageRef" :selectable="true" @select="onGarageSelect" />
           </div>
         </div>
       </div>
@@ -185,14 +188,13 @@ async function addCarToDatabase(vehicle) {
 }
 
 .vehicle-selector {
-  background: #fff;
-  border-radius: 1rem;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.07);
-  padding: 2rem 2rem 1.5rem 2rem;
-  margin-top: 1.5rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  padding: 24px;
 }
 .vehicle-selector h5 {
-  color: var(--primary, #0d6efd);
+  color: #2c3e50;
   font-weight: 600;
   margin-bottom: 1.5rem;
 }
@@ -229,7 +231,7 @@ async function addCarToDatabase(vehicle) {
 }
 
 .garage-picker {
-  padding-top: 0.5rem;
+  padding-top: 0;
 }
 
 .divider-text {

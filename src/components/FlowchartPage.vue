@@ -29,6 +29,24 @@ const selectedFlowchart = computed(() => {
   };
 });
 
+const getVehicleDisplayName = (vehicle = {}) => {
+  const { year, make, model, trim } = vehicle || {};
+  const base = [year, make, model].filter(Boolean).join(' ');
+  if (base && trim) return `${base} - ${trim}`;
+  if (base) return base;
+  return trim || 'Unknown vehicle';
+};
+
+const getVehicleCardTitle = (vehicle = {}) => {
+  const parts = [vehicle.make, vehicle.model].filter(Boolean);
+  return parts.join(' ') || 'Unknown vehicle';
+};
+
+const getVehicleCardSubtitle = (vehicle = {}) => {
+  const parts = [vehicle.year, vehicle.trim].filter(Boolean);
+  return parts.join(' - ');
+};
+
 const getDiagram = async (flowchartObj, idx) => {
   loading.value[idx] = true;
   error.value[idx] = null;
@@ -155,10 +173,10 @@ onMounted(async () => {
                   
                   <div class="thumbnail-info">
                     <div class="thumbnail-title">
-                      {{ vehicles[idx]?.make }} {{ vehicles[idx]?.model }}
+                      {{ getVehicleCardTitle(vehicles[idx]) }}
                     </div>
-                    <div class="thumbnail-subtitle">
-                      {{ vehicles[idx]?.year }}
+                    <div v-if="getVehicleCardSubtitle(vehicles[idx])" class="thumbnail-subtitle">
+                      {{ getVehicleCardSubtitle(vehicles[idx]) }}
                     </div>
                   </div>
                 </div>
@@ -176,11 +194,7 @@ onMounted(async () => {
             <!-- Selected Flowchart Display -->
             <div v-if="selectedFlowchart" class="selected-flowchart-section">
               <div class="flowchart-header">
-                <h2>
-                  {{ selectedFlowchart.vehicle?.make || 'Unknown' }} 
-                  {{ selectedFlowchart.vehicle?.model || '' }} 
-                  ({{ selectedFlowchart.vehicle?.year || '' }})
-                </h2>
+                <h2>{{ getVehicleDisplayName(selectedFlowchart.vehicle) }}</h2>
                 <p><strong>Issues:</strong> {{ selectedFlowchart.issues }}</p>
               </div>
 
@@ -201,7 +215,7 @@ onMounted(async () => {
               <FlowchartViewer
                 v-else
                 :svg="selectedFlowchart.svg"
-                :title="`${selectedFlowchart.vehicle?.make || 'Unknown'} ${selectedFlowchart.vehicle?.model || ''} ${selectedFlowchart.vehicle?.year ? `(${selectedFlowchart.vehicle.year})` : ''}`.trim()"
+                :title="getVehicleDisplayName(selectedFlowchart.vehicle)"
                 embedded-height="42rem"
               />
             </div>
