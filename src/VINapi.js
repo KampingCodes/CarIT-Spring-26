@@ -86,4 +86,40 @@ async function autoFillVehicleFromVIN(vin) {
     }
 }
 
-export { decodeVIN, extractVehicleFields, autoFillVehicleFromVIN };
+/**
+ * Checks for vehicle recalls from NHTSA
+ * @param {string} make - Vehicle make (e.g., Honda)
+ * @param {string} model - Vehicle model (e.g., Civic)
+ * @param {string} year - Vehicle year (e.g., 2020)
+ * @returns {Promise<Object>} Object with { count: number, recalls: Array }
+ * @throws {Error} If API call fails
+ */
+async function checkRecalls(make, model, year) {
+    try {
+        if (!make || !model || !year) {
+            throw new Error('Make, model, and year are required for recall check');
+        }
+
+        const recallUrl = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`;
+        
+        const response = await fetch(recallUrl);
+        if (!response.ok) {
+            throw new Error(`Recall API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const results = Array.isArray(data?.results) ? data.results : [];
+
+        console.log(`Recall check for ${year} ${make} ${model}: Found ${results.length} recall(s)`);
+
+        return {
+            count: results.length,
+            recalls: results || []
+        };
+    } catch (error) {
+        console.error("Error checking recalls:", error);
+        throw error;
+    }
+}
+
+export { decodeVIN, extractVehicleFields, autoFillVehicleFromVIN, checkRecalls };
