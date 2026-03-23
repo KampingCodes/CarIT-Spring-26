@@ -1,11 +1,25 @@
 import { getToken, getUserID } from './auth.js';
 import axios from 'axios'
 
-async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+async function buildHeaders() {
   const token = await getToken();
   const userid = getUserID();
-  const config = { headers: { Authorization: `bearer ${token}`, userid } };
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (userid) {
+    headers.userid = userid;
+  }
+
+  return headers;
+}
+
+async function serverGet(endpoint, params) {
+  const url = `http://localhost:3000/api/${endpoint}`;
+  const config = { headers: await buildHeaders() };
   if (params) config.params = params;
   try {
     const response = await axios.get(url, config);
@@ -17,10 +31,8 @@ async function serverGet(endpoint, params) {
 
 async function serverPost(endpoint, data) {
   const url = `http://localhost:3000/api/${endpoint}`;
-  const token = await getToken();
-  const userid = getUserID();
   try {
-    const response = await axios.post(url, data, { headers: { Authorization: `Bearer ${token}`, userid } });
+    const response = await axios.post(url, data, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
     throw normalizeApiError(err);
@@ -86,6 +98,10 @@ export async function uploadProfilePicture(base64Image) {
  */
 export async function getCarOptions(filters) {
   return serverGet('car-options', filters);
+}
+
+export async function addCarRecord(vehicle) {
+  return serverPost('cars/add', vehicle);
 }
 
 /**

@@ -429,23 +429,12 @@ export async function getGarage(userid) {
 export async function addToGarage(userid, vehicle) {
   if (!userid || !vehicle) return "Missing required fields";
 
-  const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
-  const carQuery = {
-    year: Number(vehicle.year),
-    make: vehicle.make,
-    model: vehicle.model,
-    trim: vehicle.trim || ""
-  };
-
-  // Find or create the car document (prevent duplicates in Cars collection)
-  let existingCar = await carsCol.findOne(carQuery);
-  let carId;
-  if (existingCar) {
-    carId = existingCar._id;
-  } else {
-    const result = await carsCol.insertOne({ ...carQuery });
-    carId = result.insertedId;
+  const car = await upsertCar(vehicle);
+  if (typeof car === 'string') {
+    return car;
   }
+
+  const carId = new ObjectId(car._id);
 
   // Check if car is already in user's garage (prevent duplicate garage entries)
   const userCol = client.db(DATABASE).collection(USER_COLLECTION);
@@ -455,7 +444,7 @@ export async function addToGarage(userid, vehicle) {
     await userCol.updateOne({ _id: userid }, { $push: { garage: carId } });
   }
 
-  return { _id: carId.toString(), ...carQuery };
+  return car;
 }
 
 /**
@@ -563,6 +552,24 @@ export async function getCarOptions(filters = {}) {
   };
 }
 
+export async function upsertCar(vehicle) {
+  const normalizedVehicle = normalizeVehicleRecord(vehicle);
+
+  if (!normalizedVehicle) {
+    return 'Missing required fields';
+  }
+
+  const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const existingCar = await carsCol.findOne(normalizedVehicle);
+
+  if (existingCar) {
+    return { _id: existingCar._id.toString(), ...normalizedVehicle };
+  }
+
+  const result = await carsCol.insertOne(normalizedVehicle);
+  return { _id: result.insertedId.toString(), ...normalizedVehicle };
+}
+
 /**
  * Increment the crashOut counter for a user
  * Uses atomic $inc operator to avoid race conditions
@@ -599,4 +606,22 @@ export async function incrementCrashOut(userid) {
   const newValue = userDoc.crashOut || 1;
   console.log("incrementCrashOut: Updated crashOut to", newValue);
   return { success: true, crashOut: newValue };
+}
+
+function normalizeVehicleRecord(vehicle) {
+  const year = Number(vehicle?.year);
+  const make = normalizeText(vehicle?.make);
+  const model = normalizeText(vehicle?.model);
+  const trim = normalizeText(vehicle?.trim);
+
+  if (!Number.isInteger(year) || year < 1886 || year > 2999 || !make || !model) {
+    return null;
+  }
+
+  return {
+    year,
+    make,
+    model,
+    trim: trim || ''
+  };
 }

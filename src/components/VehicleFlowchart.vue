@@ -3,6 +3,7 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
+import { authState } from '../auth.js';
 import { getFlowchart } from '../apis.js';
 import FlowchartViewer from './FlowchartViewer.vue';
 import NodeContextPanel from './NodeContextPanel.vue';
@@ -36,6 +37,7 @@ const panelOpen = ref(false);
 const answers = ref(parseAnswers(route.query.answers));
 
 const nodeMap = computed(() => buildMermaidNodeMap(currentFlowchart.value?.mermaidCode || ''));
+const isGuestSession = computed(() => !authState.isAuthenticated || Boolean(currentFlowchart.value?.sessionOnly));
 
 const getVehicleDisplayName = (vehicleDetails = {}) => {
   const parts = [vehicleDetails.year, vehicleDetails.make, vehicleDetails.model, vehicleDetails.trim].filter(Boolean);
@@ -116,6 +118,9 @@ function parseAnswers(encodedAnswers) {
         <h2>Vehicle Help</h2>
         <p><strong>Vehicle:</strong> {{ getVehicleDisplayName(vehicle) }}</p>
         <p><strong>Issues submitted:</strong> {{ issues }}</p>
+        <div v-if="isGuestSession" class="guest-session-banner">
+          Guest flowcharts are temporary and are not added to your saved flowcharts or profile history.
+        </div>
 
         <div v-if="currentFlowchart?.responses?.length" class="responses-section">
           <h3>Diagnostic Answers</h3>
@@ -209,5 +214,14 @@ function parseAnswers(encodedAnswers) {
   border: 1px solid #dc3545;
   border-radius: 4px;
   margin-top: 10px;
+}
+
+.guest-session-banner {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  background: #fff8db;
+  border: 1px solid #ffe08a;
+  color: #725400;
 }
 </style>

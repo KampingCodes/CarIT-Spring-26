@@ -3,7 +3,7 @@ import express from 'express';
 // import fs from 'fs';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
-import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut } from './user.js';
+import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut, upsertCar } from './user.js';
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
@@ -32,6 +32,75 @@ const validateAuth = auth({
   audience: process.env.AUTH0_AUDIENCE,
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}/`,
 });
+
+const guestAiRateLimitStore = new Map();
+const AI_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const AI_RATE_LIMITS = {
+  '/api/gen-questions': { authenticated: 20, guest: 6 },
+  '/api/gen-flowchart': { authenticated: 10, guest: 3 },
+  '/api/generate': { authenticated: 20, guest: 4 }
+};
+
+function optionalValidateAuth(req, res, next) {
+  if (!req.headers.authorization) {
+    return next();
+  }
+
+  return validateAuth(req, res, (err) => {
+    if (err) {
+      return res.status(Number(err?.status) || 401).json({
+        success: false,
+        message: err?.message || 'Unauthorized'
+      });
+    }
+
+    return next();
+  });
+}
+
+function aiRateLimit(req, res, next) {
+  const limitConfig = AI_RATE_LIMITS[req.path];
+  if (!limitConfig) {
+    return next();
+  }
+
+  const isAuthenticated = Boolean(req.headers.authorization && req.headers.userid);
+  const limit = isAuthenticated ? limitConfig.authenticated : limitConfig.guest;
+  const clientKey = isAuthenticated
+    ? `user:${req.headers.userid}`
+    : `guest:${req.ip}:${req.get('user-agent') || 'unknown'}`;
+  const requestKey = `${req.path}:${clientKey}`;
+  const now = Date.now();
+  const windowStart = now - AI_RATE_LIMIT_WINDOW_MS;
+  const previousHits = guestAiRateLimitStore.get(requestKey) || [];
+  const recentHits = previousHits.filter((timestamp) => timestamp > windowStart);
+
+  if (recentHits.length >= limit) {
+    const retryAfterSeconds = Math.max(1, Math.ceil((recentHits[0] + AI_RATE_LIMIT_WINDOW_MS - now) / 1000));
+    res.set('Retry-After', String(retryAfterSeconds));
+    return res.status(429).json({
+      success: false,
+      message: `Too many ${isAuthenticated ? 'authenticated' : 'guest'} AI requests. Please wait ${retryAfterSeconds} seconds and try again.`,
+      retryAfterSeconds
+    });
+  }
+
+  recentHits.push(now);
+  guestAiRateLimitStore.set(requestKey, recentHits);
+
+  if (guestAiRateLimitStore.size > 5000) {
+    for (const [key, timestamps] of guestAiRateLimitStore.entries()) {
+      const activeTimestamps = timestamps.filter((timestamp) => timestamp > windowStart);
+      if (activeTimestamps.length === 0) {
+        guestAiRateLimitStore.delete(key);
+      } else {
+        guestAiRateLimitStore.set(key, activeTimestamps);
+      }
+    }
+  }
+
+  return next();
+}
 
 function sendApiError(res, err, fallbackMessage) {
   const status = Number(err?.status) || 500;
@@ -84,13 +153,13 @@ function getRetryAfterSeconds(err) {
     res.send(msg);
   });
 
-  app.post('/api/generate', validateAuth, async (req, res) => {
+  app.post('/api/generate', optionalValidateAuth, aiRateLimit, async (req, res) => {
     const msg = req.body.contents;
     const response = await getResponse(msg);
     res.send(response);
   });
   
-  app.post('/api/gen-questions', validateAuth, async (req, res) => {
+  app.post('/api/gen-questions', optionalValidateAuth, aiRateLimit, async (req, res) => {
     const { vehicle, issues } = req.body;
 
     const msg = generateQuestionsPrompt(vehicle, issues);
@@ -98,14 +167,15 @@ function getRetryAfterSeconds(err) {
     res.send(response);
   });
 
-  app.post('/api/gen-flowchart', validateAuth, async (req, res) => {
+  app.post('/api/gen-flowchart', optionalValidateAuth, aiRateLimit, async (req, res) => {
     try {
       const { vehicle, issues, responses } = req.body;
       const flowchartRecord = await generateInitialFlowchartForUser({
         userid: req.headers.userid,
         vehicle,
         issues,
-        responses
+        responses,
+        persist: Boolean(req.headers.authorization && req.headers.userid)
       });
       res.json(flowchartRecord);
     } catch (err) {
@@ -172,7 +242,7 @@ function getRetryAfterSeconds(err) {
   })
 
   // ---- Car options endpoint ----
-  app.get('/api/car-options', validateAuth, async (req, res) => {
+  app.get('/api/car-options', optionalValidateAuth, async (req, res) => {
     try {
       const filters = {};
       if (req.query.year) filters.year = req.query.year;
@@ -183,6 +253,20 @@ function getRetryAfterSeconds(err) {
     } catch (err) {
       console.error('Error fetching car options:', err);
       res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/cars/add', async (req, res) => {
+    try {
+      const car = await upsertCar(req.body);
+      if (typeof car === 'string') {
+        return res.status(400).json({ success: false, message: car });
+      }
+
+      return res.json({ success: true, car });
+    } catch (err) {
+      console.error('Error adding car to Cars collection:', err);
+      return res.status(500).json({ success: false, message: err?.message || String(err) });
     }
   });
 
