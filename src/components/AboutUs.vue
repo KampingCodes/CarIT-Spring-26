@@ -4,13 +4,22 @@ import Connor from "../assets/images/Connor.jpg";
 import Emmett from "../assets/images/Emmett.jpg";
 import Simon from "../assets/images/Simon.jpg";
 import Eli from "../assets/images/Eli.jpg";
+import person from "../assets/images/UntitledPerson.png";
 
 const members = [
   { name: 'Aaron', photo: Aaron, email: 'kinga2014@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/kampingcodes/' },
   { name: 'Konnor', photo: Connor, email: 'petersonk7465@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/konnor-peterson-265a7937b/' },
   { name: 'Emmett', photo: Emmett, email: 'jaakkolae7110@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/emmett-jaakkola-234667208/' },
   { name: 'Simon', photo: Simon, email: 'skrochs0971@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/simon-skroch-08922a298/' },
-  { name: 'Eli', photo: Eli, email: 'curle4271@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/eli-curl-2592022a2/' },
+  { name: 'Eli', photo: Eli, email: 'curle4271@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/eli-curl-2592022a2/' }
+];
+
+const members2 = [
+  { name: 'Jacob', photo: person, email: 'kronbeckj2040@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/jacobkronbeck/' },
+  { name: 'Aaron', photo: person, email: 'kinga2014@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/kampingcodes/' },
+  { name: 'Gunner', photo: person, email: 'mooreg1748@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/gunner-moore-108030351/' },
+  { name: 'Blake', photo: person, email: 'stinsonb1660@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/blake-stinson-1246872b7/' },
+  { name: 'Jeyden', photo: person, email: 'curranj5223@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/jeyden-curran-613869306/' },
 ];
 
 function chunkArray(arr, size) {
@@ -22,6 +31,7 @@ function chunkArray(arr, size) {
 }
 
 const rows = chunkArray(members, 2);
+const rows2 = chunkArray(members2, 2);
 </script>
 
 <template>
@@ -34,8 +44,42 @@ const rows = chunkArray(members, 2);
         </div>
       </div>
 
+      <div class="row mb-4">
+        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
+          <h3 class="heading">Semester One</h3>
+        </div>
+      </div>
+
       <div class="row">
         <template v-for="(row, rowIndex) in rows" :key="rowIndex">
+          <div class="w-100" />
+          <div
+            v-for="(member, idx) in row"
+            :key="member.name"
+            :class="['col-md-6', row.length === 1 ? 'offset-md-3' : '']"
+            data-aos="fade-up"
+            data-aos-delay="100"
+          >
+            <div class="d-flex align-items-center member-row mb-4">
+              <img :src="member.photo" alt="" class="member-photo" />
+              <div class="member-info">
+                <h4 class="mb-1">{{ member.name }}</h4>
+                <div class="mb-1"><a :href="`mailto:${member.email}`">{{ member.email }}</a></div>
+                <div><a :href="member.linkedin" target="_blank" rel="noopener">LinkedIn</a></div>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+
+      <div class="row mb-4">
+        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
+          <h3 class="heading">Semester Two</h3>
+        </div>
+      </div>
+
+      <div class="row">
+        <template v-for="(row, rowIndex) in rows2" :key="rowIndex">
           <div class="w-100" />
           <div
             v-for="(member, idx) in row"
