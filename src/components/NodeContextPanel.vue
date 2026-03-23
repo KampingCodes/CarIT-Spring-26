@@ -1,5 +1,8 @@
 <script setup>
-defineProps({
+import { ref, watch, computed } from 'vue';
+import { getResponse as askAI } from '../apis';
+
+const props = defineProps({
   open: {
     type: Boolean,
     default: false
@@ -7,14 +10,143 @@ defineProps({
   node: {
     type: Object,
     default: null
+  },
+  // Optional extra context to help the model answer better
+  // { vehicle, issues, mermaidCode }
+  context: {
+    type: Object,
+    default: () => ({})
   }
 });
 
 const emit = defineEmits(['close']);
 
+const question = ref('');
+const answer = ref('');
+const loading = ref(false);
+const error = ref('');
+
+const title = computed(() => props.node?.label || 'Flowchart Node');
+const nodeId = computed(() => props.node?.nodeId || props.node?.rawId || '');
+
+watch(
+  () => [props.open, props.node?.nodeId],
+  () => {
+    // Reset state when opening or switching nodes
+    if (props.open) {
+      question.value = '';
+      answer.value = '';
+      error.value = '';
+      loading.value = false;
+    }
+  }
+);
+
 const closePanel = () => {
   emit('close');
 };
+
+function buildPrompt(userQuestion) {
+  const vehicle = props.context?.vehicle || {};
+  const issues = props.context?.issues || '';
+  const mermaidCode = (props.context?.mermaidCode || '').slice(0, 5000);
+  const nodeLabel = props.node?.label || '';
+  const id = nodeId.value || '';
+
+  const vehicleBlock = `Vehicle Information:\nYear: ${vehicle.year || 'Unknown'}\nMake: ${vehicle.make || 'Unknown'}\nModel: ${vehicle.model || 'Unknown'}\nTrim: ${vehicle.trim || 'Unknown'}`;
+
+  const nodeBlock = `Selected Node:\nID: ${id || 'N/A'}\nLabel: ${nodeLabel || 'N/A'}`;
+
+  const flowchartBlock = mermaidCode
+    ? `Relevant Mermaid Flowchart (truncated if long):\n\n\u0060\u0060\u0060mermaid\n${mermaidCode}\n\u0060\u0060\u0060`
+    : 'Flowchart not available.';
+
+  return [
+    'You are a helpful automotive diagnostics expert.',
+    'Answer clearly and concisely for a student mechanic.',
+    vehicleBlock,
+    nodeBlock,
+    flowchartBlock,
+    '',
+    `User Question about this node: ${userQuestion}`
+  ].join('\n\n');
+}
+
+async function ask() {
+  if (!question.value?.trim()) return;
+  loading.value = true;
+  error.value = '';
+  answer.value = '';
+  try {
+    const prompt = buildPrompt(question.value.trim());
+    const resp = await askAI(prompt);
+    answer.value = typeof resp === 'string' ? resp : JSON.stringify(resp);
+  } catch (err) {
+    const retry = err?.retryAfterSeconds ? ` Please try again in ${err.retryAfterSeconds} seconds.` : '';
+    error.value = err?.message || 'Failed to get an answer.';
+    if (retry) error.value += retry;
+  } finally {
+    loading.value = false;
+  }
+}
+
+function onKeydown(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    ask();
+  }
+}
+
+function buildInstructionsPrompt() {
+  const vehicle = props.context?.vehicle || {};
+  const issues = props.context?.issues || '';
+  const mermaidCode = (props.context?.mermaidCode || '').slice(0, 5000);
+  const nodeLabel = props.node?.label || '';
+  const id = nodeId.value || '';
+
+  const vehicleBlock = `Vehicle Information:\nYear: ${vehicle.year || 'Unknown'}\nMake: ${vehicle.make || 'Unknown'}\nModel: ${vehicle.model || 'Unknown'}\nTrim: ${vehicle.trim || 'Unknown'}\nIssues: ${issues || 'Unknown'}`;
+
+  const nodeBlock = `Flowchart Step to Explain:\nID: ${id || 'N/A'}\nLabel: ${nodeLabel || 'N/A'}`;
+
+  const flowchartBlock = mermaidCode
+    ? `Relevant Mermaid Flowchart (truncated if long):\n\n\u0060\u0060\u0060mermaid\n${mermaidCode}\n\u0060\u0060\u0060`
+    : 'Flowchart not available.';
+
+  return [
+    'You are an automotive coach for beginners.',
+    'Give very simple, step-by-step instructions to perform ONLY the flowchart step shown below.',
+    'Use short sentences, plain words, and avoid jargon.',
+    'If a measurement is needed, include typical ranges and what to do for out-of-range results.',
+    'If vehicle-specific data is missing, give general guidance for most passenger cars.',
+    '',
+    vehicleBlock,
+    nodeBlock,
+    flowchartBlock,
+    '',
+    'Format your answer exactly as:',
+    '- Tools & Materials: (short bullet list)',
+    '- Safety Notes: (1-3 bullets)',
+    '- Steps: (numbered 1, 2, 3… very clear and beginner-friendly)',
+    '- What to Look For: (bullets with normal/abnormal results and next action)',
+    '- Time Estimate: (rough minutes)',
+  ].join('\n');
+}
+
+async function askGuide() {
+  loading.value = true;
+  error.value = '';
+  answer.value = '';
+  try {
+    const prompt = buildInstructionsPrompt();
+    const resp = await askAI(prompt);
+    answer.value = typeof resp === 'string' ? resp : JSON.stringify(resp);
+  } catch (err) {
+    const retry = err?.retryAfterSeconds ? ` Please try again in ${err.retryAfterSeconds} seconds.` : '';
+    error.value = err?.message || 'Failed to get an answer.';
+    if (retry) error.value += retry;
+  } finally {
+    loading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -33,11 +165,52 @@ const closePanel = () => {
       >
         <div class="node-context-header">
           <div>
-            <h3 id="node-context-title" class="node-context-title">Example Header</h3>
+            <p class="node-context-label">Node Q&A</p>
+            <h3 id="node-context-title" class="node-context-title">{{ title }}</h3>
+            <p v-if="nodeId" class="node-context-sub">ID: {{ nodeId }}</p>
           </div>
           <button type="button" class="node-context-close" @click="closePanel" aria-label="Close node context panel">
             ×
           </button>
+        </div>
+
+        <div class="node-context-body">
+          <div class="node-context-primary">
+            <button
+              type="button"
+              class="node-context-btn node-context-btn--primary-big"
+              :disabled="loading"
+              @click="askGuide"
+            >
+              {{ loading ? 'Generating…' : 'Guide me through this step' }}
+            </button>
+            <small class="node-context-hint">Get simple, step-by-step instructions</small>
+          </div>
+
+          <label for="node-question" class="node-context-input-label">Ask a question about this step</label>
+          <textarea
+            id="node-question"
+            class="node-context-textarea"
+            rows="4"
+            v-model="question"
+            :disabled="loading"
+            placeholder="Example: What tests should I run before moving past this node?"
+            @keydown="onKeydown"
+          />
+
+          <div class="node-context-actions">
+            <button type="button" class="node-context-btn node-context-btn--secondary" :disabled="loading || !question.trim()" @click="ask">
+              {{ loading ? 'Asking…' : 'Ask' }}
+            </button>
+            <small class="node-context-hint">Tip: Ctrl+Enter to send</small>
+          </div>
+
+          <div v-if="error" class="node-context-error">{{ error }}</div>
+
+          <div v-if="answer" class="node-context-answer">
+            <div class="node-context-answer-title">Assistant</div>
+            <div class="node-context-answer-body">{{ answer }}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -78,9 +251,22 @@ const closePanel = () => {
   margin-bottom: 1rem;
 }
 
+.node-context-label {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
 .node-context-title {
   margin: 0;
   font-size: 1.4rem;
+}
+
+.node-context-sub {
+  margin: 0.25rem 0 0;
+  color: #6b7280;
 }
 
 .node-context-close {
@@ -106,5 +292,82 @@ const closePanel = () => {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+.node-context-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.node-context-input-label {
+  font-weight: 600;
+}
+
+.node-context-textarea {
+  width: 100%;
+  border: 1px solid #d0d7de;
+  border-radius: 10px;
+  padding: 0.75rem;
+  resize: vertical;
+}
+
+.node-context-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.node-context-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.node-context-btn {
+  border: 1px solid #0d6efd;
+  background: #0d6efd;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+}
+
+.node-context-btn--secondary {
+  background: #fff;
+  color: #0d6efd;
+}
+
+.node-context-btn--primary-big {
+  padding: 0.75rem 1.25rem;
+  font-size: 1rem;
+  width: 100%;
+}
+
+.node-context-hint {
+  color: #6c757d;
+}
+
+.node-context-error {
+  color: #dc3545;
+  background: #ffe9ec;
+  border: 1px solid #ffc2c9;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+}
+
+.node-context-answer {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0.75rem;
+}
+
+.node-context-answer-title {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.node-context-answer-body {
+  white-space: pre-wrap;
 }
 </style>
