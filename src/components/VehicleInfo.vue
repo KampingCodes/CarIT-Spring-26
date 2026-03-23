@@ -95,13 +95,6 @@ async function addCarToDatabase(vehicle) {
     <div class="container">
       <div class="row justify-content-between">
         <div class="col-lg-4">
-          <span
-            class="caption"
-            data-aos="fade-up"
-            data-aos-delay="0"
-            :style="[{ color: themeColor }]"
-            >Vehicle Information</span
-          >
           <h3 class="heading mb-4" data-aos="fade-up" data-aos-delay="100">
             {{ service1SubHeading }}
           </h3>
