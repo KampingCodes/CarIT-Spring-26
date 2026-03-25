@@ -1,33 +1,39 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue';
 import 'primeicons/primeicons.css';
-import { getSavedFlowcharts, deleteFlowchart } from '../apis';
-import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
+import { deleteFlowchart, getSavedFlowcharts } from '../apis';
+import { authState } from '../auth.js';
+import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
+import NodeContextPanel from './NodeContextPanel.vue';
+import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection } from '../flowchart-utils.js';
 
 const flowcharts = ref([]);
-const vehicles = ref([]);
-const issues = ref([]);
-const flowchartSvg = ref([]);
-const thumbnailSvg = ref([]);
-const loading = ref([]);
-const error = ref([]);
-const selectedIndex = ref(0);
+const flowchartSvg = ref({});
+const thumbnailSvg = ref({});
+const loading = ref({});
+const error = ref({});
+const selectedFlowchartId = ref('');
 const carouselScroll = ref(null);
 const confirmDialog = ref(null);
+const selectedNode = ref(null);
+const panelOpen = ref(false);
 
 const selectedFlowchart = computed(() => {
   if (flowcharts.value.length === 0) return null;
+  const activeId = selectedFlowchartId.value || flowcharts.value[0]?.flowchartId;
+  const record = flowcharts.value.find((flowchart) => flowchart.flowchartId === activeId) || flowcharts.value[0];
+  if (!record) return null;
   return {
-    vehicle: vehicles.value[selectedIndex.value],
-    issues: issues.value[selectedIndex.value],
-    responses: flowcharts.value[selectedIndex.value]?.responses,
-    svg: flowchartSvg.value[selectedIndex.value],
-    loading: loading.value[selectedIndex.value],
-    error: error.value[selectedIndex.value]
+    ...record,
+    svg: flowchartSvg.value[record.flowchartId],
+    loading: loading.value[record.flowchartId],
+    error: error.value[record.flowchartId]
   };
 });
+
+const nodeMap = computed(() => buildMermaidNodeMap(selectedFlowchart.value?.mermaidCode || ''));
 
 const getVehicleDisplayName = (vehicle = {}) => {
   const { year, make, model, trim } = vehicle || {};
@@ -47,54 +53,61 @@ const getVehicleCardSubtitle = (vehicle = {}) => {
   return parts.join(' - ');
 };
 
-const getDiagram = async (flowchartObj, idx) => {
-  loading.value[idx] = true;
-  error.value[idx] = null;
-  vehicles.value[idx] = flowchartObj.vehicle;
-  issues.value[idx] = flowchartObj.issues;
-  
+const getDiagram = async (flowchartObj) => {
+  const flowchartId = flowchartObj.flowchartId;
+  loading.value = { ...loading.value, [flowchartId]: true };
+  error.value = { ...error.value, [flowchartId]: null };
+
   try {
-    const mermaidMatch = flowchartObj.flowchart.match(/```mermaid\n([\s\S]*?)\n```/);
-    if (!mermaidMatch) throw new Error('Mermaid code block not found');
-    const code = mermaidMatch[1].trim();
-    await mermaid.parse(code);
+    const code = flowchartObj.mermaidCode;
+    if (!code) throw new Error('This saved flowchart does not contain valid Mermaid data yet.');
+    const renderCode = prepareMermaidForRender(code);
+    await mermaid.parse(renderCode);
     
     // Generate full-size flowchart
-    const { svg } = await mermaid.render(`flowchart-${idx}`, code);
-    flowchartSvg.value[idx] = svg;
+    const { svg } = await mermaid.render(`flowchart-${flowchartId}`, renderCode);
+    flowchartSvg.value = { ...flowchartSvg.value, [flowchartId]: svg };
     
     // Generate thumbnail (same SVG, will be styled smaller)
-    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${idx}`, code);
-    thumbnailSvg.value[idx] = thumbSvg;
+    const thumbnailCode = prepareMermaidForRender(code, { wrapAt: 18 });
+    const { svg: thumbSvg } = await mermaid.render(`thumbnail-${flowchartId}`, thumbnailCode);
+    thumbnailSvg.value = { ...thumbnailSvg.value, [flowchartId]: thumbSvg };
   } catch (err) {
-    error.value[idx] = err.message;
+    error.value = { ...error.value, [flowchartId]: err.message };
   } finally {
-    loading.value[idx] = false;
+    loading.value = { ...loading.value, [flowchartId]: false };
   }
 };
 
-const selectFlowchart = (idx) => {
-  selectedIndex.value = idx;
+const selectFlowchart = (flowchartId) => {
+  selectedFlowchartId.value = flowchartId;
 };
 
-const removeFlowchart = async (idx, event) => {
+const removeFlowchart = async (flowchartId, event) => {
   event.stopPropagation();
   const confirmed = await confirmDialog.value.show('Are you sure you want to delete this flowchart?');
   if (!confirmed) {
     return;
   }
   try {
-    await deleteFlowchart(idx);
-    flowcharts.value.splice(idx, 1);
-    vehicles.value.splice(idx, 1);
-    issues.value.splice(idx, 1);
-    flowchartSvg.value.splice(idx, 1);
-    thumbnailSvg.value.splice(idx, 1);
-    loading.value.splice(idx, 1);
-    error.value.splice(idx, 1);
-    
-    if (selectedIndex.value >= flowcharts.value.length && flowcharts.value.length > 0) {
-      selectedIndex.value = flowcharts.value.length - 1;
+    await deleteFlowchart(flowchartId);
+    flowcharts.value = flowcharts.value.filter((flowchart) => flowchart.flowchartId !== flowchartId);
+
+    const nextMainSvg = { ...flowchartSvg.value };
+    const nextThumbSvg = { ...thumbnailSvg.value };
+    const nextLoading = { ...loading.value };
+    const nextError = { ...error.value };
+    delete nextMainSvg[flowchartId];
+    delete nextThumbSvg[flowchartId];
+    delete nextLoading[flowchartId];
+    delete nextError[flowchartId];
+    flowchartSvg.value = nextMainSvg;
+    thumbnailSvg.value = nextThumbSvg;
+    loading.value = nextLoading;
+    error.value = nextError;
+
+    if (selectedFlowchartId.value === flowchartId) {
+      selectedFlowchartId.value = flowcharts.value[0]?.flowchartId || '';
     }
   } catch (err) {
     console.error('Error deleting flowchart:', err);
@@ -117,10 +130,30 @@ onMounted(async () => {
     securityLevel: 'loose',
     flowchart: { htmlLabels: true, curve: 'basis' }
   });
+
+  if (!authState.isAuthenticated) {
+    return;
+  }
   
   flowcharts.value = await getSavedFlowcharts();
-  flowcharts.value.forEach(getDiagram);
+  flowcharts.value = flowcharts.value.map((flowchart, index) => normalizeFlowchartRecord(flowchart, index));
+  selectedFlowchartId.value = flowcharts.value[0]?.flowchartId || '';
+  await Promise.all(flowcharts.value.map(getDiagram));
 });
+
+const handleNodeActivate = (selection) => {
+  const resolved = resolveNodeSelection(selection, nodeMap.value);
+  if (!resolved?.nodeId) {
+    return;
+  }
+
+  selectedNode.value = resolved;
+  panelOpen.value = true;
+};
+
+const closeNodePanel = () => {
+  panelOpen.value = false;
+};
 </script>
 
 <template>
@@ -134,7 +167,7 @@ onMounted(async () => {
           </h1>
           
           <div v-if="flowcharts.length === 0" class="excerpt" data-aos="fade-up" data-aos-delay="100">
-            You haven't generated any flowcharts yet.
+            {{ authState.isAuthenticated ? "You haven't generated any flowcharts yet." : "Sign in to view saved flowcharts. Guest flowcharts are never persisted." }}
           </div>
 
           <!-- Carousel Section -->
@@ -152,31 +185,31 @@ onMounted(async () => {
               <div class="carousel-container" ref="carouselScroll">
                 <div 
                   v-for="(flowchart, idx) in flowcharts" 
-                  :key="idx"
+                  :key="flowchart.flowchartId"
                   class="thumbnail-card"
-                  :class="{ selected: selectedIndex === idx }"
-                  @click="selectFlowchart(idx)"
+                  :class="{ selected: selectedFlowchartId === flowchart.flowchartId }"
+                  @click="selectFlowchart(flowchart.flowchartId)"
                 >
                   <i
                     class="pi pi-trash delete-icon"
-                    @click="removeFlowchart(idx, $event)"
+                    @click="removeFlowchart(flowchart.flowchartId, $event)"
                     title="Delete flowchart"
                   ></i>
                   
-                  <div v-if="loading[idx]" class="thumbnail-loading">
+                  <div v-if="loading[flowchart.flowchartId]" class="thumbnail-loading">
                     <div class="spinner"></div>
                   </div>
-                  <div v-else-if="error[idx]" class="thumbnail-error">
+                  <div v-else-if="error[flowchart.flowchartId]" class="thumbnail-error">
                     Error
                   </div>
-                  <div v-else v-html="thumbnailSvg[idx]" class="thumbnail-svg"></div>
+                  <div v-else v-html="thumbnailSvg[flowchart.flowchartId]" class="thumbnail-svg"></div>
                   
                   <div class="thumbnail-info">
                     <div class="thumbnail-title">
-                      {{ getVehicleCardTitle(vehicles[idx]) }}
+                      {{ getVehicleCardTitle(flowchart.vehicle) }}
                     </div>
-                    <div v-if="getVehicleCardSubtitle(vehicles[idx])" class="thumbnail-subtitle">
-                      {{ getVehicleCardSubtitle(vehicles[idx]) }}
+                    <div v-if="getVehicleCardSubtitle(flowchart.vehicle)" class="thumbnail-subtitle">
+                      {{ getVehicleCardSubtitle(flowchart.vehicle) }}
                     </div>
                   </div>
                 </div>
@@ -201,7 +234,7 @@ onMounted(async () => {
               <div v-if="selectedFlowchart.responses" class="responses-section">
                 <div v-for="(response, idx) in selectedFlowchart.responses" :key="idx" class="response-item">
                   <strong>{{ response.question }}</strong><br/>
-                  {{ response.option }}
+                  {{ response.answer }}
                 </div>
               </div>
 
@@ -217,12 +250,19 @@ onMounted(async () => {
                 :svg="selectedFlowchart.svg"
                 :title="getVehicleDisplayName(selectedFlowchart.vehicle)"
                 embedded-height="42rem"
+                @node-activate="handleNodeActivate"
               />
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    <NodeContextPanel
+      :open="panelOpen"
+      :node="selectedNode"
+      @close="closeNodePanel"
+    />
   </div>
 </template>
 
