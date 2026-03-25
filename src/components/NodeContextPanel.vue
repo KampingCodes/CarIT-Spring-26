@@ -256,7 +256,6 @@ function formatAnswer(text = '') {
           <div v-if="error" class="node-context-error">{{ error }}</div>
 
           <div v-if="answer" class="node-context-answer">
-            <div class="node-context-answer-title">Assistant</div>
             <div class="node-context-answer-body" v-html="formattedAnswer"></div>
           </div>
         </div>
@@ -408,11 +407,6 @@ function formatAnswer(text = '') {
   background: #fff;
   border-radius: 12px;
   padding: 0.75rem;
-}
-
-.node-context-answer-title {
-  font-weight: 600;
-  margin-bottom: 0.25rem;
 }
 
 .node-context-answer-body {
