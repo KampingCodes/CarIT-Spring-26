@@ -26,6 +26,9 @@ const answer = ref('');
 const loading = ref(false);
 const error = ref('');
 
+// Format assistant output: bold known section headers while keeping bullets
+const formattedAnswer = computed(() => formatAnswer(answer.value));
+
 const title = computed(() => props.node?.label || 'Flowchart Node');
 const nodeId = computed(() => props.node?.nodeId || props.node?.rawId || '');
 
@@ -123,11 +126,12 @@ function buildInstructionsPrompt() {
     flowchartBlock,
     '',
     'Format your answer exactly as:',
-    '- Tools & Materials: (short bullet list)',
-    '- Safety Notes: (1-3 bullets)',
-    '- Steps: (numbered 1, 2, 3… very clear and beginner-friendly)',
-    '- What to Look For: (bullets with normal/abnormal results and next action)',
-    '- Time Estimate: (rough minutes)',
+    ' Tools & Materials: (short bullet list)',
+    ' Safety Notes: (1-3 bullets)',
+    ' Steps: (numbered 1, 2, 3… very clear and beginner-friendly)',
+    ' What to Look For: (bullets with normal/abnormal results and next action)',
+    ' Time Estimate: (rough minutes)',
+    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting.'
   ].join('\n');
 }
 
@@ -146,6 +150,50 @@ async function askGuide() {
   } finally {
     loading.value = false;
   }
+}
+
+function formatAnswer(text = '') {
+  if (!text) return '';
+
+  // Normalize line endings for consistent matching across platforms
+  let work = String(text).replace(/\r\n?|\u2028|\u2029/g, '\n');
+
+  // Exact section names (no variance per your note)
+  const headers = [
+    'Tools & Materials',
+    'Safety Notes',
+    'Steps',
+    'What to Look For',
+    'Time Estimate'
+  ];
+
+  const escRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+  // Mark section headers (optionally preceded by a bullet/number), followed by a colon
+  headers.forEach((label) => {
+    const pattern = new RegExp(
+      `(^|\\n)(\\s*(?:[-*]|\\d+\.)?\\s*)(${escRe(label)})\\s*:`,
+      'g'
+    );
+    work = work.replace(pattern, (_m, g1, g2, g3) => `${g1}${g2}__BOLD_START__${g3}:__BOLD_END__`);
+  });
+
+  // Escape HTML entities to keep rendering safe
+  const escapeHtml = (s) => s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  work = escapeHtml(work);
+
+  // Restore bold markers to actual strong tags
+  work = work
+    .replace(/__BOLD_START__/g, '<strong>')
+    .replace(/__BOLD_END__/g, '</strong>');
+
+  return work;
 }
 </script>
 
@@ -209,7 +257,7 @@ async function askGuide() {
 
           <div v-if="answer" class="node-context-answer">
             <div class="node-context-answer-title">Assistant</div>
-            <div class="node-context-answer-body">{{ answer }}</div>
+            <div class="node-context-answer-body" v-html="formattedAnswer"></div>
           </div>
         </div>
       </div>
