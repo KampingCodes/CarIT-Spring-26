@@ -2,6 +2,7 @@ import { DATABASE, USER_COLLECTION, CARS_COLLECTION } from './config.js';
 import { client } from './mongo.js';
 import { ObjectId } from 'mongodb';
 import { randomUUID } from 'crypto';
+import { normalizeVehicleRecord } from './vehicleUtils.js';
 
 const MAX_FLOWCHARTS = 5;
 
@@ -608,20 +609,3 @@ export async function incrementCrashOut(userid) {
   return { success: true, crashOut: newValue };
 }
 
-function normalizeVehicleRecord(vehicle) {
-  const year = Number(vehicle?.year);
-  const make = normalizeText(vehicle?.make);
-  const model = normalizeText(vehicle?.model);
-  const trim = normalizeText(vehicle?.trim);
-
-  if (!Number.isInteger(year) || year < 1886 || year > 2999 || !make || !model) {
-    return null;
-  }
-
-  return {
-    year,
-    make,
-    model,
-    trim: trim || ''
-  };
-}

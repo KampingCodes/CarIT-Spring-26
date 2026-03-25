@@ -8,6 +8,7 @@ import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
 import { generateInitialFlowchartForUser } from './flowchartGeneration.js';
+import { AI_RATE_LIMITS, AI_RATE_LIMIT_WINDOW_MS, createAiRateLimit, createOptionalValidateAuth, getRetryAfterSeconds } from './aiMiddleware.js';
 
 // const options = {
 //   key: fs.readFileSync('CARIT_PRIVATEKEY.key'),
@@ -33,74 +34,12 @@ const validateAuth = auth({
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}/`,
 });
 
-const guestAiRateLimitStore = new Map();
-const AI_RATE_LIMIT_WINDOW_MS = 60 * 1000;
-const AI_RATE_LIMITS = {
-  '/api/gen-questions': { authenticated: 20, guest: 6 },
-  '/api/gen-flowchart': { authenticated: 10, guest: 3 },
-  '/api/generate': { authenticated: 20, guest: 4 }
-};
-
-function optionalValidateAuth(req, res, next) {
-  if (!req.headers.authorization) {
-    return next();
-  }
-
-  return validateAuth(req, res, (err) => {
-    if (err) {
-      return res.status(Number(err?.status) || 401).json({
-        success: false,
-        message: err?.message || 'Unauthorized'
-      });
-    }
-
-    return next();
-  });
-}
-
-function aiRateLimit(req, res, next) {
-  const limitConfig = AI_RATE_LIMITS[req.path];
-  if (!limitConfig) {
-    return next();
-  }
-
-  const isAuthenticated = Boolean(req.headers.authorization && req.headers.userid);
-  const limit = isAuthenticated ? limitConfig.authenticated : limitConfig.guest;
-  const clientKey = isAuthenticated
-    ? `user:${req.headers.userid}`
-    : `guest:${req.ip}:${req.get('user-agent') || 'unknown'}`;
-  const requestKey = `${req.path}:${clientKey}`;
-  const now = Date.now();
-  const windowStart = now - AI_RATE_LIMIT_WINDOW_MS;
-  const previousHits = guestAiRateLimitStore.get(requestKey) || [];
-  const recentHits = previousHits.filter((timestamp) => timestamp > windowStart);
-
-  if (recentHits.length >= limit) {
-    const retryAfterSeconds = Math.max(1, Math.ceil((recentHits[0] + AI_RATE_LIMIT_WINDOW_MS - now) / 1000));
-    res.set('Retry-After', String(retryAfterSeconds));
-    return res.status(429).json({
-      success: false,
-      message: `Too many ${isAuthenticated ? 'authenticated' : 'guest'} AI requests. Please wait ${retryAfterSeconds} seconds and try again.`,
-      retryAfterSeconds
-    });
-  }
-
-  recentHits.push(now);
-  guestAiRateLimitStore.set(requestKey, recentHits);
-
-  if (guestAiRateLimitStore.size > 5000) {
-    for (const [key, timestamps] of guestAiRateLimitStore.entries()) {
-      const activeTimestamps = timestamps.filter((timestamp) => timestamp > windowStart);
-      if (activeTimestamps.length === 0) {
-        guestAiRateLimitStore.delete(key);
-      } else {
-        guestAiRateLimitStore.set(key, activeTimestamps);
-      }
-    }
-  }
-
-  return next();
-}
+const optionalValidateAuth = createOptionalValidateAuth(validateAuth);
+const aiRateLimit = createAiRateLimit({
+  store: new Map(),
+  rateLimits: AI_RATE_LIMITS,
+  windowMs: AI_RATE_LIMIT_WINDOW_MS
+});
 
 function sendApiError(res, err, fallbackMessage) {
   const status = Number(err?.status) || 500;
@@ -119,23 +58,6 @@ function sendApiError(res, err, fallbackMessage) {
     message,
     retryAfterSeconds: retryAfterSeconds || null
   });
-}
-
-function getRetryAfterSeconds(err) {
-  const retryDelay = err?.errorDetails
-    ?.find((detail) => detail?.['@type'] === 'type.googleapis.com/google.rpc.RetryInfo')
-    ?.retryDelay;
-
-  if (typeof retryDelay !== 'string') {
-    return null;
-  }
-
-  const match = retryDelay.match(/(\d+(?:\.\d+)?)s/i);
-  if (!match) {
-    return null;
-  }
-
-  return Math.max(1, Math.ceil(Number(match[1])));
 }
 
 /**
