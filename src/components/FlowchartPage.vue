@@ -2,6 +2,7 @@
 import { onMounted, ref, computed } from 'vue';
 import 'primeicons/primeicons.css';
 import { deleteFlowchart, getSavedFlowcharts } from '../apis';
+import { authState } from '../auth.js';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
@@ -129,6 +130,10 @@ onMounted(async () => {
     securityLevel: 'loose',
     flowchart: { htmlLabels: true, curve: 'basis' }
   });
+
+  if (!authState.isAuthenticated) {
+    return;
+  }
   
   flowcharts.value = await getSavedFlowcharts();
   flowcharts.value = flowcharts.value.map((flowchart, index) => normalizeFlowchartRecord(flowchart, index));
@@ -162,7 +167,7 @@ const closeNodePanel = () => {
           </h1>
           
           <div v-if="flowcharts.length === 0" class="excerpt" data-aos="fade-up" data-aos-delay="100">
-            You haven't generated any flowcharts yet.
+            {{ authState.isAuthenticated ? "You haven't generated any flowcharts yet." : "Sign in to view saved flowcharts. Guest flowcharts are never persisted." }}
           </div>
 
           <!-- Carousel Section -->

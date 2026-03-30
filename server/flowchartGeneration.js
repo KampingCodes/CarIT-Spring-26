@@ -1,7 +1,8 @@
+import { randomUUID } from 'crypto';
 import { generateFlowchartPrompt, getResponse } from './genai.js';
-import { saveFlowchart } from './user.js';
+import { saveFlowchart, upsertCar } from './user.js';
 
-export async function generateInitialFlowchartForUser({ userid, vehicle, issues, responses }) {
+export async function generateInitialFlowchartForUser({ userid, vehicle, issues, responses, persist = Boolean(userid) }) {
   const normalizedResponses = normalizeDiagnosticResponses(responses);
   const prompt = generateFlowchartPrompt(vehicle, issues, normalizedResponses);
   const flowchart = await getResponse(prompt);
@@ -11,14 +12,32 @@ export async function generateInitialFlowchartForUser({ userid, vehicle, issues,
     throw new Error('Mermaid code block not found');
   }
 
-  return saveFlowchart(userid, {
+  await ensureVehicleExists(vehicle);
+
+  const recordPayload = {
     vehicle,
     issues,
     responses: normalizedResponses,
     flowchart: wrapMermaidCodeBlock(mermaidCode),
     mermaidCode,
     nodeContexts: {}
-  });
+  };
+
+  if (persist) {
+    return saveFlowchart(userid, recordPayload);
+  }
+
+  const timestamp = new Date().toISOString();
+  return {
+    flowchartId: `guest-${randomUUID()}`,
+    ...recordPayload,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    lastRefinedNodeId: '',
+    lastRefinedNodeLabel: '',
+    sessionOnly: true,
+    saveDisabled: true
+  };
 }
 
 function normalizeDiagnosticResponses(responses = []) {
@@ -136,4 +155,13 @@ function normalizeText(value) {
   }
 
   return value.replace(/\s+/g, ' ').trim();
+}
+
+async function ensureVehicleExists(vehicle) {
+  const result = await upsertCar(vehicle);
+  if (typeof result === 'string') {
+    return null;
+  }
+
+  return result;
 }
