@@ -261,6 +261,7 @@ const closeNodePanel = () => {
     <NodeContextPanel
       :open="panelOpen"
       :node="selectedNode"
+      :context="{ vehicle: selectedFlowchart?.vehicle, issues: selectedFlowchart?.issues, mermaidCode: selectedFlowchart?.mermaidCode }"
       @close="closeNodePanel"
     />
   </div>

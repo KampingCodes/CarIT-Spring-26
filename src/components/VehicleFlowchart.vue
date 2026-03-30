@@ -159,6 +159,7 @@ function parseAnswers(encodedAnswers) {
   <NodeContextPanel
     :open="panelOpen"
     :node="selectedNode"
+    :context="{ vehicle, issues, mermaidCode: currentFlowchart?.mermaidCode }"
     @close="closeNodePanel"
   />
 </template>
