@@ -269,7 +269,7 @@ function generateMechanicalContextDetailed(profile) {
   return lines.join('\n');
 }
 
-/**
+
 function formatField(val, placeholder = "None") {
   if (val === undefined || val === null) return placeholder;
   if (typeof val === "string") {
