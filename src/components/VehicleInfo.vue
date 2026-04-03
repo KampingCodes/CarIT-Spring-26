@@ -3,7 +3,7 @@ import { themeColor } from "../items";
 import { useRoute, useRouter } from 'vue-router';
 import { useVehicleStore } from '../stores/vehicle';
 import { authState } from '../auth.js';
-import { addGarageVehicle } from '../apis.js';
+import { addCarRecord, addGarageVehicle } from '../apis.js';
 import { checkRecalls } from '../VINapi.js';
 import VehicleSelector from './VehicleSelector.vue';
 import MyGarage from './MyGarage.vue';
@@ -86,9 +86,7 @@ async function submitVehicle() {
     if (authState.isAuthenticated) {
       await addGarageVehicle({ ...vehicleForm.value });
     } else {
-      // For logged-out users, still add to Cars DB via a direct endpoint
-      // We'll create a separate endpoint for this
-      await addCarToDatabase({ ...vehicleForm.value });
+      await addCarRecord({ ...vehicleForm.value });
     }
 
     // Navigate to problem description
@@ -107,17 +105,6 @@ async function submitVehicle() {
   } finally {
     saving.value = false;
   }
-}
-
-// Helper to add car to database without garage (for logged-out users)
-async function addCarToDatabase(vehicle) {
-  const response = await fetch('http://localhost:3000/api/cars/add', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(vehicle),
-  });
-  if (!response.ok) throw new Error('Failed to add car to database');
-  return response.json();
 }
 
 </script>
@@ -173,6 +160,9 @@ async function addCarToDatabase(vehicle) {
 
           <div class="vehicle-selector">
             <h5 class="mb-3">Select Your Vehicle</h5>
+            <div v-if="!authState.isAuthenticated" class="alert alert-warning guest-notice mb-3">
+              You're continuing as a guest. Your generated flowchart is available only for this session unless you sign in.
+            </div>
             <VehicleSelector v-model="vehicleForm" />
             <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model" class="alert alert-success mt-3">
               <strong>Selected Vehicle:</strong><br />
@@ -270,6 +260,11 @@ async function addCarToDatabase(vehicle) {
 }
 .vehicle-selector .mb-2 {
   margin-bottom: 1.25rem !important;
+}
+
+.guest-notice {
+  font-size: 0.95rem;
+  border-radius: 0.75rem;
 }
 
 .garage-picker {

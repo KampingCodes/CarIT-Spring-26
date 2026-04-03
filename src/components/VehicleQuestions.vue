@@ -2,6 +2,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { authState } from '../auth.js'
 import { getQuestions } from '../apis.js'
 
 const route = useRoute()
@@ -22,6 +23,7 @@ const canProceed = computed(() =>
     userAnswers.value[q.id] || customAnswers.value[q.id]?.trim()
   )
 )
+const isGuest = computed(() => !authState.isAuthenticated)
 
 const handleAnswer = (questionId, optionId) => {
   userAnswers.value[questionId] = optionId
@@ -57,7 +59,7 @@ const proceedToFlowchart = () => {
     } else {
       const optionId = userAnswers.value[question.id]
       const option = question.options.find(opt => opt.id === optionId)
-      return { question: question.text, option: option.text }
+      return { question: question.text, answer: option.text, option: option.text }
     }
   })
 
@@ -81,6 +83,9 @@ onMounted(getFeedback)
       <h2>Vehicle Help</h2>
       <p><strong>Vehicle:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</p>
       <p><strong>Issues:</strong> {{ issues }}</p>
+      <div v-if="isGuest" class="guest-banner">
+        Guest mode is active. Your generated flowchart will not be saved after this session ends.
+      </div>
 
       <div v-if="loading" class="loading">Loading...</div>
       <div v-else-if="error" class="error">Error: {{ error }}</div>
@@ -210,5 +215,14 @@ onMounted(getFeedback)
 
 .custom-input::placeholder {
   color: #999;
+}
+
+.guest-banner {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #ffe08a;
+  background: #fff8db;
+  border-radius: 8px;
+  color: #725400;
 }
 </style>

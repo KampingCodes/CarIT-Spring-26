@@ -3,10 +3,12 @@ import express from 'express';
 // import fs from 'fs';
 import { auth } from 'express-oauth2-jwt-bearer';
 import cors from 'cors';
-import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, saveFlowchart, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut } from './user.js';
+import { createUser, getUserDB, updateUserDB, getUserAuth0, getFlowcharts, deleteFlowchart, getGarage, addToGarage, editGarageVehicle, removeFromGarage, getCarOptions, incrementCrashOut, upsertCar } from './user.js';
 import { client } from './mongo.js';
-import { getResponse, generateQuestionsPrompt, generateFlowchartPrompt } from './genai.js';
+import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields } from './helper.js';
+import { generateInitialFlowchartForUser } from './flowchartGeneration.js';
+import { AI_RATE_LIMITS, AI_RATE_LIMIT_WINDOW_MS, createAiRateLimit, createOptionalValidateAuth, getRetryAfterSeconds } from './aiMiddleware.js';
 
 // const options = {
 //   key: fs.readFileSync('CARIT_PRIVATEKEY.key'),
@@ -32,6 +34,32 @@ const validateAuth = auth({
   issuerBaseURL: `https://${process.env.AUTH0_DOMAIN}/`,
 });
 
+const optionalValidateAuth = createOptionalValidateAuth(validateAuth);
+const aiRateLimit = createAiRateLimit({
+  store: new Map(),
+  rateLimits: AI_RATE_LIMITS,
+  windowMs: AI_RATE_LIMIT_WINDOW_MS
+});
+
+function sendApiError(res, err, fallbackMessage) {
+  const status = Number(err?.status) || 500;
+  const retryAfterSeconds = getRetryAfterSeconds(err);
+  const isQuotaError = status === 429;
+  const message = isQuotaError
+    ? `AI request limit reached. Please wait ${retryAfterSeconds ? `${retryAfterSeconds} seconds` : 'a bit'} and try again.`
+    : err?.message || fallbackMessage;
+
+  if (retryAfterSeconds) {
+    res.set('Retry-After', String(retryAfterSeconds));
+  }
+
+  return res.status(isQuotaError ? 429 : status).json({
+    success: false,
+    message,
+    retryAfterSeconds: retryAfterSeconds || null
+  });
+}
+
 /**
  * Start the server
  */
@@ -47,13 +75,13 @@ const validateAuth = auth({
     res.send(msg);
   });
 
-  app.post('/api/generate', validateAuth, async (req, res) => {
+  app.post('/api/generate', optionalValidateAuth, aiRateLimit, async (req, res) => {
     const msg = req.body.contents;
     const response = await getResponse(msg);
     res.send(response);
   });
   
-  app.post('/api/gen-questions', validateAuth, async (req, res) => {
+  app.post('/api/gen-questions', optionalValidateAuth, aiRateLimit, async (req, res) => {
     const { vehicle, issues } = req.body;
 
     const msg = generateQuestionsPrompt(vehicle, issues);
@@ -61,13 +89,21 @@ const validateAuth = auth({
     res.send(response);
   });
 
-  app.post('/api/gen-flowchart', validateAuth, async (req, res) => {
-    const { vehicle, issues, responses } = req.body;
-
-    const msg = generateFlowchartPrompt(vehicle, issues, responses);
-    const response = await getResponse(msg);
-    await saveFlowchart(req.headers.userid, response, vehicle, issues, responses);
-    res.send(response);
+  app.post('/api/gen-flowchart', optionalValidateAuth, aiRateLimit, async (req, res) => {
+    try {
+      const { vehicle, issues, responses } = req.body;
+      const flowchartRecord = await generateInitialFlowchartForUser({
+        userid: req.headers.userid,
+        vehicle,
+        issues,
+        responses,
+        persist: Boolean(req.headers.authorization && req.headers.userid)
+      });
+      res.json(flowchartRecord);
+    } catch (err) {
+      console.error('Error generating flowchart:', err);
+      sendApiError(res, err, 'Unable to generate flowchart');
+    }
   });
 
   app.get('/api/get-flowcharts', validateAuth, async (req, res) => {
@@ -77,8 +113,8 @@ const validateAuth = auth({
 
   app.post('/api/delete-flowchart', validateAuth, async (req, res) => {
     try {
-      const { index } = req.body;
-      const result = await deleteFlowchart(req.headers.userid, index);
+      const { flowchartId } = req.body;
+      const result = await deleteFlowchart(req.headers.userid, flowchartId);
       if (result && result.success) return res.json({ success: true });
       return res.status(400).json({ success: false, message: result });
     } catch (err) {
@@ -128,7 +164,7 @@ const validateAuth = auth({
   })
 
   // ---- Car options endpoint ----
-  app.get('/api/car-options', validateAuth, async (req, res) => {
+  app.get('/api/car-options', optionalValidateAuth, async (req, res) => {
     try {
       const filters = {};
       if (req.query.year) filters.year = req.query.year;
@@ -139,6 +175,20 @@ const validateAuth = auth({
     } catch (err) {
       console.error('Error fetching car options:', err);
       res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/cars/add', async (req, res) => {
+    try {
+      const car = await upsertCar(req.body);
+      if (typeof car === 'string') {
+        return res.status(400).json({ success: false, message: car });
+      }
+
+      return res.json({ success: true, car });
+    } catch (err) {
+      console.error('Error adding car to Cars collection:', err);
+      return res.status(500).json({ success: false, message: err?.message || String(err) });
     }
   });
 
