@@ -1,22 +1,51 @@
 import { getToken, getUserID } from './auth.js';
 import axios from 'axios'
 
-async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+async function buildHeaders() {
   const token = await getToken();
   const userid = getUserID();
-  const config = { headers: { Authorization: `bearer ${token}`, userid } };
+  const headers = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (userid) {
+    headers.userid = userid;
+  }
+
+  return headers;
+}
+
+async function serverGet(endpoint, params) {
+  const url = `http://localhost:3000/api/${endpoint}`;
+  const config = { headers: await buildHeaders() };
   if (params) config.params = params;
-  const response = await axios.get(url, config);
-  return response.data;
+  try {
+    const response = await axios.get(url, config);
+    return response.data;
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
 }
 
 async function serverPost(endpoint, data) {
   const url = `http://localhost:3000/api/${endpoint}`;
-  const token = await getToken();
-  const userid = getUserID();
-  const response = await axios.post(url, data, { headers: { Authorization: `Bearer ${token}`, userid } });
-  return response.data;
+  try {
+    const response = await axios.post(url, data, { headers: await buildHeaders() });
+    return response.data;
+  } catch (err) {
+    throw normalizeApiError(err);
+  }
+}
+
+function normalizeApiError(err) {
+  const message = err?.response?.data?.message || err?.message || 'Request failed';
+  const normalizedError = new Error(message);
+  normalizedError.status = err?.response?.status || err?.status || 500;
+  normalizedError.retryAfterSeconds = err?.response?.data?.retryAfterSeconds || null;
+  normalizedError.cause = err;
+  return normalizedError;
 }
 
 export async function getResponse(contents) {
@@ -39,8 +68,8 @@ export async function getUserData() {
   return serverGet('get-user-data');
 }
 
-export async function deleteFlowchart(index) {
-  return serverPost('delete-flowchart', { index });
+export async function deleteFlowchart(flowchartId) {
+  return serverPost('delete-flowchart', { flowchartId });
 }
 
 /**
@@ -69,6 +98,10 @@ export async function uploadProfilePicture(base64Image) {
  */
 export async function getCarOptions(filters) {
   return serverGet('car-options', filters);
+}
+
+export async function addCarRecord(vehicle) {
+  return serverPost('cars/add', vehicle);
 }
 
 /**

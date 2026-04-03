@@ -1,17 +1,19 @@
 <!-- src/views/VehicleQuestions.vue -->
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { authState } from '../auth.js'
 import { getQuestions } from '../apis.js'
-import { useMechanicalProfileStore } from '../stores/mechanicalProfile'
+import { useQuestionsStore } from '../stores/questions.js'
 
 const route = useRoute()
 const router = useRouter()
-const profileStore = useMechanicalProfileStore()
+const questionsStore = useQuestionsStore()
 
 const details = route.query || {}
 const vehicle = { year: details.year, make: details.make, model: details.model, trim: details.trim }
 const issues = details.issues || 'No issues provided'
+const contextKey = `${vehicle.year}-${vehicle.make}-${vehicle.model}-${vehicle.trim}-${issues}`
 
 const loading = ref(false)
 const error = ref(null)
@@ -19,27 +21,40 @@ const questions = ref([])
 const userAnswers = ref({})
 const customAnswers = ref({})
 
-const canProceed = computed(() => 
-  questions.value.every(q => 
+const canProceed = computed(() =>
+  questions.value.every(q =>
     userAnswers.value[q.id] || customAnswers.value[q.id]?.trim()
   )
 )
+const isGuest = computed(() => !authState.isAuthenticated)
 
 const handleAnswer = (questionId, optionId) => {
   userAnswers.value[questionId] = optionId
+  questionsStore.updateAnswers(userAnswers.value, customAnswers.value)
 }
 
+watch(customAnswers, (val) => {
+  questionsStore.updateAnswers(userAnswers.value, val)
+}, { deep: true })
+
 const getFeedback = async () => {
+  if (questionsStore.hasQuestionsFor(contextKey)) {
+    questions.value = questionsStore.questions
+    userAnswers.value = { ...questionsStore.userAnswers }
+    customAnswers.value = { ...questionsStore.customAnswers }
+    return
+  }
+
   loading.value = true
   error.value = null
   try {
-    const mechanicalProfile = profileStore.hasCompletedAssessment ? profileStore.getCompleteProfile : null
-    const resp = await getQuestions(vehicle, issues, mechanicalProfile)
+    const resp = await getQuestions(vehicle, issues)
     const json = resp.replace(/```json\n?|\n?```/g, '').trim()
     const data = JSON.parse(json)
     if (!data.questions || !Array.isArray(data.questions))
       throw new Error('Invalid response format')
     questions.value = data.questions
+    questionsStore.setQuestions(contextKey, data.questions)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -50,17 +65,18 @@ const getFeedback = async () => {
 const proceedToFlowchart = () => {
   if (!canProceed.value) return
 
+  questionsStore.updateAnswers(userAnswers.value, customAnswers.value)
+
   const answers = questions.value.map(question => {
-    // Use custom answer if provided, otherwise use selected option
     if (customAnswers.value[question.id]?.trim()) {
-      return { 
-        question: question.text, 
-        option: customAnswers.value[question.id].trim() 
+      return {
+        question: question.text,
+        option: customAnswers.value[question.id].trim()
       }
     } else {
       const optionId = userAnswers.value[question.id]
       const option = question.options.find(opt => opt.id === optionId)
-      return { question: question.text, option: option.text }
+      return { question: question.text, answer: option.text, option: option.text }
     }
   })
 
@@ -84,6 +100,9 @@ onMounted(getFeedback)
       <h2>Vehicle Help</h2>
       <p><strong>Vehicle:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</p>
       <p><strong>Issues:</strong> {{ issues }}</p>
+      <div v-if="isGuest" class="guest-banner">
+        Guest mode is active. Your generated flowchart will not be saved after this session ends.
+      </div>
 
       <div v-if="loading" class="loading">Loading...</div>
       <div v-else-if="error" class="error">Error: {{ error }}</div>
@@ -213,5 +232,14 @@ onMounted(getFeedback)
 
 .custom-input::placeholder {
   color: #999;
+}
+
+.guest-banner {
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid #ffe08a;
+  background: #fff8db;
+  border-radius: 8px;
+  color: #725400;
 }
 </style>

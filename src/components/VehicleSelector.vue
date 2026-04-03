@@ -2,7 +2,6 @@
 import { ref, watch, onMounted } from 'vue';
 import { getCarOptions } from '../apis.js';
 import { autoFillVehicleFromVIN } from '../VINapi.js';
-import { authState } from '../auth.js';
 import SearchableSelect from './SearchableSelect.vue';
 
 const props = defineProps({
@@ -117,16 +116,7 @@ watch(() => localVehicle.value.model, (newVal, oldVal) => {
 
 onMounted(() => {
   if (!props.autoLoad) return;
-  if (authState.isAuthenticated) {
-    refreshCarOptions();
-  } else {
-    const stop = watch(() => authState.isAuthenticated, (isAuth) => {
-      if (isAuth) {
-        refreshCarOptions();
-        stop();
-      }
-    });
-  }
+  refreshCarOptions();
 });
 
 function isValidYear(val) {
