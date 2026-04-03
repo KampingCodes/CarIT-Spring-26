@@ -6,7 +6,9 @@ import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import { getSavedFlowcharts, getResponse, getUserData, setUserData, deleteFlowchart, uploadProfilePicture, crashOut } from '../apis.js';
 import { authState } from '../auth.js';
+import { useMechanicalProfileStore } from '../stores/mechanicalProfile';
 import MyGarage from './MyGarage.vue';
+import MechanicalAssessment from './MechanicalAssessment.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 // Profile state
@@ -22,6 +24,8 @@ const profilePictureError = ref(null);
 const crashOutCount = ref(0);
 const crashOutLoading = ref(false);
 const isShaking = ref(false);
+const showAssessmentModal = ref(false);
+const profileStore = useMechanicalProfileStore();
 
 // Flowchart carousel state (copied/adapted from FlowchartPage)
 const flowcharts = ref([]);
@@ -287,6 +291,20 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
     flowcharts.value = [];
   }
 });
+
+const openAssessmentModal = () => {
+  showAssessmentModal.value = true;
+};
+
+const closeAssessmentModal = () => {
+  showAssessmentModal.value = false;
+};
+
+const handleAssessmentComplete = (profile) => {
+  console.log('Mechanical profile assessment completed:', profile);
+  closeAssessmentModal();
+  // Optionally show a success message or update UI
+};
 </script>
 
 <template>
@@ -355,6 +373,14 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
               </button>
             </div>
 
+            <!-- Mechanical Assessment Button -->
+            <div class="button-group">
+              <button class="btn btn-info btn-sm w-100" @click="openAssessmentModal">
+                Mechanical Assessment
+              </button>
+              <p v-if="profileStore.hasCompletedAssessment" class="assessment-status">✓ Assessment Complete</p>
+            </div>
+
             <!-- Crash Out Stats Section -->
             <div class="crash-out-section">
               <div class="crash-out-counter">{{ crashOutCount }}</div>
@@ -376,6 +402,22 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
         <!-- ===== Garage Section ===== -->
         <MyGarage :editable="true" class="mb-5" />
 
+      </div>
+    </div>
+
+    <!-- Mechanical Assessment Modal -->
+    <div v-if="showAssessmentModal" class="assessment-modal-overlay" @click="closeAssessmentModal">
+      <div class="assessment-modal" @click.stop>
+        <div class="assessment-modal-header">
+          <h2>Mechanical Capability Assessment</h2>
+          <button class="close-button" @click="closeAssessmentModal">×</button>
+        </div>
+        <div class="assessment-modal-body">
+          <MechanicalAssessment 
+            @assessment-complete="handleAssessmentComplete"
+            @close="closeAssessmentModal"
+          />
+        </div>
       </div>
     </div>
   </div>
@@ -867,6 +909,97 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
   .carousel-wrapper {
     gap: 0.75rem;
+  }
+}
+
+/* ===== Mechanical Assessment Modal ===== */
+.assessment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.assessment-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 800px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  animation: slideIn 0.3s ease;
+}
+
+.assessment-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.assessment-modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  color: #333;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.close-button:hover {
+  color: #333;
+}
+
+.assessment-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+}
+
+.assessment-status {
+  font-size: 12px;
+  color: #4CAF50;
+  margin-top: 5px;
+  text-align: center;
+}
+
+.button-group {
+  margin-bottom: 10px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
   }
 }
 </style>

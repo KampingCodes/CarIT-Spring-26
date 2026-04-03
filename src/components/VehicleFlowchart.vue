@@ -4,10 +4,12 @@ import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import { getFlowchart } from '../apis.js';
+import { useMechanicalProfileStore } from '../stores/mechanicalProfile';
 import FlowchartViewer from './FlowchartViewer.vue';
 
 const route = useRoute();
 const router = useRouter();
+const profileStore = useMechanicalProfileStore();
 
 const vehicle = {
   year: route.query.year,
@@ -40,7 +42,8 @@ const getDiagram = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const resp = await getFlowchart(vehicle, issues, answers);
+    const mechanicalProfile = profileStore.hasCompletedAssessment ? profileStore.getCompleteProfile : null
+    const resp = await getFlowchart(vehicle, issues, answers, mechanicalProfile);
     const mermaidMatch = resp.match(/```mermaid\n([\s\S]*?)\n```/);
     if (!mermaidMatch) throw new Error('Mermaid code block not found');
     const code = mermaidMatch[1].trim();

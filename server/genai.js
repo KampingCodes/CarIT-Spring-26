@@ -67,10 +67,15 @@ export async function getResponse(contents) {
  * Generate questions prompt
  * @param {Object} vehicle Vehicle object
  * @param {string} issues Vehicle issue description
+ * @param {Object} mechanicalProfile Optional user mechanical profile for context
  * @returns {string} The questions prompt
  */
-export function generateQuestionsPrompt(vehicle, issues) {
-  return `You are a vehicle diagnostic expert. Based on the following vehicle information and issue description, generate 3-5 multiple choice questions that would help clarify the problem.
+export function generateQuestionsPrompt(vehicle, issues, mechanicalProfile = null) {
+  const mechanicalContext = mechanicalProfile 
+    ? generateMechanicalContext(mechanicalProfile)
+    : '';
+  
+  return `You are a vehicle diagnostic expert. Based on the following vehicle information and issue description, generate 3-5 multiple choice questions that would help clarify the problem.${mechanicalContext ? '\n\nUSER MECHANICAL PROFILE:\n' + mechanicalContext + '\nAdapt your questions to match the user\'s experience level and available resources.' : ''}
 
 IMPORTANT: Your response must be a valid JSON object with this exact structure. Do not include any other text, markdown, or explanations:
 {
@@ -104,8 +109,12 @@ Remember: Return ONLY the JSON object, no other text or formatting.`;
  * @param {Array<Object>} responses User responses
  * @returns {string} The flowchart prompt
  */
-export function generateFlowchartPrompt(vehicle, issues, responses) {
-  return `You are a vehicle diagnostic expert. Create a troubleshooting flowchart using Mermaid diagram syntax based on the following information. The flowchart should guide a mechanic through the diagnostic process.
+export function generateFlowchartPrompt(vehicle, issues, responses, mechanicalProfile = null) {
+  const mechanicalContext = mechanicalProfile 
+    ? generateMechanicalContextDetailed(mechanicalProfile)
+    : '';
+  
+  return `You are a vehicle diagnostic expert. Create a troubleshooting flowchart using Mermaid diagram syntax based on the following information. The flowchart should guide a mechanic through the diagnostic process.${mechanicalContext ? '\n\nUSER MECHANICAL PROFILE:\n' + mechanicalContext + '\n\nIMPORTANT: Adapt your flowchart complexity, tool requirements, and instructions to match the user\'s skill level and available resources. For beginners, recommend safe, non-invasive checks first. For advanced users, include complex diagnostic steps.' : ''}
 
 IMPORTANT: Follow these Mermaid syntax rules exactly:
 1. Start with "graph TD" (top-down graph)
@@ -155,13 +164,112 @@ Return ONLY the mermaid code block with your diagnostic flowchart, no other text
 }
 
 /**
- * Helper to return a displayable value or a default placeholder
- * when empty. Treats undefined, null, empty string, and strings
- * containing only whitespace as empty.
- * @param {any} val The value
- * @param {string} placeholder The default placeholder
- * @returns {string} The displayable value
-*/
+ * Generate mechanical context string for AI prompts
+ * @param {Object} profile Mechanical profile object
+ * @returns {string} Formatted context string
+ */
+function generateMechanicalContext(profile) {
+  const lines = [];
+  
+  if (profile.experience) {
+    lines.push(`Experience Level: ${profile.experience.level}`);
+    if (profile.experience.yearsOfExperience) {
+      lines.push(`Years of Experience: ${profile.experience.yearsOfExperience}+`);
+    }
+    if (profile.experience.hoursPerMonth) {
+      lines.push(`Works on vehicles: ${profile.experience.hoursPerMonth} hours/month`);
+    }
+  }
+  
+  if (profile.tools) {
+    const tools = [];
+    if (profile.tools.hasBasicTools) tools.push('Basic tools');
+    if (profile.tools.specializedTools && profile.tools.specializedTools.length > 0) {
+      tools.push(...profile.tools.specializedTools);
+    }
+    if (tools.length > 0) {
+      lines.push(`Available Tools: ${tools.join(', ')}`);
+    }
+    lines.push(`Diagnostic Equipment: ${profile.tools.diagnosticCapability}`);
+  }
+  
+  if (profile.workspace) {
+    lines.push(`Workspace: ${profile.workspace.type}`);
+  }
+  
+  if (profile.support) {
+    lines.push(`Learning Style: ${profile.support.learningPreference}`);
+  }
+  
+  return lines.join('\n');
+}
+
+/**
+ * Generate detailed mechanical context for flowchart prompts
+ * @param {Object} profile Mechanical profile object
+ * @returns {string} Formatted context string
+ */
+function generateMechanicalContextDetailed(profile) {
+  const lines = [];
+  
+  if (profile.experience) {
+    lines.push(`Experience Level: ${profile.experience.level}`);
+    if (profile.experience.yearsOfExperience > 0) {
+      lines.push(`Years of Experience: ${profile.experience.yearsOfExperience}+`);
+    }
+    if (profile.experience.hoursPerMonth > 0) {
+      lines.push(`Works on vehicles: ${profile.experience.hoursPerMonth} hours/month`);
+    }
+    
+    // Comfort levels
+    if (profile.experience.comfortLevel) {
+      const comfortItems = [];
+      for (const [system, level] of Object.entries(profile.experience.comfortLevel)) {
+        if (level <= 2) comfortItems.push(`avoid ${system}`);
+        else if (level >= 4) comfortItems.push(`can handle complex ${system} work`);
+      }
+      if (comfortItems.length > 0) {
+        lines.push(`Comfort Levels: ${comfortItems.join(', ')}`);
+      }
+    }
+  }
+  
+  if (profile.tools) {
+    const tools = [];
+    if (profile.tools.hasBasicTools) tools.push('Basic tools');
+    if (profile.tools.specializedTools && profile.tools.specializedTools.length > 0) {
+      tools.push(...profile.tools.specializedTools);
+    }
+    if (tools.length > 0) {
+      lines.push(`Available Tools: ${tools.join(', ')}`);
+    }
+    if (profile.tools.diagnosticCapability !== 'none') {
+      lines.push(`Diagnostic Capability: ${profile.tools.diagnosticCapability}`);
+    }
+  }
+  
+  if (profile.workspace) {
+    const workspaceFeatures = [];
+    workspaceFeatures.push(profile.workspace.type);
+    if (profile.workspace.hasLift) workspaceFeatures.push('has lift');
+    if (profile.workspace.hasJackStands) workspaceFeatures.push('has jack stands');
+    lines.push(`Workspace: ${workspaceFeatures.join(', ')}`);
+  }
+  
+  if (profile.support) {
+    const support = [];
+    if (profile.support.hasAccessToMechanic) support.push('can consult a mechanic');
+    if (profile.support.hasTechnicalBackup) support.push('has technical backup');
+    if (support.length > 0) {
+      lines.push(`Support Available: ${support.join(', ')}`);
+    }
+    lines.push(`Preferred Style: ${profile.support.learningPreference}`);
+  }
+  
+  return lines.join('\n');
+}
+
+/**
 function formatField(val, placeholder = "None") {
   if (val === undefined || val === null) return placeholder;
   if (typeof val === "string") {

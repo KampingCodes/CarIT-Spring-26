@@ -54,17 +54,17 @@ const validateAuth = auth({
   });
   
   app.post('/api/gen-questions', validateAuth, async (req, res) => {
-    const { vehicle, issues } = req.body;
+    const { vehicle, issues, mechanicalProfile } = req.body;
 
-    const msg = generateQuestionsPrompt(vehicle, issues);
+    const msg = generateQuestionsPrompt(vehicle, issues, mechanicalProfile);
     const response = await getResponse(msg);
     res.send(response);
   });
 
   app.post('/api/gen-flowchart', validateAuth, async (req, res) => {
-    const { vehicle, issues, responses } = req.body;
+    const { vehicle, issues, responses, mechanicalProfile } = req.body;
 
-    const msg = generateFlowchartPrompt(vehicle, issues, responses);
+    const msg = generateFlowchartPrompt(vehicle, issues, responses, mechanicalProfile);
     const response = await getResponse(msg);
     await saveFlowchart(req.headers.userid, response, vehicle, issues, responses);
     res.send(response);

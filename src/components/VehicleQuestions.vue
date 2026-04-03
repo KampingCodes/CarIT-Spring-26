@@ -3,9 +3,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getQuestions } from '../apis.js'
+import { useMechanicalProfileStore } from '../stores/mechanicalProfile'
 
 const route = useRoute()
 const router = useRouter()
+const profileStore = useMechanicalProfileStore()
 
 const details = route.query || {}
 const vehicle = { year: details.year, make: details.make, model: details.model, trim: details.trim }
@@ -31,7 +33,8 @@ const getFeedback = async () => {
   loading.value = true
   error.value = null
   try {
-    const resp = await getQuestions(vehicle, issues)
+    const mechanicalProfile = profileStore.hasCompletedAssessment ? profileStore.getCompleteProfile : null
+    const resp = await getQuestions(vehicle, issues, mechanicalProfile)
     const json = resp.replace(/```json\n?|\n?```/g, '').trim()
     const data = JSON.parse(json)
     if (!data.questions || !Array.isArray(data.questions))
