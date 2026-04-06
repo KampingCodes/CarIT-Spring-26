@@ -18,6 +18,7 @@ import { logout, login, authState } from '../auth.js'
           <li :class="{ active: $route.path === '/features' }"><RouterLink to="/features" class="nav-link">Features</RouterLink></li>
           <li :class="{ active: $route.path === '/aboutus' }"><RouterLink to="/aboutus" class="nav-link">About us</RouterLink></li>
           <li v-if="lI" :class="{ active: $route.path === '/flowcharts' }"><RouterLink to="/flowcharts" class="nav-link">Your Flowcharts</RouterLink></li>
+          <li v-if="showAdmin" :class="{ active: $route.path === '/admin' }"><RouterLink to="/admin" class="nav-link">Admin Dashboard</RouterLink></li>
         </ul>
         <ul
           class="js-clone-nav 
@@ -51,6 +52,9 @@ export default {
   computed: {
     lI() {
       return authState.isAuthenticated
+    },
+    showAdmin() {
+      return authState.isAuthenticated && authState.isAdmin
     }
   }
 }
