@@ -19,7 +19,7 @@ function handleSubmit() {
   
   let experienceLevel = selectedExperience.value;
 
-  console.log("Selected experience level:", experienceLevel);
+  //console.log("Selected experience level:", experienceLevel);
 
   setUserData({ experienceLevel: experienceLevel });
   
@@ -32,7 +32,7 @@ async function checkExperienceLevel() {
   try {
     const userData = await getUserData();
     ExperienceLevel.value = userData?.experienceLevel || null;
-    console.log("Fetched experience level:", ExperienceLevel.value);
+    //console.log("Fetched experience level:", ExperienceLevel.value);
     
     const validLevels = ['Beginner', 'Intermediate', 'Expert'];
     // Show popup if experience level is null or not one of the valid options

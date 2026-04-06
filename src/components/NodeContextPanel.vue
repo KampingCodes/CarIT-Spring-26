@@ -67,6 +67,7 @@ function buildPrompt(userQuestion) {
   return [
     'You are a helpful automotive diagnostics expert.',
     'Answer clearly and concisely for a student mechanic.',
+    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting.',
     vehicleBlock,
     nodeBlock,
     flowchartBlock,
@@ -158,7 +159,7 @@ function formatAnswer(text = '') {
   // Normalize line endings for consistent matching across platforms
   let work = String(text).replace(/\r\n?|\u2028|\u2029/g, '\n');
 
-  // Exact section names (no variance per your note)
+  // Exact section names
   const headers = [
     'Tools & Materials',
     'Safety Notes',
