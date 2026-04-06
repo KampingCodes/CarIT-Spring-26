@@ -1,16 +1,19 @@
 <!-- src/views/VehicleQuestions.vue -->
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { authState } from '../auth.js'
 import { getQuestions } from '../apis.js'
+import { useQuestionsStore } from '../stores/questions.js'
 
 const route = useRoute()
 const router = useRouter()
+const questionsStore = useQuestionsStore()
 
 const details = route.query || {}
 const vehicle = { year: details.year, make: details.make, model: details.model, trim: details.trim }
 const issues = details.issues || 'No issues provided'
+const contextKey = `${vehicle.year}-${vehicle.make}-${vehicle.model}-${vehicle.trim}-${issues}`
 
 const loading = ref(false)
 const error = ref(null)
@@ -18,8 +21,8 @@ const questions = ref([])
 const userAnswers = ref({})
 const customAnswers = ref({})
 
-const canProceed = computed(() => 
-  questions.value.every(q => 
+const canProceed = computed(() =>
+  questions.value.every(q =>
     userAnswers.value[q.id] || customAnswers.value[q.id]?.trim()
   )
 )
@@ -27,9 +30,21 @@ const isGuest = computed(() => !authState.isAuthenticated)
 
 const handleAnswer = (questionId, optionId) => {
   userAnswers.value[questionId] = optionId
+  questionsStore.updateAnswers(userAnswers.value, customAnswers.value)
 }
 
+watch(customAnswers, (val) => {
+  questionsStore.updateAnswers(userAnswers.value, val)
+}, { deep: true })
+
 const getFeedback = async () => {
+  if (questionsStore.hasQuestionsFor(contextKey)) {
+    questions.value = questionsStore.questions
+    userAnswers.value = { ...questionsStore.userAnswers }
+    customAnswers.value = { ...questionsStore.customAnswers }
+    return
+  }
+
   loading.value = true
   error.value = null
   try {
@@ -39,6 +54,7 @@ const getFeedback = async () => {
     if (!data.questions || !Array.isArray(data.questions))
       throw new Error('Invalid response format')
     questions.value = data.questions
+    questionsStore.setQuestions(contextKey, data.questions)
   } catch (err) {
     error.value = err.message
   } finally {
@@ -49,12 +65,13 @@ const getFeedback = async () => {
 const proceedToFlowchart = () => {
   if (!canProceed.value) return
 
+  questionsStore.updateAnswers(userAnswers.value, customAnswers.value)
+
   const answers = questions.value.map(question => {
-    // Use custom answer if provided, otherwise use selected option
     if (customAnswers.value[question.id]?.trim()) {
-      return { 
-        question: question.text, 
-        option: customAnswers.value[question.id].trim() 
+      return {
+        question: question.text,
+        option: customAnswers.value[question.id].trim()
       }
     } else {
       const optionId = userAnswers.value[question.id]
