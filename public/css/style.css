@@ -1028,11 +1028,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
       .site-footer .social li a:hover {
         background: #739eff;
         color: #ffffff; }
-
-/* ============================================
-   MOBILE RESPONSIVE DESIGN - Small Devices
-   ============================================ */
-
+        
 /* Extra small devices (phones, 576px and down) */
 @media (max-width: 575.98px) {
   /* General Typography */
