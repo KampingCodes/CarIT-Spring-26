@@ -3,11 +3,15 @@ import { ref } from 'vue';
 
 const isVisible = ref(false);
 const message = ref('');
+const title = ref('Confirm Action');
+const confirmLabel = ref('Delete');
 let resolveCallback = null;
 
-const show = (msg) => {
+const show = (msg, options = {}) => {
   return new Promise((resolve) => {
     message.value = msg;
+    title.value = options.title || 'Confirm Action';
+    confirmLabel.value = options.confirmLabel || 'Delete';
     resolveCallback = resolve;
     isVisible.value = true;
   });
@@ -30,11 +34,12 @@ defineExpose({ show });
   <div v-if="isVisible" class="confirm-overlay" @click="cancel">
     <div class="confirm-dialog" @click.stop>
       <div class="confirm-content">
+        <h4 class="confirm-title">{{ title }}</h4>
         <p>{{ message }}</p>
       </div>
       <div class="confirm-buttons">
         <button class="btn btn-secondary" @click="cancel">Cancel</button>
-        <button class="btn btn-danger" @click="confirm">Delete</button>
+        <button class="btn btn-danger" @click="confirm">{{ confirmLabel }}</button>
       </div>
     </div>
   </div>
@@ -77,6 +82,13 @@ defineExpose({ show });
 
 .confirm-content {
   margin-bottom: 1.5rem;
+}
+
+.confirm-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
 }
 
 .confirm-content p {

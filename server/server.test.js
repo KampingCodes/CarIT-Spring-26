@@ -7,6 +7,8 @@ import {
   createOptionalValidateAuth,
   getRetryAfterSeconds
 } from './aiMiddleware.js';
+import { getBootstrapAdminSubjects, sortAuditEntriesByRelevance } from './admin.js';
+import { normalizeAccessLevel, normalizeExperienceLevel, parsePagination } from './helper.js';
 import { normalizeVehicleRecord } from './vehicleUtils.js';
 
 function createReq({
@@ -207,4 +209,66 @@ test('normalizeVehicleRecord rejects invalid input', () => {
   assert.equal(normalizeVehicleRecord({ year: '1700', make: 'Honda', model: 'Civic' }), null);
   assert.equal(normalizeVehicleRecord({ year: '2016', make: '', model: 'Civic' }), null);
   assert.equal(normalizeVehicleRecord({ year: '2016', make: 'Honda', model: '' }), null);
+});
+
+test('getBootstrapAdminSubjects trims and de-duplicates configured subjects', () => {
+  const previous = process.env.ADMIN_ALLOWLIST_SUBJECTS;
+  process.env.ADMIN_ALLOWLIST_SUBJECTS = ' auth0|a , auth0|b,auth0|a ,, ';
+
+  assert.deepEqual(getBootstrapAdminSubjects(), ['auth0|a', 'auth0|b']);
+
+  process.env.ADMIN_ALLOWLIST_SUBJECTS = previous;
+});
+
+test('normalizeAccessLevel defaults unknown values to admin', () => {
+  assert.equal(normalizeAccessLevel('superadmin'), 'superadmin');
+  assert.equal(normalizeAccessLevel('ADMIN'), 'admin');
+  assert.equal(normalizeAccessLevel('owner'), 'admin');
+});
+
+test('normalizeExperienceLevel accepts known profile levels only', () => {
+  assert.equal(normalizeExperienceLevel('Beginner'), 'Beginner');
+  assert.equal(normalizeExperienceLevel(' Advanced '), null);
+  assert.equal(normalizeExperienceLevel(null), null);
+});
+
+test('parsePagination clamps invalid query values', () => {
+  assert.deepEqual(parsePagination({ page: '-2', pageSize: '999' }, { pageSize: 12 }), {
+    page: 1,
+    pageSize: 100,
+    skip: 0
+  });
+});
+
+test('sortAuditEntriesByRelevance places exact audit matches first', () => {
+  const entries = [
+    {
+      actorUserId: 'auth0|other-user',
+      action: 'record.delete',
+      targetType: 'vehicle',
+      targetId: 'car-1',
+      targetLabel: '2006 Eclipse',
+      createdAt: '2026-04-01T12:00:00.000Z'
+    },
+    {
+      actorUserId: 'auth0|target-user',
+      action: 'record.restore',
+      targetType: 'vehicle',
+      targetId: 'car-2',
+      targetLabel: 'Other Vehicle',
+      createdAt: '2026-04-01T11:00:00.000Z'
+    },
+    {
+      actorUserId: 'auth0|another-user',
+      action: 'record.delete',
+      targetType: 'flowchart',
+      targetId: 'flow-1',
+      targetLabel: 'target incident',
+      createdAt: '2026-04-01T13:00:00.000Z'
+    }
+  ];
+
+  const sorted = sortAuditEntriesByRelevance(entries, 'auth0|target-user');
+
+  assert.equal(sorted[0].actorUserId, 'auth0|target-user');
 });
