@@ -15,11 +15,20 @@ export const authState = reactive({
 });
 
 let authInitPromise = null;
+let adminStatusRefreshPromise = null;
+let adminStatusSyncStarted = false;
+let adminStatusIntervalId = null;
+let lastAdminStatusRefreshAt = 0;
+
+const ADMIN_STATUS_REFRESH_INTERVAL_MS = 5000;
+const ADMIN_STATUS_FRESHNESS_MS = 5000;
 
 // Initialize Auth0
 export async function initAuth() {
   if (!authInitPromise) {
     authInitPromise = (async () => {
+      startAdminStatusSync();
+
       authState.client = await createAuth0Client({
         domain: import.meta.env.VITE_AUTH0_DOMAIN,
         clientId: import.meta.env.VITE_AUTH0_CLIENT_ID,
@@ -101,14 +110,34 @@ async function createUser() {
 }
 
 export async function refreshAdminStatus(options = {}) {
-  const { suppressErrors = false } = options;
+  const { suppressErrors = false, force = false } = options;
 
   if (!authState.isAuthenticated) {
     resetAdminState();
     return { isAdmin: false, accessLevel: 'user' };
   }
 
-  try {
+  if (!force && adminStatusRefreshPromise) {
+    try {
+      return await adminStatusRefreshPromise;
+    } catch (err) {
+      if (!suppressErrors) {
+        throw err;
+      }
+
+      console.warn('Unable to refresh admin status:', err?.message || err);
+      return { isAdmin: false, accessLevel: 'user' };
+    }
+  }
+
+  if (!force && authState.adminStatusLoaded && Date.now() - lastAdminStatusRefreshAt < ADMIN_STATUS_FRESHNESS_MS) {
+    return {
+      isAdmin: authState.isAdmin,
+      accessLevel: authState.adminAccessLevel
+    };
+  }
+
+  const request = (async () => {
     const token = await getToken(true);
     if (!token) {
       resetAdminState();
@@ -122,7 +151,14 @@ export async function refreshAdminStatus(options = {}) {
     authState.isAdmin = Boolean(response.data?.isAdmin);
     authState.adminAccessLevel = response.data?.accessLevel || 'user';
     authState.adminStatusLoaded = true;
+    lastAdminStatusRefreshAt = Date.now();
     return response.data;
+  })();
+
+  adminStatusRefreshPromise = request;
+
+  try {
+    return await request;
   } catch (err) {
     resetAdminState();
     if (!suppressErrors) {
@@ -131,7 +167,42 @@ export async function refreshAdminStatus(options = {}) {
 
     console.warn('Unable to refresh admin status:', err?.message || err);
     return { isAdmin: false, accessLevel: 'user' };
+  } finally {
+    if (adminStatusRefreshPromise === request) {
+      adminStatusRefreshPromise = null;
+    }
   }
+}
+
+export function startAdminStatusSync() {
+  if (adminStatusSyncStarted || typeof window === 'undefined') {
+    return;
+  }
+
+  adminStatusSyncStarted = true;
+
+  window.addEventListener('focus', handleAdminStatusVisibilityChange);
+  document.addEventListener('visibilitychange', handleAdminStatusVisibilityChange);
+
+  adminStatusIntervalId = window.setInterval(() => {
+    if (!authState.isAuthenticated || document.visibilityState === 'hidden') {
+      return;
+    }
+
+    refreshAdminStatus({ suppressErrors: true, force: true });
+  }, ADMIN_STATUS_REFRESH_INTERVAL_MS);
+}
+
+function handleAdminStatusVisibilityChange() {
+  if (!authState.isAuthenticated) {
+    return;
+  }
+
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+    return;
+  }
+
+  refreshAdminStatus({ suppressErrors: true, force: true });
 }
 
 // Login
@@ -168,6 +239,7 @@ function resetAdminState() {
   authState.isAdmin = false;
   authState.adminAccessLevel = 'user';
   authState.adminStatusLoaded = true;
+  lastAdminStatusRefreshAt = 0;
 }
 
 
