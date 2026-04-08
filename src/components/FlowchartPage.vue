@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue';
+import { onMounted, ref, computed, watch } from 'vue';
 import 'primeicons/primeicons.css';
 import { deleteFlowchart, getSavedFlowcharts } from '../apis';
 import { authState } from '../auth.js';
@@ -7,7 +7,8 @@ import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
 import FlowchartViewer from './FlowchartViewer.vue';
 import NodeContextPanel from './NodeContextPanel.vue';
-import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection } from '../flowchart-utils.js';
+import { buildMermaidNodeMap, normalizeFlowchartRecord, prepareMermaidForRender, resolveNodeSelection, getMermaidConfig, applyMermaidThemeToSvg } from '../flowchart-utils.js';
+import { useThemeStore } from '../stores/theme';
 
 const flowcharts = ref([]);
 const flowchartSvg = ref({});
@@ -19,6 +20,7 @@ const carouselScroll = ref(null);
 const confirmDialog = ref(null);
 const selectedNode = ref(null);
 const panelOpen = ref(false);
+const themeStore = useThemeStore();
 
 const selectedFlowchart = computed(() => {
   if (flowcharts.value.length === 0) return null;
@@ -66,12 +68,12 @@ const getDiagram = async (flowchartObj) => {
     
     // Generate full-size flowchart
     const { svg } = await mermaid.render(`flowchart-${flowchartId}`, renderCode);
-    flowchartSvg.value = { ...flowchartSvg.value, [flowchartId]: svg };
+    flowchartSvg.value = { ...flowchartSvg.value, [flowchartId]: applyMermaidThemeToSvg(svg, themeStore.isDark) };
     
     // Generate thumbnail (same SVG, will be styled smaller)
     const thumbnailCode = prepareMermaidForRender(code, { wrapAt: 18 });
     const { svg: thumbSvg } = await mermaid.render(`thumbnail-${flowchartId}`, thumbnailCode);
-    thumbnailSvg.value = { ...thumbnailSvg.value, [flowchartId]: thumbSvg };
+    thumbnailSvg.value = { ...thumbnailSvg.value, [flowchartId]: applyMermaidThemeToSvg(thumbSvg, themeStore.isDark) };
   } catch (err) {
     error.value = { ...error.value, [flowchartId]: err.message };
   } finally {
@@ -124,12 +126,12 @@ const scrollCarousel = (direction) => {
   }
 };
 
+const initializeMermaid = () => {
+  mermaid.initialize(getMermaidConfig(themeStore.isDark));
+};
+
 onMounted(async () => {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'loose',
-    flowchart: { htmlLabels: true, curve: 'basis' }
-  });
+  initializeMermaid();
 
   if (!authState.isAuthenticated) {
     return;
@@ -154,6 +156,11 @@ const handleNodeActivate = (selection) => {
 const closeNodePanel = () => {
   panelOpen.value = false;
 };
+
+watch(() => themeStore.isDark, async () => {
+  initializeMermaid();
+  await Promise.all(flowcharts.value.map(getDiagram));
+});
 </script>
 
 <template>
@@ -301,29 +308,29 @@ const closeNodePanel = () => {
 }
 
 .carousel-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--color-surface-raised);
   border-radius: 4px;
 }
 
 .carousel-container::-webkit-scrollbar-thumb {
-  background: #888;
+  background: var(--color-border);
   border-radius: 4px;
 }
 
 .carousel-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: var(--color-text-muted);
 }
 
 .thumbnail-card {
   min-width: 200px;
   width: 200px;
   height: 220px;
-  border: 2px solid #ddd;
+  border: 2px solid var(--color-border);
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s ease;
-  background: white;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   position: relative;
@@ -348,6 +355,7 @@ const closeNodePanel = () => {
   justify-content: center;
   overflow: hidden;
   padding: 0.5rem;
+  background: var(--color-diagram-surface);
 }
 
 .thumbnail-svg :deep(svg) {
@@ -364,13 +372,13 @@ const closeNodePanel = () => {
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
 }
 
 .thumbnail-info {
   padding: 0.75rem;
-  border-top: 1px solid #eee;
-  background: #f9f9f9;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
 }
 
 .thumbnail-title {
@@ -379,11 +387,12 @@ const closeNodePanel = () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--color-text-primary);
 }
 
 .thumbnail-subtitle {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--color-text-muted);
   margin-top: 0.25rem;
 }
 
@@ -391,7 +400,7 @@ const closeNodePanel = () => {
   position: absolute;
   top: 6px;
   right: 6px;
-  color: #000;
+  color: var(--color-text-secondary);
   font-size: 1rem;
   cursor: pointer;
   transition: transform 0.15s ease, color 0.15s ease;
@@ -399,7 +408,7 @@ const closeNodePanel = () => {
 }
 
 .delete-icon:hover {
-  color: #333;
+  color: var(--color-text-primary);
   transform: scale(1.1);
 }
 
@@ -408,8 +417,9 @@ const closeNodePanel = () => {
 }
 
 .carousel-btn {
-  background: white;
-  border: 2px solid #ddd;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -423,8 +433,9 @@ const closeNodePanel = () => {
 }
 
 .carousel-btn:hover:not(:disabled) {
-  background: #f0f0f0;
-  border-color: #999;
+  background: var(--color-surface-raised);
+  border-color: var(--color-brand);
+  color: var(--color-brand);
 }
 
 .carousel-btn:disabled {
@@ -435,30 +446,32 @@ const closeNodePanel = () => {
 .selected-flowchart-section {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 2px solid #eee;
+  border-top: 2px solid var(--color-border);
 }
 
 .flowchart-header h2 {
   margin-bottom: 0.5rem;
   font-size: 1.75rem;
+  color: var(--color-text-primary);
 }
 
 .flowchart-header p {
   margin-bottom: 1rem;
-  color: #555;
+  color: var(--color-text-secondary);
 }
 
 .responses-section {
   margin: 1.5rem 0;
   padding: 1rem;
-  background: #f9f9f9;
+  background: var(--color-surface-raised);
   border-radius: 8px;
+  color: var(--color-text-secondary);
 }
 
 .response-item {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .response-item:last-child {
@@ -479,8 +492,8 @@ const closeNodePanel = () => {
 }
 
 .spinner {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
+  border: 3px solid var(--color-surface-raised);
+  border-top: 3px solid var(--color-brand);
   border-radius: 50%;
   width: 40px;
   height: 40px;

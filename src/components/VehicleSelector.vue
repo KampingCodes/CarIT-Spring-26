@@ -243,7 +243,6 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   display: flex;
   flex-wrap: nowrap;
   gap: 0.5rem;
-  border-bottom: 1px solid #43434d;
 }
 
 .vs-field {
@@ -273,12 +272,12 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 .divider-line {
   flex: 1;
   height: 1px;
-  background-color: #dee2e6;
+  background-color: var(--color-border);
 }
 
 .divider-text {
   white-space: nowrap;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
   font-size: 0.875rem;
 }
@@ -290,7 +289,7 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
 .vin-input-section h6 {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }

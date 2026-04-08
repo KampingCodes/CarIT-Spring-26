@@ -130,9 +130,9 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   position: absolute;
   width: 100%;
   z-index: 10;
-  /* subtle shadow so header stands out against page content */
-  -webkit-box-shadow: 0 6px 18px -10px rgba(0,0,0,0.3);
-  box-shadow: 0 6px 18px -10px rgba(0,0,0,0.3);
+  background-color: #ffffff;
+  -webkit-box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.1);
 }
   .site-nav a {
     position: relative;
@@ -163,7 +163,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
           color: #407BFF; }
       .site-nav .site-navigation .site-menu > li.cta-button-outline a {
         padding: 5px 22px;
-        border: 1px solid rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.3);
         color: #000000;
         border-radius: 30px; }
         .site-nav .site-navigation .site-menu > li.cta-button-outline a:hover {
@@ -259,7 +259,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   .site-nav.dark a {
     color: #000000; }
   .site-nav.dark .site-navigation .site-menu > li > a {
-    color: rgba(0, 0, 0, 0.5); }
+    color: rgba(0, 0, 0, 0.6); }
     .site-nav.dark .site-navigation .site-menu > li > a:hover {
       color: #000000; }
   .site-nav.dark .site-navigation .site-menu > li.active > a {

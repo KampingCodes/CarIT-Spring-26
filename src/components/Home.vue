@@ -41,6 +41,7 @@ const buttonTry = "Start";
                   :style="[
                     { background: themeColor },
                     { borderColor: themeColor },
+                    { color: '#ffffff' },
                   ]"
                 >
                   {{ buttonTry }}

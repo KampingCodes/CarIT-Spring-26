@@ -1,0 +1,678 @@
+/* ============================================================
+   CARit Theme System — CSS Design Tokens
+   Light (default) and Dark themes via data-theme attribute
+   ============================================================ */
+
+/* ── Light mode tokens ──────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --color-bg:               #ffffff;
+  --color-bg-subtle:        #f7f8fc;
+  --color-surface:          #ffffff;
+  --color-surface-raised:   #f0f2f6;
+
+  /* Borders */
+  --color-border:           #e2e4ec;
+  --color-border-subtle:    #eceef4;
+
+  /* Text */
+  --color-text-primary:     #0d0d14;
+  --color-text-secondary:   #3c3c50;
+  --color-text-muted:       #72728a;
+
+  /* Brand */
+  --color-brand:            #407BFF;
+  --color-brand-hover:      #5489ff;
+  --color-brand-light:      rgba(64, 123, 255, 0.10);
+
+  /* Navigation */
+  --color-nav-scrolled-bg:  #ffffff;
+  --color-nav-link-scrolled:#000000;
+
+  /* Cards / components */
+  --color-card-bg:          #ffffff;
+  --color-card-shadow:      rgba(0, 0, 0, 0.08);
+  --color-input-border:     #43434d;
+  --color-input-text:       #000000;
+
+  /* Mermaid diagram surface — stays light for SVG readability */
+  --color-diagram-surface:  #f8f9fa;
+  --color-diagram-border:   #e9ecef;
+
+  /* Misc */
+  --color-page-bg-subtle:   #f5f5f5;
+  --color-overlay:          #ffffff;
+  --color-selection-bg:     #000000;
+  --color-selection-text:   #ffffff;
+  --color-mobile-menu-bg:   #ffffff;
+
+  /* Toggle button */
+  --theme-toggle-bg:        #e8eaf0;
+  --theme-toggle-color:     #3c3c50;
+  --theme-toggle-hover-bg:  #dde0ea;
+}
+
+/* ── Dark mode tokens ───────────────────────────────────────── */
+/*
+  Design intent:
+  - Deep neutral with warm blue-gray undertones, never pure black
+  - Visual hierarchy preserved: surface > raised surface > card
+  - Brand blue shifts slightly lighter to maintain contrast on dark bg
+  - Mermaid diagrams retain a light surface for SVG readability
+*/
+[data-theme="dark"] {
+  /* Backgrounds */
+  --color-bg:               #18181f;
+  --color-bg-subtle:        #1e1e27;
+  --color-surface:          #22222c;
+  --color-surface-raised:   #2c2c3a;
+
+  /* Borders */
+  --color-border:           #38384e;
+  --color-border-subtle:    #2c2c3a;
+
+  /* Text */
+  --color-text-primary:     #eaeaf6;
+  --color-text-secondary:   #b0b0cc;
+  --color-text-muted:       #6e6e88;
+
+  /* Brand — lighter for dark bg contrast */
+  --color-brand:            #6090ff;
+  --color-brand-hover:      #80aaff;
+  --color-brand-light:      rgba(96, 144, 255, 0.15);
+
+  /* Navigation */
+  --color-nav-scrolled-bg:  #1e1e27;
+  --color-nav-link-scrolled: #e0e0f0;
+
+  /* Cards / components */
+  --color-card-bg:          #22222c;
+  --color-card-shadow:      rgba(0, 0, 0, 0.45);
+  --color-input-border:     #4a4a64;
+  --color-input-text:       #eaeaf6;
+
+  /* Mermaid diagram surface — keep light so SVGs remain legible */
+  --color-diagram-surface:  #eef0f6;
+  --color-diagram-border:   #cdd0dc;
+
+  /* Misc */
+  --color-page-bg-subtle:   #1e1e27;
+  --color-overlay:          #18181f;
+  --color-selection-bg:     #6090ff;
+  --color-selection-text:   #ffffff;
+  --color-mobile-menu-bg:   #22222c;
+
+  /* Toggle button */
+  --theme-toggle-bg:        #2c2c3a;
+  --theme-toggle-color:     #eaeaf6;
+  --theme-toggle-hover-bg:  #383850;
+}
+
+/* ============================================================
+   Smooth transition on all key elements
+   ============================================================ */
+*,
+*::before,
+*::after {
+  transition:
+    background-color 0.25s ease,
+    border-color     0.25s ease,
+    color            0.25s ease,
+    box-shadow       0.25s ease;
+}
+
+/* Exclude transitions from elements that should be instant */
+svg *,
+.carousel-btn,
+[data-aos] {
+  transition: none !important;
+}
+
+/* ============================================================
+   Global element overrides — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] body {
+  background: var(--color-bg);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] ::selection {
+  background: var(--color-selection-bg);
+  color: var(--color-selection-text);
+}
+
+/* Override style.css h1-h4 { color: #000000 } — use !important to win over specificity */
+[data-theme="dark"] h1,
+[data-theme="dark"] .h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] .h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] .h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] .h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--color-text-primary) !important;
+}
+
+/* Bootstrap / style.css .text-black and hardcoded black text */
+[data-theme="dark"] .text-black {
+  color: var(--color-text-primary) !important;
+}
+
+[data-theme="dark"] .text-muted {
+  color: var(--color-text-muted) !important;
+}
+
+[data-theme="dark"] a {
+  color: var(--color-brand);
+}
+
+[data-theme="dark"] a:hover {
+  color: var(--color-brand-hover);
+}
+
+/* Preloader */
+[data-theme="dark"] #overlayer {
+  background: var(--color-overlay);
+}
+
+/* ============================================================
+   Navigation — Dark theme
+   ============================================================ */
+
+/* Non-scrolled state: same solid bg as scrolled state for consistency */
+[data-theme="dark"] .site-nav:not(.scrolled) {
+  background-color: var(--color-nav-scrolled-bg);
+  box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.5);
+}
+
+/* Override .site-nav.dark black text in dark theme (non-scrolled) */
+[data-theme="dark"] .site-nav.dark a {
+  color: var(--color-nav-link-scrolled);
+}
+[data-theme="dark"] .site-nav.dark .site-navigation .site-menu > li > a {
+  color: var(--color-nav-link-scrolled);
+}
+[data-theme="dark"] .site-nav.dark .site-navigation .site-menu > li > a:hover,
+[data-theme="dark"] .site-nav.dark .site-navigation .site-menu > li.active > a {
+  color: var(--color-brand);
+}
+[data-theme="dark"] .site-nav.dark .logo {
+  color: var(--color-text-primary);
+}
+
+/* Scrolled / sticky state */
+[data-theme="dark"] .site-nav.scrolled {
+  background-color: var(--color-nav-scrolled-bg);
+  box-shadow: 0 4px 15px -5px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .site-nav.scrolled .site-navigation .site-menu li a {
+  color: var(--color-nav-link-scrolled);
+}
+
+[data-theme="dark"] .site-nav.scrolled .site-navigation .site-menu li a:hover,
+[data-theme="dark"] .site-nav.scrolled .site-navigation .site-menu li a.active {
+  color: var(--color-brand);
+}
+
+/* Logo */
+[data-theme="dark"] .site-nav.scrolled .logo {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .site-nav.scrolled .logo:hover {
+  color: var(--color-text-primary);
+}
+
+/* Profile / Logout outline buttons — apply to both scrolled and non-scrolled */
+[data-theme="dark"] .site-nav .site-navigation .site-menu > li.cta-button-outline a {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .site-nav .site-navigation .site-menu > li.cta-button-outline a:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+/* Profile / Logout outline buttons */
+[data-theme="dark"] .site-nav.scrolled .site-navigation .site-menu > li.cta-button-outline a {
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .site-nav.scrolled .site-navigation .site-menu > li.cta-button-outline a:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+}
+
+/* Dropdown menu */
+[data-theme="dark"] .site-nav .site-navigation .site-menu .has-children .dropdown {
+  background: var(--color-surface);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .site-nav .site-navigation .site-menu .has-children .dropdown a {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .site-nav .site-navigation .site-menu .has-children .dropdown > li > a:hover {
+  color: var(--color-brand);
+}
+
+/* Burger icon lines */
+[data-theme="dark"] .burger:before,
+[data-theme="dark"] .burger span,
+[data-theme="dark"] .burger:after {
+  background: var(--color-text-primary);
+}
+
+/* ============================================================
+   Mobile menu — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .site-mobile-menu {
+  background: var(--color-mobile-menu-bg);
+  border-left: 1px solid var(--color-border);
+}
+
+[data-theme="dark"] .site-mobile-menu .site-nav-wrap > li > a,
+[data-theme="dark"] .site-mobile-menu .site-nav-wrap .has-children > a {
+  color: var(--color-text-secondary);
+  border-color: var(--color-border-subtle);
+}
+
+[data-theme="dark"] .site-mobile-menu .site-nav-wrap > li > a:hover {
+  color: var(--color-brand);
+}
+
+[data-theme="dark"] .site-mobile-menu-close span {
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   Form controls — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .form-control {
+  color: var(--color-input-text);
+  border-bottom-color: var(--color-input-border);
+  background: transparent;
+}
+
+[data-theme="dark"] .form-control:active,
+[data-theme="dark"] .form-control:focus {
+  color: var(--color-input-text);
+  border-color: var(--color-brand);
+  background: transparent;
+}
+
+[data-theme="dark"] .form-control::placeholder {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] select.form-select,
+[data-theme="dark"] select.form-control {
+  background-color: var(--color-surface);
+  color: var(--color-input-text);
+  border-color: var(--color-input-border);
+}
+
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="email"],
+[data-theme="dark"] input[type="password"],
+[data-theme="dark"] textarea {
+  background-color: transparent;
+  color: var(--color-input-text);
+}
+
+/* Bootstrap form components */
+[data-theme="dark"] .form-control.form-control-sm {
+  background-color: var(--color-surface-raised);
+  color: var(--color-input-text);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] .form-select.form-select-sm {
+  background-color: var(--color-surface-raised);
+  color: var(--color-input-text);
+  border: 1px solid var(--color-border);
+}
+
+/* ============================================================
+   Buttons — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .btn.btn-primary,
+[data-theme="dark"] .btn-primary {
+  background: #407BFF;
+  border-color: #407BFF;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn.btn-primary:hover,
+[data-theme="dark"] .btn-primary:hover:not(:disabled) {
+  background: #2e65e0;
+  border-color: #2e65e0;
+  color: #ffffff !important;
+}
+
+[data-theme="dark"] .btn.btn-outline-primary,
+[data-theme="dark"] .btn-outline-primary {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+[data-theme="dark"] .btn.btn-outline-primary:hover {
+  background-color: var(--color-brand);
+  color: #ffffff;
+}
+
+[data-theme="dark"] .btn.btn-secondary,
+[data-theme="dark"] .btn-secondary {
+  background: var(--color-surface-raised);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .btn.btn-secondary:hover,
+[data-theme="dark"] .btn-secondary:hover {
+  background: var(--color-border);
+  border-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   Login page — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .login-container {
+  background: var(--color-bg-subtle);
+}
+
+[data-theme="dark"] .login-card {
+  background: var(--color-card-bg);
+  box-shadow: 0 4px 20px var(--color-card-shadow);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .login-card h1 {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .login-card button {
+  background: var(--color-brand);
+}
+
+[data-theme="dark"] .login-card button:hover {
+  background: var(--color-brand-hover);
+}
+
+[data-theme="dark"] .login-card input {
+  background: var(--color-surface-raised);
+  border-color: var(--color-input-border);
+  color: var(--color-input-text);
+}
+
+/* ============================================================
+   Profile page — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .profile-card {
+  background: var(--color-card-bg);
+  box-shadow: 0 2px 12px var(--color-card-shadow);
+}
+
+[data-theme="dark"] .profile-name {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .profile-email {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .profile-photo {
+  border-color: var(--color-border);
+}
+
+/* Edit inputs inside profile card */
+[data-theme="dark"] .edit-input-wrapper .form-control,
+[data-theme="dark"] .edit-input-wrapper .form-select {
+  background-color: var(--color-surface-raised);
+  color: var(--color-input-text);
+  border-color: var(--color-border);
+}
+
+/* Crash-out section divider */
+[data-theme="dark"] .crash-out-section {
+  border-top-color: var(--color-border);
+}
+
+[data-theme="dark"] .crash-out-counter {
+  color: var(--color-brand);
+}
+
+/* Alert boxes */
+[data-theme="dark"] .alert-danger {
+  background-color: rgba(220, 53, 69, 0.15);
+  border-color: rgba(220, 53, 69, 0.35);
+  color: #ff8a90;
+}
+
+/* ============================================================
+   Flowchart & Diagram containers — Dark theme
+   NOTE: Mermaid renders white-background SVGs; keep diagram
+   surfaces light so diagrams stay legible in both modes.
+   ============================================================ */
+
+[data-theme="dark"] .flowchart-container {
+  background: var(--color-diagram-surface);
+  border-color: var(--color-diagram-border);
+  box-shadow: 0 2px 12px var(--color-card-shadow);
+}
+
+[data-theme="dark"] .thumbnail-card {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: 0 2px 6px var(--color-card-shadow);
+}
+
+[data-theme="dark"] .thumbnail-card:hover {
+  box-shadow: 0 6px 20px var(--color-card-shadow);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .thumbnail-card.selected {
+  border-color: var(--color-brand);
+  box-shadow: 0 4px 18px rgba(96, 144, 255, 0.30);
+}
+
+[data-theme="dark"] .thumbnail-svg {
+  background: var(--color-diagram-surface);
+}
+
+[data-theme="dark"] .thumbnail-info {
+  background: var(--color-surface);
+  border-top-color: var(--color-border);
+}
+
+[data-theme="dark"] .thumbnail-title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .thumbnail-subtitle {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .flowchart-header h4 {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .flowchart-header p {
+  color: var(--color-text-muted);
+}
+
+[data-theme="dark"] .section-title {
+  color: var(--color-text-primary);
+}
+
+[data-theme="dark"] .section-subtitle {
+  color: var(--color-text-muted);
+}
+
+/* Carousel nav buttons */
+[data-theme="dark"] .carousel-btn {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .carousel-btn:hover:not(:disabled) {
+  border-color: var(--color-brand);
+  color: var(--color-brand);
+}
+
+/* ============================================================
+   Vehicle pages & cards — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .untree_co-section {
+  background: var(--color-bg);
+}
+
+[data-theme="dark"] .untree_co-home {
+  background: var(--color-bg);
+}
+
+/* Generic card-style containers */
+[data-theme="dark"] .card,
+[data-theme="dark"] [class*="card-"] {
+  background: var(--color-card-bg);
+  border-color: var(--color-border);
+}
+
+/* Recall / alert banners */
+[data-theme="dark"] .recall-banner,
+[data-theme="dark"] .alert-warning {
+  background-color: rgba(255, 193, 7, 0.12);
+  border-color: rgba(255, 193, 7, 0.30);
+  color: #ffd54f;
+}
+
+/* ============================================================
+   Confirm Dialog — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .confirm-overlay {
+  background: rgba(0, 0, 0, 0.65);
+}
+
+[data-theme="dark"] .confirm-dialog,
+[data-theme="dark"] .dialog-box {
+  background: var(--color-surface);
+  box-shadow: 0 8px 32px var(--color-card-shadow);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .confirm-dialog h3,
+[data-theme="dark"] .confirm-dialog p {
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   Garage / MyGarage component — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .garage-card,
+[data-theme="dark"] .vehicle-card {
+  background: var(--color-card-bg);
+  border-color: var(--color-border);
+  box-shadow: 0 2px 8px var(--color-card-shadow);
+}
+
+[data-theme="dark"] .garage-card:hover,
+[data-theme="dark"] .vehicle-card:hover {
+  box-shadow: 0 6px 20px var(--color-card-shadow);
+}
+
+/* ============================================================
+   Node context panel — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .node-context-panel,
+[data-theme="dark"] .panel-container {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .node-context-panel h3,
+[data-theme="dark"] .node-context-panel h4 {
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   Searchable select / dropdown — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .searchable-select,
+[data-theme="dark"] .dropdown-menu {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  box-shadow: 0 4px 16px var(--color-card-shadow);
+}
+
+[data-theme="dark"] .dropdown-item,
+[data-theme="dark"] .searchable-option {
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .dropdown-item:hover,
+[data-theme="dark"] .searchable-option:hover,
+[data-theme="dark"] .dropdown-item:focus {
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+}
+
+/* ============================================================
+   Spinner / loading — Dark theme
+   ============================================================ */
+
+[data-theme="dark"] .spinner-border {
+  color: var(--color-brand);
+}
+
+[data-theme="dark"] .loading,
+[data-theme="dark"] .error {
+  color: var(--color-text-muted);
+}
+
+/* ============================================================
+   Scrollbars — Dark theme (webkit)
+   ============================================================ */
+
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--color-bg-subtle);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}

@@ -52,12 +52,12 @@ export async function getResponse(contents) {
   return serverPost('generate', { contents });
 }
 
-export async function getQuestions(vehicle, issues, mechanicalProfile = null) {
-  return serverPost('gen-questions', { vehicle, issues, mechanicalProfile });
+export async function getQuestions(vehicle, issues) {
+  return serverPost('gen-questions', { vehicle, issues });
 }
 
-export async function getFlowchart(vehicle, issues, responses, mechanicalProfile = null) {
-  return serverPost('gen-flowchart', { vehicle, issues, responses, mechanicalProfile });
+export async function getFlowchart(vehicle, issues, responses) {
+  return serverPost('gen-flowchart', { vehicle, issues, responses });
 }
 
 export async function getSavedFlowcharts() {

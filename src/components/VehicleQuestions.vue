@@ -97,9 +97,6 @@ onMounted(getFeedback)
 <template>
   <div class="untree_co-section" id="features-section">
     <div class="container" style="max-width:800px;margin:20px auto;">
-      <h2>Vehicle Help</h2>
-      <p><strong>Vehicle:</strong> {{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</p>
-      <p><strong>Issues:</strong> {{ issues }}</p>
       <div v-if="isGuest" class="guest-banner">
         Guest mode is active. Your generated flowchart will not be saved after this session ends.
       </div>
@@ -141,16 +138,17 @@ onMounted(getFeedback)
 
 <style scoped>
 .question-card {
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
-  background-color: white;
+  background-color: var(--color-surface);
 }
 
 .question-text {
   font-weight: 600;
   margin-bottom: 15px;
+  color: var(--color-text-primary);
 }
 
 .options {
@@ -161,14 +159,15 @@ onMounted(getFeedback)
 
 .option {
   padding: 10px 15px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: var(--color-text-primary);
 }
 
 .option:hover {
-  background-color: #f5f5f5;
+  background-color: var(--color-surface-raised);
 }
 
 .option.selected {
@@ -180,9 +179,9 @@ onMounted(getFeedback)
 .flowchart-container {
   margin: 20px 0;
   padding: 20px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--color-border);
   border-radius: 8px;
-  background-color: white;
+  background-color: var(--color-surface);
   overflow-x: auto;
 }
 
@@ -203,12 +202,12 @@ onMounted(getFeedback)
 .custom-answer-section {
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--color-border);
 }
 
 .custom-label {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--color-text-muted);
   margin-bottom: 8px;
   font-style: italic;
 }
@@ -216,10 +215,12 @@ onMounted(getFeedback)
 .custom-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--color-border);
   border-radius: 4px;
   font-size: 1rem;
   font-family: inherit;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
@@ -231,7 +232,7 @@ onMounted(getFeedback)
 }
 
 .custom-input::placeholder {
-  color: #999;
+  color: var(--color-text-muted);
 }
 
 .guest-banner {

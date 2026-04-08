@@ -1,7 +1,8 @@
 <script setup>
 import { themeColor, siteName } from "../items";
 import { RouterLink } from 'vue-router';
-import { logout, login, authState } from '../auth.js'
+import { logout, login, authState } from '../auth.js';
+import DarkModeToggle from './DarkModeToggle.vue';
 </script>
 <template>
   <nav class="site-nav dark js-site-navbar mb-5 site-navbar-target">
@@ -23,6 +24,9 @@ import { logout, login, authState } from '../auth.js'
           class="js-clone-nav 
           -none mt-1 d-lg-inline-block site-menu float-right"
         >
+          <li class="theme-toggle-item">
+            <DarkModeToggle />
+          </li>
           <li class="cta-primary">
             <a v-if="!lI" @click="login" :style="[{ backgroundColor: themeColor, cursor: 'pointer' }]">Login / Sign Up</a>
           </li>
@@ -55,3 +59,12 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.theme-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  vertical-align: middle;
+}
+</style>

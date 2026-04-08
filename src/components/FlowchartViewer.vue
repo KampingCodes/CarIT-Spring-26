@@ -542,9 +542,9 @@ onBeforeUnmount(() => {
 }
 
 .viewer-btn {
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #1f2937;
+  border: 1px solid var(--color-border, #d0d7de);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #1f2937);
   border-radius: 999px;
   padding: 0.45rem 0.95rem;
   font-size: 0.95rem;
@@ -581,11 +581,11 @@ onBeforeUnmount(() => {
   min-height: min(var(--viewer-height), 70vh);
   height: min(var(--viewer-height), 70vh);
   overflow: hidden;
-  border: 1px solid #dfe3e8;
+  border: 1px solid var(--color-border, #dfe3e8);
   border-radius: 16px;
   background:
     radial-gradient(circle at 1px 1px, rgba(13, 110, 253, 0.12) 1px, transparent 0) 0 0 / 24px 24px,
-    #fff;
+    var(--color-surface, #fff);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -686,7 +686,7 @@ onBeforeUnmount(() => {
 .flowchart-viewer__overlay-card {
   width: min(96vw, 1400px);
   height: min(92vh, 960px);
-  background: #fff;
+  background: var(--color-surface, #fff);
   border-radius: 20px;
   box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
   padding: 1.25rem;
@@ -708,7 +708,7 @@ onBeforeUnmount(() => {
   font-size: 0.85rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #6c757d;
+  color: var(--color-text-muted, #6c757d);
 }
 
 .flowchart-viewer__overlay-title {
