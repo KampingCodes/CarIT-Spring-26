@@ -49,10 +49,7 @@ const getFeedback = async () => {
         console.log('AI Response:', resp);
         
         // Try to clean the response if it contains markdown backticks
-        const jsonStr = resp.replace(/```json\n?|\n?```/g, '').trim();
-        console.log('Cleaned JSON:', jsonStr);
-        
-        const data = JSON.parse(jsonStr);
+        const data = typeof resp === 'object' ? resp : JSON.parse(resp.replace(/```json\n?|\n?```/g, '').trim());
         if (!data.questions || !Array.isArray(data.questions)) {
           throw new Error('Invalid response format: missing questions array');
         }

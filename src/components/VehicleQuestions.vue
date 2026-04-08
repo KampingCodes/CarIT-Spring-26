@@ -49,8 +49,7 @@ const getFeedback = async () => {
   error.value = null
   try {
     const resp = await getQuestions(vehicle, issues)
-    const json = resp.replace(/```json\n?|\n?```/g, '').trim()
-    const data = JSON.parse(json)
+    const data = typeof resp === 'object' ? resp : JSON.parse(resp.replace(/```json\n?|\n?```/g, '').trim())
     if (!data.questions || !Array.isArray(data.questions))
       throw new Error('Invalid response format')
     questions.value = data.questions

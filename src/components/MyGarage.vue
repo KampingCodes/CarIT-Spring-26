@@ -132,7 +132,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
   <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
-      <button v-if="editable && authState.isAuthenticated && !editingCarId" class="btn btn-primary btn-sm" @click="openAddForm" :disabled="showAddForm">+ Add Vehicle</button>
+      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn btn-primary btn-sm" @click="openAddForm">+ Add Vehicle</button>
     </div>
 
     <!-- Not authenticated message -->
@@ -144,7 +144,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
     <div v-else-if="editable && showAddForm" class="garage-form card p-3 mb-3">
       <h5>{{ editingCarId ? 'Edit Vehicle' : 'Add New Vehicle' }}</h5>
       <VehicleSelector ref="vehicleSelectorRef" v-model="garageForm" />
-      <div class="mt-3 d-flex gap-2">
+      <div class="mt-3 d-flex gap-3">
         <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model || !isValidYear(garageForm.year)">
           {{ garageLoading ? 'Saving...' : (editingCarId ? 'Save Changes' : 'Add Vehicle') }}
         </button>
@@ -393,6 +393,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
 /* Form button spacing */
 .garage-form .mt-3 {
   margin-top: 20px !important;
+  gap: 12px;
 }
 
 .garage-form .btn {
