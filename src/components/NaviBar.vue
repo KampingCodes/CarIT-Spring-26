@@ -14,14 +14,26 @@ const navItems = [
   { to: '/features', label: 'Features' },
   { to: '/aboutus', label: 'About us' },
   { to: '/flowcharts', label: 'Your Flowcharts', requiresAuth: true },
+  { to: '/admin', label: 'Admin Dashboard', requiresAdmin: true },
 ];
 
 const isMobileMenuOpen = ref(false);
 const isScrolled = ref(false);
 const isNavHidden = ref(false);
 const isLoggedIn = computed(() => authState.isAuthenticated);
+const isAdmin = computed(() => authState.isAdmin);
 const visibleNavItems = computed(() =>
-  navItems.filter((item) => !item.requiresAuth || isLoggedIn.value),
+  navItems.filter((item) => {
+    if (item.requiresAdmin) {
+      return isAdmin.value;
+    }
+
+    if (item.requiresAuth) {
+      return isLoggedIn.value;
+    }
+
+    return true;
+  }),
 );
 const navClasses = computed(() => ({
   scrolled: isScrolled.value,
