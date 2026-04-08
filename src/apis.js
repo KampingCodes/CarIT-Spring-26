@@ -1,12 +1,17 @@
-import { getToken } from './auth.js';
+import { getToken, getUserID } from './auth.js';
 import axios from 'axios'
 
 async function buildHeaders() {
   const token = await getToken();
+  const userid = getUserID();
   const headers = {};
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
+  }
+
+  if (userid) {
+    headers.userid = userid;
   }
 
   return headers;
@@ -28,26 +33,6 @@ async function serverPost(endpoint, data) {
   const url = `http://localhost:3000/api/${endpoint}`;
   try {
     const response = await axios.post(url, data, { headers: await buildHeaders() });
-    return response.data;
-  } catch (err) {
-    throw normalizeApiError(err);
-  }
-}
-
-async function serverPatch(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
-  try {
-    const response = await axios.patch(url, data, { headers: await buildHeaders() });
-    return response.data;
-  } catch (err) {
-    throw normalizeApiError(err);
-  }
-}
-
-async function serverDelete(endpoint) {
-  const url = `http://localhost:3000/api/${endpoint}`;
-  try {
-    const response = await axios.delete(url, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
     throw normalizeApiError(err);
@@ -161,62 +146,6 @@ export async function editGarageVehicle(carId, updates) {
  */
 export async function removeGarageVehicle(carId) {
   return serverPost('garage/remove', { carId });
-}
-
-export async function getAdminStatus() {
-  return serverGet('admin/status');
-}
-
-export async function getAdminAccounts(params) {
-  return serverGet('admin/accounts', params);
-}
-
-export async function grantAdminAccess(targetUserId, accessLevel = 'admin') {
-  return serverPost('admin/accounts/grant', { targetUserId, accessLevel });
-}
-
-export async function revokeAdminAccess(targetUserId) {
-  return serverPost('admin/accounts/revoke', { targetUserId });
-}
-
-export async function getAdminUsers(params) {
-  return serverGet('admin/users', params);
-}
-
-export async function updateAdminUser(userId, updates) {
-  return serverPatch(`admin/users/${encodeURIComponent(userId)}`, updates);
-}
-
-export async function deleteAdminUser(userId) {
-  return serverDelete(`admin/users/${encodeURIComponent(userId)}`);
-}
-
-export async function getAdminVehicles(params) {
-  return serverGet('admin/vehicles', params);
-}
-
-export async function updateAdminVehicle(carId, updates) {
-  return serverPatch(`admin/vehicles/${encodeURIComponent(carId)}`, updates);
-}
-
-export async function deleteAdminVehicle(carId) {
-  return serverDelete(`admin/vehicles/${encodeURIComponent(carId)}`);
-}
-
-export async function getAdminFlowcharts(params) {
-  return serverGet('admin/flowcharts', params);
-}
-
-export async function deleteAdminFlowchart(ownerUserId, flowchartId) {
-  return serverDelete(`admin/flowcharts/${encodeURIComponent(ownerUserId)}/${encodeURIComponent(flowchartId)}`);
-}
-
-export async function getAdminAuditLogs(params) {
-  return serverGet('admin/audit-logs', params);
-}
-
-export async function restoreAdminAuditRecord(auditId) {
-  return serverPost(`admin/audit-logs/${encodeURIComponent(auditId)}/restore`, {});
 }
 
 

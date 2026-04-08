@@ -2,7 +2,6 @@
 import { themeColor } from "../items";
 const heading = "Features";
 const subHeading = "it fixes your car what else do you need to know";
-const buttonLearnMore = "Learn More";
 
 const advantages = [
   {

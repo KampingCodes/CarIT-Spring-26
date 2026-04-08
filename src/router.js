@@ -13,7 +13,6 @@ import Login from './components/Login.vue';
 import AboutUs from './components/AboutUs.vue';
 import Register from './components/NewUser.vue';
 import FlowchartPage from './components/FlowchartPage.vue';
-import AdminDashboard from './components/AdminDashboard.vue';
 
 
 
@@ -29,10 +28,9 @@ const routes = [
   { path: '/vehicle-submit', component: VehicleSubmit},
   { path: '/vehicle-questions', component: VehicleQuestions},
   { path: '/vehicle-flowchart', component: VehicleFlowchart},
-  { path: '/profile', component: Profile, meta: { requiresAuth: true }},
+  { path: '/profile', component: Profile},
   { path: '/register', component: Register},
-  { path: '/flowcharts', component: FlowchartPage, meta: { requiresAuth: true } },
-  { path: '/admin', name: 'AdminDashboard', component: AdminDashboard, meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/flowcharts', component: FlowchartPage },
 ];
 
 const router = createRouter({
