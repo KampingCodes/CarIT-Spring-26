@@ -4,6 +4,8 @@ import { ObjectId } from 'mongodb';
 import { randomUUID } from 'crypto';
 import { normalizeVehicleRecord } from './vehicleUtils.js';
 
+const VALID_EXPERIENCE_LEVELS = new Set(['Beginner', 'Intermediate', 'Expert']);
+
 const MAX_FLOWCHARTS = 5;
 
 /**
@@ -50,6 +52,17 @@ export async function updateUserDB(userid, updates) {
   await collection.updateOne({ _id: userid }, { $set: updates });
 }
 
+export async function updateOwnUserProfile(userid, updates) {
+  const sanitized = sanitizeUserUpdates(updates, { includeProfilePicture: false });
+  if (Object.keys(sanitized).length === 0) {
+    return 'No valid fields provided';
+  }
+
+  sanitized.updatedAt = new Date().toISOString();
+  await updateUserDB(userid, sanitized);
+  return { success: true };
+}
+
 /**
  * Attempt to create a user
  * @param {string} userid The user identifier
@@ -66,7 +79,28 @@ export async function createUser(userid, name, email) {
   const dbUser = await getUserDB(userid);
   const collection = client.db(DATABASE).collection(USER_COLLECTION);
   // Use the provided email when creating a new user
-  const user = { _id: userid, name: name, flowcharts: [], email: email || "", attitude: "", garage: [], profilePicture: null, crashOut: 0 };
+  const timestamp = new Date().toISOString();
+  const user = {
+    _id: userid,
+    name: name,
+    flowcharts: [],
+    email: email || "",
+    attitude: "",
+    garage: [],
+    experienceLevel: null,
+    profilePicture: null,
+    crashOut: 0,
+    adminAccess: {
+      isAdmin: false,
+      accessLevel: 'user',
+      source: 'none',
+      grantedAt: null,
+      grantedBy: null,
+      updatedAt: timestamp
+    },
+    createdAt: timestamp,
+    updatedAt: timestamp
+  };
 
   if (!dbUser) {
     // Create a user using the MongoClient
@@ -88,6 +122,7 @@ export async function createUser(userid, name, email) {
   if (updated) {
     // Update the user using the MongoClient
     const collection = client.db(DATABASE).collection(USER_COLLECTION);
+    dbUser.updatedAt = timestamp;
     await collection.updateOne({ _id: userid }, { $set: dbUser });
     console.log("User updated:", dbUser);
     return "User updated";
@@ -571,6 +606,378 @@ export async function upsertCar(vehicle) {
   return { _id: result.insertedId.toString(), ...normalizedVehicle };
 }
 
+export async function listUsersForAdmin({ search = '', page = 1, pageSize = 25 } = {}) {
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const regex = createSearchRegex(search);
+  const filter = regex
+    ? {
+      $or: [
+        { _id: regex },
+        { name: regex },
+        { email: regex },
+        { attitude: regex },
+        { experienceLevel: regex }
+      ]
+    }
+    : {};
+
+  const skip = (page - 1) * pageSize;
+  const [items, total] = await Promise.all([
+    collection.find(filter, {
+      projection: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        attitude: 1,
+        experienceLevel: 1,
+        crashOut: 1,
+        profilePicture: 1,
+        adminAccess: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        garage: 1,
+        flowcharts: 1
+      }
+    }).skip(skip).limit(pageSize).toArray(),
+    collection.countDocuments(filter)
+  ]);
+
+  return {
+    items: items.map((user) => ({
+      userId: user._id,
+      username: user.name || '',
+      email: user.email || '',
+      attitude: user.attitude || '',
+      experienceLevel: user.experienceLevel || null,
+      crashOut: Number(user.crashOut) || 0,
+      profilePicture: user.profilePicture || null,
+      accessLevel: user.adminAccess?.accessLevel || 'user',
+      isAdmin: Boolean(user.adminAccess?.isAdmin),
+      createdAt: user.createdAt || null,
+      updatedAt: user.updatedAt || null,
+      garageCount: Array.isArray(user.garage) ? user.garage.length : 0,
+      flowchartCount: Array.isArray(user.flowcharts) ? user.flowcharts.length : 0
+    })),
+    total,
+    page,
+    pageSize
+  };
+}
+
+export async function updateUserRecordForAdmin(userid, updates) {
+  if (!userid) {
+    return 'A user id is required';
+  }
+
+  const existing = await getUserDB(userid);
+  if (!existing || typeof existing === 'string') {
+    return 'User not found';
+  }
+
+  const allowedFields = ['name'];
+  const requestedFields = Object.keys(updates || {});
+  const unsupportedFields = requestedFields.filter((field) => !allowedFields.includes(field));
+  if (unsupportedFields.length > 0) {
+    return `Unsupported admin user fields: ${unsupportedFields.join(', ')}`;
+  }
+
+  const sanitized = sanitizeUserUpdates(updates, { includeProfilePicture: true });
+  if (Object.keys(sanitized).length === 0) {
+    return 'No valid fields provided';
+  }
+
+  sanitized.updatedAt = new Date().toISOString();
+  await updateUserDB(userid, sanitized);
+  return { success: true, updates: sanitized };
+}
+
+export async function deleteUserRecordForAdmin(userid) {
+  if (!userid) {
+    return 'A user id is required';
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const user = await collection.findOne({ _id: userid });
+  if (!user) {
+    return 'User not found';
+  }
+
+  await collection.deleteOne({ _id: userid });
+  return {
+    success: true,
+    deleted: {
+      ...user,
+      userId: userid,
+      username: user.name || '',
+      email: user.email || ''
+    }
+  };
+}
+
+export async function restoreUserRecordForAdmin(snapshot) {
+  const userId = snapshot?.userId || snapshot?._id;
+  if (!userId) {
+    return 'A valid user snapshot is required';
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const existing = await collection.findOne({ _id: userId });
+  if (existing) {
+    return 'User already exists';
+  }
+
+  const restoredUser = {
+    ...snapshot,
+    _id: userId
+  };
+  delete restoredUser.userId;
+  delete restoredUser.username;
+
+  await collection.insertOne(restoredUser);
+  return { success: true, restored: { userId } };
+}
+
+export async function listVehiclesForAdmin({ search = '', page = 1, pageSize = 25 } = {}) {
+  const collection = client.db(DATABASE).collection(CARS_COLLECTION);
+  const filter = createVehicleSearchFilter(search);
+  const skip = (page - 1) * pageSize;
+  const [cars, total, userDocs] = await Promise.all([
+    collection.find(filter).skip(skip).limit(pageSize).toArray(),
+    collection.countDocuments(filter),
+    client.db(DATABASE).collection(USER_COLLECTION).find({}, { projection: { _id: 1, garage: 1 } }).toArray()
+  ]);
+  const usageMap = new Map();
+  for (const user of userDocs) {
+    for (const garageId of Array.isArray(user.garage) ? user.garage : []) {
+      const key = garageId?.toString();
+      if (!key) {
+        continue;
+      }
+      usageMap.set(key, (usageMap.get(key) || 0) + 1);
+    }
+  }
+
+  return {
+    items: cars.map((car) => ({
+      carId: car._id.toString(),
+      year: car.year,
+      make: car.make,
+      model: car.model,
+      trim: car.trim || '',
+      garageUsageCount: usageMap.get(car._id.toString()) || 0
+    })),
+    total,
+    page,
+    pageSize
+  };
+}
+
+export async function updateVehicleRecordForAdmin(carId, updates) {
+  if (!isValidObjectIdString(carId)) {
+    return 'A valid vehicle id is required';
+  }
+
+  const normalizedVehicle = normalizeVehicleRecord(updates);
+  if (!normalizedVehicle) {
+    return 'Vehicle updates must include a valid year, make, and model';
+  }
+
+  const objectId = new ObjectId(carId);
+  const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const existing = await carsCol.findOne({ _id: objectId });
+  if (!existing) {
+    return 'Vehicle not found';
+  }
+
+  await carsCol.updateOne({ _id: objectId }, { $set: normalizedVehicle });
+  return { success: true, updates: normalizedVehicle };
+}
+
+export async function deleteVehicleRecordForAdmin(carId) {
+  if (!isValidObjectIdString(carId)) {
+    return 'A valid vehicle id is required';
+  }
+
+  const objectId = new ObjectId(carId);
+  const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const existing = await carsCol.findOne({ _id: objectId });
+  if (!existing) {
+    return 'Vehicle not found';
+  }
+
+  await Promise.all([
+    carsCol.deleteOne({ _id: objectId }),
+    client.db(DATABASE).collection(USER_COLLECTION).updateMany({}, { $pull: { garage: objectId } })
+  ]);
+
+  return {
+    success: true,
+    deleted: {
+      ...existing,
+      carId,
+      year: existing.year,
+      make: existing.make,
+      model: existing.model,
+      trim: existing.trim || ''
+    }
+  };
+}
+
+export async function restoreVehicleRecordForAdmin(snapshot) {
+  const carId = snapshot?.carId || snapshot?._id?.toString?.() || snapshot?._id;
+  if (!isValidObjectIdString(carId)) {
+    return 'A valid vehicle snapshot is required';
+  }
+
+  const objectId = new ObjectId(carId);
+  const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const existing = await carsCol.findOne({ _id: objectId });
+  if (existing) {
+    return 'Vehicle already exists';
+  }
+
+  const restoredVehicle = {
+    ...snapshot,
+    _id: objectId
+  };
+  delete restoredVehicle.carId;
+
+  await carsCol.insertOne(restoredVehicle);
+  return { success: true, restored: { carId } };
+}
+
+export async function listFlowchartsForAdmin({ search = '', page = 1, pageSize = 25 } = {}) {
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const regex = createSearchRegex(search);
+  const users = await collection.find({}, {
+    projection: {
+      _id: 1,
+      name: 1,
+      email: 1,
+      flowcharts: 1
+    }
+  }).toArray();
+
+  const records = users.flatMap((user) => {
+    const normalized = normalizeFlowchartList(user.flowcharts || []).flowcharts;
+    return normalized.map((flowchart) => ({
+      ownerUserId: user._id,
+      ownerName: user.name || '',
+      ownerEmail: user.email || '',
+      flowchartId: flowchart.flowchartId,
+      vehicle: flowchart.vehicle || {},
+      issues: flowchart.issues || '',
+      responses: flowchart.responses || [],
+      nodeContexts: flowchart.nodeContexts || {},
+      flowchart: flowchart.flowchart || '',
+      mermaidCode: flowchart.mermaidCode || '',
+      lastRefinedNodeId: flowchart.lastRefinedNodeId || '',
+      lastRefinedNodeLabel: flowchart.lastRefinedNodeLabel || '',
+      createdAt: flowchart.createdAt || null,
+      updatedAt: flowchart.updatedAt || null
+    }));
+  });
+
+  const filtered = regex
+    ? records.filter((record) => regex.test([
+      record.ownerUserId,
+      record.ownerName,
+      record.ownerEmail,
+      record.vehicle?.year,
+      record.vehicle?.make,
+      record.vehicle?.model,
+      record.vehicle?.trim,
+      record.issues,
+      record.lastRefinedNodeLabel
+    ].filter(Boolean).join(' ')))
+    : records;
+
+  filtered.sort((left, right) => {
+    const leftTime = Date.parse(left?.createdAt || 0);
+    const rightTime = Date.parse(right?.createdAt || 0);
+    return rightTime - leftTime;
+  });
+
+  const total = filtered.length;
+  const startIndex = (page - 1) * pageSize;
+  return {
+    items: filtered.slice(startIndex, startIndex + pageSize),
+    total,
+    page,
+    pageSize
+  };
+}
+
+export async function deleteFlowchartForAdmin(ownerUserId, flowchartId) {
+  if (!ownerUserId || !flowchartId) {
+    return 'Owner id and flowchart id are required';
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, ownerUserId);
+  if (!user) {
+    return 'User not found';
+  }
+
+  const existing = flowcharts.find((flowchart) => flowchart.flowchartId === flowchartId);
+  if (!existing) {
+    return 'Flowchart not found';
+  }
+
+  const result = await deleteFlowchart(ownerUserId, flowchartId);
+  if (typeof result === 'string') {
+    return result;
+  }
+
+  return {
+    success: true,
+    deleted: {
+      ownerUserId,
+      ownerName: user.name || '',
+      ownerEmail: user.email || '',
+      flowchart: existing
+    }
+  };
+}
+
+export async function restoreFlowchartRecordForAdmin(snapshot) {
+  const ownerUserId = snapshot?.ownerUserId;
+  const flowchart = snapshot?.flowchart;
+  if (!ownerUserId || !flowchart?.flowchartId) {
+    return 'A valid flowchart snapshot is required';
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, ownerUserId);
+  if (!user) {
+    return 'User not found';
+  }
+
+  if (flowcharts.some((entry) => entry.flowchartId === flowchart.flowchartId)) {
+    return 'Flowchart already exists';
+  }
+
+  const normalizedFlowchart = normalizeFlowchartRecord(flowchart, flowcharts.length, flowcharts.length + 1).record;
+  const nextFlowcharts = sortFlowchartsByUpdatedAt([...flowcharts, normalizedFlowchart]);
+  await collection.updateOne(
+    { _id: ownerUserId },
+    {
+      $set: {
+        flowcharts: nextFlowcharts,
+        updatedAt: new Date().toISOString()
+      }
+    }
+  );
+
+  return {
+    success: true,
+    restored: {
+      ownerUserId,
+      flowchartId: normalizedFlowchart.flowchartId
+    }
+  };
+}
+
 /**
  * Increment the crashOut counter for a user
  * Uses atomic $inc operator to avoid race conditions
@@ -607,5 +1014,110 @@ export async function incrementCrashOut(userid) {
   const newValue = userDoc.crashOut || 1;
   console.log("incrementCrashOut: Updated crashOut to", newValue);
   return { success: true, crashOut: newValue };
+}
+
+function sanitizeUserUpdates(updates, { includeProfilePicture }) {
+  const sanitized = {};
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'name')) {
+    const name = normalizeText(updates.name).slice(0, 120);
+    if (!name) {
+      throw new Error('Name is required.');
+    }
+    sanitized.name = name;
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'attitude')) {
+    sanitized.attitude = normalizeText(updates.attitude, 300);
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, 'experienceLevel')) {
+    const experienceLevel = normalizeExperienceLevelValue(updates.experienceLevel);
+    if (updates.experienceLevel !== null && !experienceLevel) {
+      throw new Error('Experience level must be Beginner, Intermediate, or Expert.');
+    }
+    sanitized.experienceLevel = experienceLevel;
+  }
+
+  if (includeProfilePicture && Object.prototype.hasOwnProperty.call(updates, 'profilePicture')) {
+    if (updates.profilePicture === null || updates.profilePicture === '') {
+      sanitized.profilePicture = null;
+    } else if (typeof updates.profilePicture === 'string' && updates.profilePicture.startsWith('data:image/')) {
+      sanitized.profilePicture = updates.profilePicture;
+    } else {
+      throw new Error('Profile picture must be a valid image data URL.');
+    }
+  }
+
+  return sanitized;
+}
+
+function createSearchRegex(value) {
+  const normalized = normalizeText(value, 120);
+  if (!normalized) {
+    return null;
+  }
+
+  return new RegExp(normalized.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+}
+
+function createSearchTokens(value) {
+  const normalized = normalizeText(value, 120);
+  if (!normalized) {
+    return [];
+  }
+
+  return normalized
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean)
+    .slice(0, 6);
+}
+
+function createVehicleSearchFilter(search) {
+  const tokens = createSearchTokens(search);
+  if (tokens.length === 0) {
+    return {};
+  }
+
+  return {
+    $and: tokens.map((token) => {
+      const numericToken = Number.parseInt(token, 10);
+      const isYearToken = /^\d{4}$/.test(token) && Number.isInteger(numericToken);
+
+      if (isYearToken) {
+        return {
+          $or: [
+            { year: numericToken },
+            { make: createSearchRegex(token) },
+            { model: createSearchRegex(token) },
+            { trim: createSearchRegex(token) }
+          ]
+        };
+      }
+
+      const regex = createSearchRegex(token);
+      return {
+        $or: [
+          { make: regex },
+          { model: regex },
+          { trim: regex }
+        ]
+      };
+    })
+  };
+}
+
+function normalizeExperienceLevelValue(value) {
+  if (value === null || value === undefined || value === '') {
+    return null;
+  }
+
+  const normalized = normalizeText(value, 40);
+  return VALID_EXPERIENCE_LEVELS.has(normalized) ? normalized : null;
+}
+
+function isValidObjectIdString(value) {
+  return typeof value === 'string' && /^[a-f\d]{24}$/i.test(value);
 }
 
