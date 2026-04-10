@@ -28,7 +28,8 @@ import {
   listFlowchartsForAdmin,
   restoreFlowchartRecordForAdmin,
   deleteFlowchartForAdmin,
-  restoreUserRecordForAdmin
+  restoreUserRecordForAdmin,
+  addFlowchartInstruction
 } from './user.js';
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt } from './genai.js';
@@ -170,6 +171,31 @@ function getRequestUserId(req) {
   app.get('/api/get-flowcharts', validateAuth, async (req, res) => {
     const flowcharts = await getFlowcharts(getRequestUserId(req));
     res.send(flowcharts);
+  });
+
+  // Append a saved instruction to a specific flowchart for the current user
+  app.post('/api/flowcharts/:flowchartId/instructions', validateAuth, async (req, res) => {
+    try {
+      const userId = getRequestUserId(req);
+      const { flowchartId } = req.params;
+      const { type, nodeId, nodeLabel, question, answer } = req.body || {};
+      const result = await addFlowchartInstruction(userId, flowchartId, {
+        type,
+        nodeId,
+        nodeLabel,
+        question,
+        answer
+      });
+
+      if (typeof result === 'string') {
+        return res.status(400).json({ success: false, message: result });
+      }
+
+      res.json({ success: true, instruction: result.instruction });
+    } catch (err) {
+      console.error('Error saving instruction:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
   });
 
   app.post('/api/delete-flowchart', validateAuth, async (req, res) => {

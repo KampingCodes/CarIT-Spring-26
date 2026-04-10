@@ -79,6 +79,11 @@ export async function getSavedFlowcharts() {
   return serverGet('get-flowcharts');
 }
 
+export async function saveFlowchartInstruction(flowchartId, payload) {
+  if (!flowchartId) throw new Error('flowchartId is required');
+  return serverPost(`flowcharts/${encodeURIComponent(flowchartId)}/instructions`, payload);
+}
+
 export async function getUserData() {
   return serverGet('get-user-data');
 }

@@ -37,6 +37,11 @@ const selectedFlowchart = computed(() => {
 
 const nodeMap = computed(() => buildMermaidNodeMap(selectedFlowchart.value?.mermaidCode || ''));
 
+const selectedInstructions = computed(() => {
+  const items = selectedFlowchart.value?.instructions;
+  return Array.isArray(items) ? items : [];
+});
+
 const getVehicleDisplayName = (vehicle = {}) => {
   const { year, make, model, trim } = vehicle || {};
   const base = [year, make, model].filter(Boolean).join(' ');
@@ -259,6 +264,29 @@ watch(() => themeStore.isDark, async () => {
                 embedded-height="42rem"
                 @node-activate="handleNodeActivate"
               />
+
+              <!-- Saved Instructions for this flowchart -->
+              <div class="instructions-section">
+                <div class="section-header">
+                  <h3 class="section-title">Saved Instructions</h3>
+                  <p class="section-subtitle">AI guides and Q&A for this flowchart</p>
+                </div>
+                <div v-if="selectedInstructions.length === 0" class="excerpt">
+                  No instructions yet — open a node and use the panel to generate and save them.
+                </div>
+                <div v-else class="instructions-list">
+                  <div v-for="item in selectedInstructions" :key="item.instructionId" class="instruction-card">
+                    <div class="instruction-meta">
+                      <span class="instruction-type" :class="{ 'is-guide': item.type==='guide', 'is-qa': item.type==='qa' }">{{ item.type === 'guide' ? 'Guide' : 'Q&A' }}</span>
+                      <span class="instruction-sep">•</span>
+                      <span class="instruction-node" v-if="item.nodeLabel">{{ item.nodeLabel }}</span>
+                      <span class="instruction-time">{{ new Date(item.createdAt).toLocaleString() }}</span>
+                    </div>
+                    <div v-if="item.question" class="instruction-question">Q: {{ item.question }}</div>
+                    <pre class="instruction-answer">{{ item.answer }}</pre>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -268,7 +296,7 @@ watch(() => themeStore.isDark, async () => {
     <NodeContextPanel
       :open="panelOpen"
       :node="selectedNode"
-      :context="{ vehicle: selectedFlowchart?.vehicle, issues: selectedFlowchart?.issues, mermaidCode: selectedFlowchart?.mermaidCode }"
+      :context="{ vehicle: selectedFlowchart?.vehicle, issues: selectedFlowchart?.issues, mermaidCode: selectedFlowchart?.mermaidCode, flowchartId: selectedFlowchart?.flowchartId }"
       @close="closeNodePanel"
     />
   </div>
@@ -504,6 +532,53 @@ watch(() => themeStore.isDark, async () => {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* ===== Instructions ===== */
+.instructions-section {
+  margin-top: 2rem;
+}
+
+.instructions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.instruction-card {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  border-radius: 8px;
+  padding: 0.75rem 0.9rem;
+}
+
+.instruction-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-bottom: 0.35rem;
+}
+
+.instruction-type {
+  font-weight: 600;
+}
+
+.instruction-type.is-guide { color: #0d6efd; }
+.instruction-type.is-qa { color: #0d6efd; }
+.instruction-sep { opacity: 0.6; }
+.instruction-time { margin-left: auto; }
+.instruction-question { font-weight: 600; margin-bottom: 0.35rem; color: var(--color-text-primary); }
+.instruction-answer {
+  white-space: pre-wrap;
+  margin: 0;
+  color: var(--color-text-secondary);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.92rem;
 }
 
 @media (max-width: 768px) {
