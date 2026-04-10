@@ -264,6 +264,7 @@ onBeforeUnmount(() => {
 .nav-toggle-item {
   display: inline-flex;
   align-items: center;
+  vertical-align: middle;
   margin-right: 10px;
 }
 
