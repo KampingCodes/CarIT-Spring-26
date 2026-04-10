@@ -1,3 +1,67 @@
+/**
+ * Returns a mermaid.initialize() config object that matches the site's
+ * light or dark theme palette.
+ */
+export function getMermaidConfig(isDark = false) {
+  if (!isDark) {
+    return {
+      startOnLoad: false,
+      securityLevel: 'loose',
+      theme: 'default',
+      flowchart: { htmlLabels: true, curve: 'basis' }
+    };
+  }
+
+  return {
+    startOnLoad: false,
+    securityLevel: 'loose',
+    theme: 'base',
+    themeVariables: {
+      // Overall canvas
+      background:            '#22222c',
+      // Primary nodes (rectangles, etc.)
+      primaryColor:          '#2c2c3a',
+      primaryTextColor:      '#eaeaf6',
+      primaryBorderColor:    '#38384e',
+      // Secondary / tertiary nodes
+      secondaryColor:        '#1e1e27',
+      secondaryTextColor:    '#b0b0cc',
+      secondaryBorderColor:  '#38384e',
+      tertiaryColor:         '#18181f',
+      tertiaryTextColor:     '#b0b0cc',
+      tertiaryBorderColor:   '#38384e',
+      // Lines and labels
+      lineColor:             '#6090ff',
+      edgeLabelBackground:   '#2c2c3a',
+      // Special node types
+      clusterBkg:            '#1e1e27',
+      clusterBorder:         '#38384e',
+      titleColor:            '#eaeaf6',
+      // Note nodes
+      noteBkgColor:          '#2c2c3a',
+      noteTextColor:         '#eaeaf6',
+      noteBorderColor:       '#38384e',
+      // Font
+      fontFamily:            'Nunito, Arial, sans-serif',
+      fontSize:              '14px',
+    },
+    flowchart: { htmlLabels: true, curve: 'basis' }
+  };
+}
+
+/**
+ * Post-processes a rendered Mermaid SVG string.
+ * In dark mode, replaces the hardcoded white background rect that Mermaid
+ * injects into the SVG with the site's dark surface color.
+ */
+export function applyMermaidThemeToSvg(svg, isDark = false) {
+  if (!isDark || !svg) return svg;
+  // Mermaid adds <rect ... style="fill: white;" ...> or fill="#ffffff"/"white" as the first rect
+  return svg
+    .replace(/(<rect[^>]*)(fill="white"|fill="#ffffff"|fill="#FFFFFF")/gi, '$1fill="#22222c"')
+    .replace(/(<rect[^>]*style="[^"]*fill:\s*)(white|#fff(?:fff)?)(;?[^"]*")/gi, '$1#22222c$3');
+}
+
 export function extractMermaidCode(flowchart = '') {
   if (typeof flowchart !== 'string') {
     return '';

@@ -3,6 +3,7 @@ import { computed, onMounted, reactive, ref, watch } from 'vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 import PaginationControls from './PaginationControls.vue';
 import { authState } from '../auth.js';
+import { useThemeStore } from '../stores/theme';
 import {
   deleteAdminFlowchart,
   deleteAdminUser,
@@ -19,6 +20,7 @@ import {
   updateAdminVehicle
 } from '../apis.js';
 
+const themeStore = useThemeStore();
 const confirmDialog = ref(null);
 const activeTab = ref('admins');
 const alert = reactive({ type: '', message: '' });
@@ -583,7 +585,7 @@ watch(() => authState.adminAccessLevel, () => {
 </script>
 
 <template>
-  <div class="admin-dashboard-page untree_co-section">
+  <div class="admin-dashboard-page untree_co-section" :class="{ 'dark-mode': themeStore.isDark }">
     <ConfirmDialog ref="confirmDialog" />
 
     <div class="container">
@@ -1553,5 +1555,171 @@ label span {
     width: 100%;
     justify-content: flex-end;
   }
+}
+
+/* ── Dark mode ── */
+.dark-mode.admin-dashboard-page {
+  background: linear-gradient(180deg, #0f1623 0%, #111827 32%);
+}
+
+.dark-mode .admin-empty-state,
+.dark-mode .admin-panel,
+.dark-mode .summary-card,
+.dark-mode .audit-card {
+  background: #1a2232;
+  border-color: rgba(64, 123, 255, 0.2);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+}
+
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3 {
+  color: #e2e8f0;
+}
+
+.dark-mode .hero-copy,
+.dark-mode .summary-label,
+.dark-mode .summary-detail,
+.dark-mode .panel-header p,
+.dark-mode .record-summary p,
+.dark-mode .audit-card p,
+.dark-mode .panel-loading,
+.dark-mode .panel-empty-state,
+.dark-mode .record-secondary-meta {
+  color: #94a3b8;
+}
+
+.dark-mode .summary-value {
+  color: #e2e8f0;
+}
+
+.dark-mode label span {
+  color: #94a3b8;
+}
+
+.dark-mode .form-control {
+  background: #0f1623;
+  border-color: #2d3f55;
+  color: #e2e8f0;
+}
+
+.dark-mode .form-control::placeholder {
+  color: #4a5a6e;
+}
+
+.dark-mode .tab-button {
+  background: #1a2232;
+  border-color: rgba(64, 123, 255, 0.25);
+  color: #94a3b8;
+}
+
+.dark-mode .tab-button.active {
+  background: #407bff;
+  color: #fff;
+  border-color: #407bff;
+}
+
+.dark-mode .record-card {
+  background: #1e2d42;
+  border-color: #2d3f55;
+}
+
+.dark-mode .user-record-card {
+  background: linear-gradient(180deg, #1e2d42 0%, #192538 100%);
+}
+
+.dark-mode .user-record-card:hover {
+  border-color: #3a5070;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .vehicle-record-card {
+  background: linear-gradient(180deg, #1e2d42 0%, #192538 100%);
+}
+
+.dark-mode .vehicle-record-card:hover {
+  border-color: #3a5070;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .user-card-identity h3,
+.dark-mode .vehicle-card-identity h3 {
+  color: #e2e8f0;
+}
+
+.dark-mode .user-card-email,
+.dark-mode .vehicle-card-trim {
+  color: #7a8fa6;
+}
+
+.dark-mode .editor-card {
+  background: #162030;
+  border-color: #2d3f55;
+}
+
+.dark-mode .bulk-toolbar {
+  background: #162030;
+  border-color: #2d3f55;
+}
+
+.dark-mode .selection-toggle {
+  color: #94a3b8;
+}
+
+.dark-mode .admin-table th,
+.dark-mode .admin-table td {
+  border-bottom-color: #2d3f55;
+  color: #cbd5e1;
+}
+
+.dark-mode .record-meta {
+  color: #7a8fa6;
+}
+
+.dark-mode .vehicle-card-usage {
+  background: rgba(255, 255, 255, 0.06);
+  color: #94a3b8;
+}
+
+.dark-mode .user-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+.dark-mode .vehicle-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.07);
+}
+
+.dark-mode .subtle-icon-button {
+  border-color: rgba(64, 123, 255, 0.25);
+  background: rgba(255, 255, 255, 0.04);
+  color: #94a3b8;
+}
+
+.dark-mode .subtle-icon-button.danger {
+  border-color: rgba(220, 53, 69, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dark-mode .pill {
+  background: rgba(64, 123, 255, 0.2);
+  color: #7fb3ff;
+}
+
+.dark-mode .pill-admin {
+  background: rgba(21, 163, 74, 0.2);
+  color: #4ade80;
+}
+
+.dark-mode .audit-header {
+  color: #e2e8f0;
+}
+
+.dark-mode .audit-status {
+  color: #4ade80;
+}
+
+.dark-mode .selectable-card.selected {
+  border-color: rgba(64, 123, 255, 0.5);
+  box-shadow: 0 12px 24px rgba(64, 123, 255, 0.15);
 }
 </style>

@@ -1,8 +1,9 @@
 <!-- src/views/VehicleFlowchart.vue -->
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
+import { useThemeStore } from '../stores/theme';
 import { authState } from '../auth.js';
 import { getFlowchart } from '../apis.js';
 import FlowchartViewer from './FlowchartViewer.vue';
@@ -12,7 +13,9 @@ import {
   normalizeDiagnosticResponses,
   normalizeFlowchartRecord,
   prepareMermaidForRender,
-  resolveNodeSelection
+  resolveNodeSelection,
+  getMermaidConfig,
+  applyMermaidThemeToSvg
 } from '../flowchart-utils.js';
 
 const route = useRoute();
@@ -35,6 +38,7 @@ const selectedNode = ref(null);
 const panelOpen = ref(false);
 
 const answers = ref(parseAnswers(route.query.answers));
+const themeStore = useThemeStore();
 
 const nodeMap = computed(() => buildMermaidNodeMap(currentFlowchart.value?.mermaidCode || ''));
 const isGuestSession = computed(() => !authState.isAuthenticated || Boolean(currentFlowchart.value?.sessionOnly));
@@ -45,11 +49,7 @@ const getVehicleDisplayName = (vehicleDetails = {}) => {
 };
 
 const initializeMermaid = () => {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'loose',
-    flowchart: { htmlLabels: true, curve: 'basis' }
-  });
+  mermaid.initialize(getMermaidConfig(themeStore.isDark));
 };
 
 const renderDiagram = async (mermaidCode) => {
@@ -60,7 +60,7 @@ const renderDiagram = async (mermaidCode) => {
   const renderCode = prepareMermaidForRender(mermaidCode);
   await mermaid.parse(renderCode);
   const { svg } = await mermaid.render(`diagnostic-flowchart-${Date.now()}`, renderCode);
-  flowchartSvg.value = svg;
+  flowchartSvg.value = applyMermaidThemeToSvg(svg, themeStore.isDark);
 };
 
 const generateFlowchart = async () => {
@@ -102,6 +102,13 @@ onMounted(() => {
   generateFlowchart();
 });
 
+watch(() => themeStore.isDark, async () => {
+  initializeMermaid();
+  if (currentFlowchart.value?.mermaidCode) {
+    await renderDiagram(currentFlowchart.value.mermaidCode);
+  }
+});
+
 function parseAnswers(encodedAnswers) {
   try {
     return normalizeDiagnosticResponses(JSON.parse(encodedAnswers || '[]'));
@@ -115,7 +122,7 @@ function parseAnswers(encodedAnswers) {
   <div class="untree_co-section" id="features-section">
     <div class="container">
       <div class="flowchart-page-shell">
-        <h2>Vehicle Help</h2>
+        <h2>Diagnostic Flowchart</h2>
         <p><strong>Vehicle:</strong> {{ getVehicleDisplayName(vehicle) }}</p>
         <p><strong>Issues submitted:</strong> {{ issues }}</p>
         <div v-if="isGuestSession" class="guest-session-banner">
@@ -133,10 +140,6 @@ function parseAnswers(encodedAnswers) {
         <div class="flowchart-page-content">
           <div class="flowchart-viewer-card">
             <div class="flowchart-card-header">
-              <div>
-                <h3>Diagnostic Flowchart</h3>
-                <p class="flowchart-helper-text">Click or keyboard-select any node to open the example popup.</p>
-              </div>
             </div>
 
             <div v-if="loading" class="loading">Generating flowchart...</div>
@@ -188,15 +191,16 @@ function parseAnswers(encodedAnswers) {
 
 .flowchart-helper-text {
   margin: 0.35rem 0 0;
-  color: #6b7280;
+  color: var(--color-text-muted);
 }
 
 .responses-section {
-  border: 1px solid #e5e7eb;
-  background: #fff;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 1rem;
   margin-top: 1rem;
+  color: var(--color-text-primary);
 }
 
 .response-item + .response-item {

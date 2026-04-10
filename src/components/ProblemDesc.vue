@@ -68,7 +68,7 @@ function submitProblem() {
   margin-bottom: 1.5rem;
 }
 .problem-desc-box {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 1rem;
   box-shadow: 0 2px 16px rgba(0,0,0,0.07);
   padding: 2rem 2rem 1.5rem 2rem;
@@ -79,17 +79,17 @@ function submitProblem() {
   min-height: 220px;
   font-size: 1.15rem;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   padding: 1rem;
-  background: #f8f9fa;
-  color: #222;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
   resize: vertical;
   transition: border-color 0.2s;
 }
 .problem-textarea:focus {
   border-color: var(--primary, #0d6efd);
   outline: none;
-  background: #fff;
+  background: var(--color-surface);
 }
 .submit-btn {
   background: var(--primary, #0d6efd);

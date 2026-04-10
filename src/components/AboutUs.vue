@@ -38,10 +38,6 @@ const rows2 = chunkArray(members2, 2);
   <div class="untree_co-section" id="about-section">
     <div class="container">
       <div class="row mb-4">
-        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
-          <h2 class="heading">Meet the Devs</h2>
-          <p>Give us jobs.</p>
-        </div>
       </div>
 
       <div class="row mb-4">

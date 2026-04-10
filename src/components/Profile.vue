@@ -1,18 +1,19 @@
 <script setup>
 import { ref, watch, onMounted } from 'vue';
+import { useThemeStore } from '../stores/theme';
 import 'primeicons/primeicons.css';
 
 import personPicture from "../assets/images/UntitledPerson.png";
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs'
 import { getSavedFlowcharts, getResponse, getUserData, setUserData, deleteFlowchart, uploadProfilePicture, crashOut } from '../apis.js';
 import { authState } from '../auth.js';
+import { getMermaidConfig, applyMermaidThemeToSvg } from '../flowchart-utils.js';
 import MyGarage from './MyGarage.vue';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 // Profile state
 const Name = ref('');
 const Email = ref('@example.com');
-const ExperienceLevel = ref(null);
 const editMode = ref(false);
 const personPhoto = ref(personPicture);
 const previewPhoto = ref(null);
@@ -97,7 +98,7 @@ const editPage = async () => {
 };
 
 const saveProfile = async () => { 
-  const updateData = { name: Name.value, experienceLevel: ExperienceLevel.value };
+  const updateData = { name: Name.value };
   if (previewPhoto.value) {
     try {
       uploadingProfilePicture.value = true;
@@ -219,9 +220,9 @@ const getDiagram = async (flowchartObj, idx) => {
     const code = mermaidMatch[1].trim();
     await mermaid.parse(code);
     const { svg } = await mermaid.render(`flowchart-${idx}`, code);
-    flowchartSvg.value[idx] = svg;
+    flowchartSvg.value[idx] = applyMermaidThemeToSvg(svg, themeStore.isDark);
     const { svg: thumbSvg } = await mermaid.render(`thumbnail-${idx}`, code);
-    thumbnailSvg.value[idx] = thumbSvg;
+    thumbnailSvg.value[idx] = applyMermaidThemeToSvg(thumbSvg, themeStore.isDark);
   } catch (err) {
     error.value[idx] = err.message;
   } finally {
@@ -236,7 +237,6 @@ async function loadUserData() {
     const userData = await getUserData();
     if (userData?.name) Name.value = userData.name;
     if (userData?.email) Email.value = userData.email;
-    if (userData?.experienceLevel !== undefined && userData.experienceLevel !== null) ExperienceLevel.value = userData.experienceLevel;
     if (userData?.profilePicture) personPhoto.value = userData.profilePicture;
     if (userData?.crashOut !== undefined && userData.crashOut !== null) crashOutCount.value = userData.crashOut;
   } catch (e) {
@@ -263,8 +263,19 @@ async function loadFlowcharts() {
   }
 }
 
+const themeStore = useThemeStore();
+
+const initializeMermaid = () => {
+  mermaid.initialize(getMermaidConfig(themeStore.isDark));
+};
+
+watch(() => themeStore.isDark, () => {
+  initializeMermaid();
+  flowcharts.value.forEach((f, idx) => getDiagram(f, idx));
+});
+
 onMounted(async () => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', flowchart: { htmlLabels: true, curve: 'basis' } });
+  initializeMermaid();
   // Load data if already authenticated
   if (authState.isAuthenticated) {
     await loadUserData();
@@ -287,6 +298,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
     flowcharts.value = [];
   }
 });
+
 </script>
 
 <template>
@@ -330,19 +342,6 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
               <input v-model="Name" class="form-control form-control-sm" placeholder="Your name" />
             </div>
 
-            <!-- Experience Level Badge -->
-            <div v-if="!editMode && ExperienceLevel" class="profile-section">
-              <span class="experience-badge">{{ ExperienceLevel }}</span>
-            </div>
-            <div v-else-if="editMode" class="profile-section edit-input-wrapper">
-              <select v-model="ExperienceLevel" class="form-select form-select-sm">
-                <option :value="null">Select level</option>
-                <option>Beginner</option>
-                <option>Intermediate</option>
-                <option>Expert</option>
-              </select>
-            </div>
-
             <!-- Email -->
             <div class="profile-email">
               {{ Email }}
@@ -378,6 +377,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
       </div>
     </div>
+
   </div>
 </template>
 
@@ -426,9 +426,9 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
 /* ===== Profile Card ===== */
 .profile-card {
-  background: #fff;
+  background: var(--color-surface);
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 8px var(--color-card-shadow);
   padding: 1.5rem 1rem;
   text-align: center;
   transition: box-shadow 0.3s ease;
@@ -452,8 +452,8 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   border-radius: 50%;
   display: block;
   transition: opacity 0.2s ease;
-  border: 3px solid #e9ecef;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 3px solid var(--color-border);
+  box-shadow: 0 2px 8px var(--color-card-shadow);
 }
 
 .profile-photo.cursor-pointer {
@@ -496,30 +496,13 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .profile-name {
   font-size: 1.3rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-text-primary);
   margin-top: 0.5rem;
-}
-
-.profile-section {
-  display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.experience-badge {
-  display: inline-block;
-  background: #007bff;
-  color: white;
-  padding: 0.4rem 0.9rem;
-  border-radius: 20px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
 
 .profile-email {
   font-size: 0.95rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   word-break: break-word;
 }
 
@@ -582,7 +565,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 /* ===== Crash Out Section ===== */
 .crash-out-section {
   padding-top: 1rem;
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--color-border);
   margin-top: 1rem;
   display: flex;
   flex-direction: column;
@@ -600,7 +583,7 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .crash-out-counter {
   font-size: 2rem;
   font-weight: 700;
-  color: #007bff;
+  color: var(--color-brand);
 }
 
 /* ===== Section Headers ===== */
@@ -611,13 +594,13 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 .section-title {
   font-size: 1.3rem;
   font-weight: 600;
-  color: #212529;
+  color: var(--color-text-primary);
   margin-bottom: 0.25rem;
 }
 
 .section-subtitle {
   font-size: 0.95rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin: 0;
 }
 
@@ -650,29 +633,29 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   min-width: 200px;
   width: 200px;
   height: 220px;
-  border: 2px solid #e9ecef;
+  border: 2px solid var(--color-border);
   border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-  background: white;
+  background: var(--color-surface);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 4px var(--color-card-shadow);
 }
 
 .thumbnail-card:hover {
   transform: translateY(-6px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-  border-color: #dee2e6;
+  box-shadow: 0 8px 16px var(--color-card-shadow);
+  border-color: var(--color-border);
 }
 
 .thumbnail-card.selected {
-  border-color: #007bff;
+  border-color: var(--color-brand);
   border-width: 3px;
-  box-shadow: 0 6px 20px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 6px 20px rgba(64, 123, 255, 0.25);
 }
 
 .thumbnail-svg {
@@ -682,31 +665,32 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   justify-content: center;
   overflow: hidden;
   padding: 0.5rem;
-  background: #f8f9fa;
+  background: var(--color-diagram-surface);
 }
 
 .thumbnail-info {
   padding: 0.9rem;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
+  border-top: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
 }
 
 .thumbnail-title {
   font-weight: 500;
-  color: #212529;
+  color: var(--color-text-primary);
   font-size: 0.95rem;
 }
 
 .thumbnail-subtitle {
   font-size: 0.85rem;
-  color: #6c757d;
+  color: var(--color-text-muted);
   margin-top: 0.2rem;
 }
 
 /* ===== Carousel Controls ===== */
 .carousel-btn {
-  background: white;
-  border: 2px solid #dee2e6;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  color: var(--color-text-secondary);
   border-radius: 50%;
   width: 40px;
   height: 40px;
@@ -720,8 +704,8 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 }
 
 .carousel-btn:hover:not(:disabled) {
-  border-color: #007bff;
-  color: #007bff;
+  border-color: var(--color-brand);
+  color: var(--color-brand);
   transform: scale(1.05);
 }
 
@@ -869,4 +853,5 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
     gap: 0.75rem;
   }
 }
+
 </style>
