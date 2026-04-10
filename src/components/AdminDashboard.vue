@@ -595,7 +595,6 @@ watch(() => authState.adminAccessLevel, () => {
       <div v-else>
         <section class="admin-hero">
           <div>
-            <p class="eyebrow">Administrative Controls</p>
             <h1>Admin Dashboard</h1>
             <p class="hero-copy">Manage access and update production data.</p>
           </div>

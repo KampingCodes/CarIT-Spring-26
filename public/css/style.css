@@ -60,7 +60,10 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   font-size: 11px;
   text-transform: uppercase;
   font-weight: 700;
-  letter-spacing: .05rem; }
+  letter-spacing: .05rem;
+  min-height: 44px;
+  display: inline-block;
+  vertical-align: middle; }
   .btn:active, .btn:focus {
     outline: none;
     -webkit-box-shadow: none;
@@ -87,7 +90,8 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   background: transparent;
   border-bottom: 1px solid #43434d;
   border-radius: 0;
-  color: #000000; }
+  color: #000000;
+  min-height: 44px; }
   .form-control:active, .form-control:focus {
     color: #000000;
     border-color: #407BFF;
@@ -505,7 +509,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
 
 .untree_co-home, .untree_co-home > .container > .row {
   /* keep top padding only; remove bottom padding so content won't push page height */
-  padding: 4rem 0 0 0;
+  padding: 3.5rem 0 0 0;
   /* make home occupy viewport height (subtract header height if needed).
     Adjust the 80px value if your header is a different height. */
   min-height: calc(100vh - 80px);
@@ -549,7 +553,10 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   position: relative; }
   @media (max-width: 991.98px) {
     .untree_co-section {
-      padding: 50px 0; } }
+      padding: 70px 0 50px 0; } }
+  @media (max-width: 767.98px) {
+    .untree_co-section {
+      padding: 90px 0 40px 0; } }
   .untree_co-section .heading {
     font-size: 38px;
     color: #000000; }
@@ -1024,3 +1031,227 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
       .site-footer .social li a:hover {
         background: #739eff;
         color: #ffffff; }
+
+/* Extra small devices (phones, 576px and down) */
+@media (max-width: 575.98px) {
+  /* General Typography */
+  body {
+    font-size: 14px; }
+  
+  h1, .h1 {
+    font-size: 24px;
+    margin-bottom: 20px; }
+  
+  h2, .h2 {
+    font-size: 20px;
+    margin-bottom: 15px; }
+  
+  h3, .h3 {
+    font-size: 18px;
+    margin-bottom: 12px; }
+  
+  h4, .h4 {
+    font-size: 16px; }
+  
+  /* Container & Spacing */
+  .container {
+    padding-left: 15px;
+    padding-right: 15px; }
+  
+  /* Buttons */
+  .btn {
+    padding: 12px 24px;
+    font-size: 12px;
+    min-height: 44px;
+    display: block;
+    width: 100%;
+    margin-bottom: 10px; }
+  
+  /* Forms */
+  .form-control {
+    height: 40px;
+    font-size: 14px;
+    padding: 8px 0; }
+  
+  input, textarea, select {
+    font-size: 16px !important; }
+  
+  /* Navigation */
+  .nav-link {
+    padding: 8px 12px !important;
+    font-size: 12px; }
+  
+  .site-nav h1 {
+    font-size: 18px; }
+  
+  .site-nav.scrolled {
+    margin-top: -110px;
+    padding-top: 8px !important;
+    padding-bottom: 8px !important; }
+  
+  .site-nav.scrolled.awake {
+    margin-top: 0px; }
+  
+  /* Hero Section */
+  .untree_co-home, .untree_co-home > .container > .row {
+    padding: 3.5rem 0 0 0;
+    min-height: calc(100vh - 60px); }
+  
+  .untree_co-home .heading {
+    font-size: 28px;
+    line-height: 1.2;
+    margin-bottom: 15px; }
+  
+  .untree_co-home .excerpt {
+    margin-bottom: 20px;
+    font-size: 14px; }
+  
+  .untree_co-home .excerpt p {
+    margin-bottom: 15px; }
+  
+  /* Sections */
+  .untree_co-section {
+    padding: 80px 0 30px 0; }
+  
+  .untree_co-section .heading {
+    font-size: 22px; }
+  
+  /* Image Alignment */
+  .row [class*="col-"] {
+    margin-bottom: 20px; }
+  
+  /* Pricing Cards */
+  .pricing .body {
+    padding: 20px;
+    border-radius: 20px; }
+  
+  .pricing .body .price .plan {
+    font-size: 20px; }
+  
+  .pricing .body .price .price {
+    font-size: 28px; }
+  
+  /* News Items */
+  .news-item {
+    padding: 15px;
+    margin-bottom: 15px; }
+  
+  .news-item .vcard {
+    flex-direction: column;
+    align-items: flex-start; }
+  
+  .news-item .vcard .img-wrap {
+    margin-right: 0;
+    margin-bottom: 10px; }
+  
+  /* Footer */
+  .site-footer {
+    padding: 30px 0; }
+  
+  .site-footer .widget {
+    margin-bottom: 15px; }
+  
+  .site-footer .widget h3 {
+    font-size: 14px;
+    margin-bottom: 10px; }
+  
+  .site-footer .widget .links {
+    width: 100%; }
+  
+  /* Mobile Menu Toggle */
+  .burger {
+    width: 24px;
+    height: 28px; }
+  
+  .burger:before, .burger span, .burger:after {
+    height: 2px; }
+  
+  .burger:before {
+    top: 2px; }
+  
+  .burger span {
+    top: 13px; }
+  
+  .burger:after {
+    top: 24px; }
+  
+  /* Service Cards */
+  .service {
+    margin-bottom: 15px; }
+  
+  .service.link {
+    padding: 15px; }
+  
+  .service.horizontal {
+    flex-direction: column; }
+  
+  .service.horizontal .service-icon {
+    margin-right: 0;
+    margin-bottom: 10px; }
+  
+  /* Table Responsiveness */
+  table {
+    font-size: 12px; }
+  
+  table th, table td {
+    padding: 8px 4px; }
+}
+
+/* Small devices (tablets, 576px to 768px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+  .untree_co-home, .untree_co-home > .container > .row {
+    padding: 6rem 0 0 0; }
+  
+  .untree_co-home .heading {
+    font-size: 38px; }
+  
+  .untree_co-section .heading {
+    font-size: 28px; }
+  
+  .container {
+    max-width: 90%; }
+  
+  .btn {
+    min-height: 44px; }
+  
+  /* Form adjustments for tablets */
+  .form-container {
+    max-width: 100%;
+    margin: 15px; }
+  
+  .form-container label {
+    margin-bottom: 12px; }
+}
+
+/* Medium devices and up - Landscape phones (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .untree_co-home, .untree_co-home > .container > .row {
+    padding: 5rem 0 0 0; }
+  
+  .untree_co-home .heading {
+    font-size: 45px; }
+  
+  .btn {
+    min-height: 44px; }
+}
+
+/* Touch devices - improve touch targets */
+@media (hover: none) and (pointer: coarse) {
+  /* Make interactive elements more touch-friendly */
+  a, button, .btn, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px; }
+  
+  /* Remove hover effects that don't work on touch devices */
+  a:hover {
+    text-decoration: underline; }
+  
+  .btn:hover {
+    opacity: 0.9; }
+}
+
+/* High DPI devices (Retina displays) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .img-shadow {
+    border-width: 8px; }
+}
