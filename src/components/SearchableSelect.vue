@@ -193,10 +193,13 @@ function scrollToHighlighted() {
   padding: 0.4rem 0.75rem;
   cursor: pointer;
   font-size: 0.95rem;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 .ss-dropdown li:hover,
 .ss-dropdown li.ss-highlighted {
-  background: #007bff;
+  background: #407BFF;
   color: #fff;
 }
 .ss-invalid {
@@ -213,5 +216,17 @@ function scrollToHighlighted() {
   white-space: nowrap;
   pointer-events: none;
   z-index: 1059;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 576px) {
+  .ss-dropdown {
+    max-height: 150px;
+    font-size: 0.9rem;
+  }
+  .ss-dropdown li {
+    padding: 0.5rem 0.6rem;
+    min-height: 42px;
+  }
 }
 </style>
