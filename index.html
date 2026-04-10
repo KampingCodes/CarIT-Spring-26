@@ -1,6 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <!-- Prevent flash of unstyled content: apply saved theme before first paint -->
+    <script>
+      (function () {
+        var t = localStorage.getItem('carit-theme');
+        document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+      })();
+    </script>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="src/assets/images/Car.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -17,6 +24,7 @@
     <link rel="stylesheet" href="/fonts/flaticon/font/flaticon.css" />
     <link rel="stylesheet" href="/css/aos.css" />
     <link rel="stylesheet" href="/css/style.css" />
+    <link rel="stylesheet" href="/css/theme.css" />
   </head>
   <body data-spy="scroll" data-target=".site-navbar-target" data-offset="100">
     <div class="lines-wrap">

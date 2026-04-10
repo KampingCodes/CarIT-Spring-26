@@ -153,7 +153,7 @@ watch(garage, (cars) => {
   <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
-      <button v-if="editable && authState.isAuthenticated" class="btn btn-primary btn-sm" @click="openAddForm" :disabled="showAddForm">+ Add Vehicle</button>
+      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn btn-primary btn-sm" @click="openAddForm">+ Add Vehicle</button>
     </div>
 
     <!-- Not authenticated message -->
@@ -165,7 +165,7 @@ watch(garage, (cars) => {
     <div v-else-if="editable && showAddForm" class="garage-form card p-3 mb-3">
       <h5>{{ editingCarId ? 'Edit Vehicle' : 'Add New Vehicle' }}</h5>
       <VehicleSelector ref="vehicleSelectorRef" v-model="garageForm" />
-      <div class="mt-3 d-flex gap-2">
+      <div class="mt-3 d-flex gap-3">
         <button class="btn btn-primary" @click="submitGarageForm" :disabled="garageLoading || !garageForm.year || !garageForm.make || !garageForm.model || !isValidYear(garageForm.year)">
           {{ garageLoading ? 'Saving...' : (editingCarId ? 'Save Changes' : 'Add Vehicle') }}
         </button>
@@ -239,9 +239,9 @@ watch(garage, (cars) => {
   position: relative;
   z-index: 0; /* Ensure navbar (z-index: 10) always stays on top */
   padding: 24px; 
-  background: #ffffff; 
+  background: var(--color-surface); 
   border-radius: 12px; 
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 2px 12px var(--color-card-shadow);
   min-width: 0; /* Allow flex shrinking */
 }
 
@@ -254,7 +254,7 @@ watch(garage, (cars) => {
 
 .garage-section h4 {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--color-text-primary);
   margin: 0;
   font-size: clamp(1.25rem, 2.5vw, 1.5rem); /* Responsive font size */
 }
@@ -268,7 +268,7 @@ watch(garage, (cars) => {
 }
 
 .garage-form h5 {
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-size: 1.1rem;
   font-weight: 600;
   margin-bottom: 16px;
@@ -283,27 +283,27 @@ watch(garage, (cars) => {
 
 /* Individual vehicle cards */
 .garage-card { 
-  border: 1px solid #e1e8ed; 
+  border: 1px solid var(--color-border); 
   border-radius: 10px; 
   padding: 16px 20px;
-  background: #ffffff;
+  background: var(--color-surface);
   transition: all 0.2s ease;
 }
 
 .garage-card:hover { 
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); 
-  border-color: #c8d6e5;
+  box-shadow: 0 4px 12px var(--color-card-shadow); 
+  border-color: var(--color-border);
   transform: translateY(-1px);
 }
 
 .garage-card strong {
   font-size: 1.05rem;
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
 .garage-card .text-muted {
-  color: #6c757d !important;
+  color: var(--color-text-muted) !important;
   font-size: 0.95rem;
 }
 
@@ -313,15 +313,15 @@ watch(garage, (cars) => {
 }
 
 .garage-card-selectable:hover { 
-  border-color: #4a90e2;
-  background: #f8fbff;
+  border-color: var(--color-brand);
+  background: var(--color-brand-light);
 }
 
 .garage-card-selected { 
-  border-color: #007bff; 
+  border-color: var(--color-brand); 
   border-width: 2px; 
-  background: #f0f7ff; 
-  box-shadow: 0 4px 16px rgba(0, 123, 255, 0.15);
+  background: var(--color-brand-light); 
+  box-shadow: 0 4px 16px rgba(64, 123, 255, 0.15);
 }
 
 /* Button group spacing */
@@ -358,8 +358,9 @@ watch(garage, (cars) => {
   max-width: 440px; 
   width: 90%; 
   border-radius: 12px; 
-  background: #fff; 
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  background: var(--color-surface); 
+  box-shadow: 0 12px 40px var(--color-card-shadow);
+  border: 1px solid var(--color-border);
   animation: modalSlideIn 0.2s ease-out;
   padding: 20px;
 }
@@ -376,13 +377,13 @@ watch(garage, (cars) => {
 }
 
 .delete-confirm h5 {
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-weight: 600;
   margin-bottom: 12px;
 }
 
 .delete-confirm p {
-  color: #6c757d;
+  color: var(--color-text-muted);
   line-height: 1.6;
 }
 
@@ -391,14 +392,14 @@ watch(garage, (cars) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #6c757d;
+  color: var(--color-text-muted);
   padding: 20px 0;
   font-size: 0.95rem;
 }
 
 /* Empty state */
 .garage-empty {
-  color: #95a5a6;
+  color: var(--color-text-muted);
   font-style: italic;
   padding: 20px 0;
   text-align: center;
@@ -407,8 +408,8 @@ watch(garage, (cars) => {
 
 /* Spinner animation */
 .spinner {
-  border: 3px solid #f3f4f6;
-  border-top: 3px solid #007bff;
+  border: 3px solid var(--color-surface-raised);
+  border-top: 3px solid var(--color-brand);
   border-radius: 50%;
   width: 24px;
   height: 24px;
@@ -423,6 +424,7 @@ watch(garage, (cars) => {
 /* Form button spacing */
 .garage-form .mt-3 {
   margin-top: 20px !important;
+  gap: 12px;
 }
 
 .garage-form .btn {

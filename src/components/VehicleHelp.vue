@@ -1,26 +1,20 @@
 <script setup>
-import NaviBar from "./NaviBar.vue";
 import MarkdownIt from 'markdown-it';
 import { useRoute } from "vue-router";
 import { getResponse, getFlowchart, getQuestions } from "../genai.js";
 import { getVehicles } from "../vehicles.js";
-import { ref, onMounted, onBeforeUnmount, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import FlowchartViewer from './FlowchartViewer.vue';
+import { useThemeStore } from '../stores/theme';
+import { getMermaidConfig, applyMermaidThemeToSvg } from '../flowchart-utils.js';
+
+const themeStore = useThemeStore();
+const currentMermaidCode = ref('');
 
 // Initialize mermaid only when component is mounted
 const initializeMermaid = () => {
-  mermaid.initialize({
-    startOnLoad: false,
-    securityLevel: 'loose',
-    flowchart: {
-      htmlLabels: true,
-      curve: 'basis'
-    },
-    themeVariables: {
-      fontFamily: 'Arial'
-    }
-  });
+  mermaid.initialize(getMermaidConfig(themeStore.isDark));
 };
 
 // Get query params
@@ -55,10 +49,7 @@ const getFeedback = async () => {
         console.log('AI Response:', resp);
         
         // Try to clean the response if it contains markdown backticks
-        const jsonStr = resp.replace(/```json\n?|\n?```/g, '').trim();
-        console.log('Cleaned JSON:', jsonStr);
-        
-        const data = JSON.parse(jsonStr);
+        const data = typeof resp === 'object' ? resp : JSON.parse(resp.replace(/```json\n?|\n?```/g, '').trim());
         if (!data.questions || !Array.isArray(data.questions)) {
           throw new Error('Invalid response format: missing questions array');
         }
@@ -128,8 +119,9 @@ const getFeedback = async () => {
           await mermaid.parse(mermaidCode);
           
           // If validation passes, render the diagram
+          currentMermaidCode.value = mermaidCode;
           const { svg } = await mermaid.render('diagnostic-flowchart', mermaidCode);
-          flowchartSvg.value = svg;
+          flowchartSvg.value = applyMermaidThemeToSvg(svg, themeStore.isDark);
         } catch (mermaidErr) {
           console.error('Mermaid error:', mermaidErr);
           throw new Error(`Failed to render flowchart diagram: ${mermaidErr.message}`);
@@ -175,6 +167,14 @@ onMounted(() => {
   initializeMermaid();
   // Fire the AI request when the page loads
   getFeedback();
+});
+
+watch(() => themeStore.isDark, async () => {
+  initializeMermaid();
+  if (currentMermaidCode.value) {
+    const { svg } = await mermaid.render(`diagnostic-flowchart-${Date.now()}`, currentMermaidCode.value);
+    flowchartSvg.value = applyMermaidThemeToSvg(svg, themeStore.isDark);
+  }
 });
 
 // Cleanup when component is unmounted

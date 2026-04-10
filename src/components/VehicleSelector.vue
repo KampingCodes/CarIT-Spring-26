@@ -241,13 +241,12 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
 .vehicle-selector-row {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  border-bottom: 1px solid #43434d;
 }
 
 .vs-field {
-  flex: 1 1 0;
+  flex: 1 1 calc(50% - 0.25rem);
   min-width: 0;
 }
 
@@ -273,12 +272,12 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 .divider-line {
   flex: 1;
   height: 1px;
-  background-color: #dee2e6;
+  background-color: var(--color-border);
 }
 
 .divider-text {
   white-space: nowrap;
-  color: #6c757d;
+  color: var(--color-text-muted);
   font-weight: 500;
   font-size: 0.875rem;
 }
@@ -290,7 +289,7 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
 .vin-input-section h6 {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-secondary);
   font-size: 0.9rem;
   margin-bottom: 1rem;
 }
@@ -331,10 +330,91 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 @media (max-width: 768px) {
   .vehicle-selector-row {
     --bs-gutter-x: 0.25rem;
+    gap: 0.75rem;
   }
 
-  .vehicle-selector-row .col-3 {
-    flex: 0 0 25%;
+  .vs-field {
+    flex: 1 1 calc(50% - 0.375rem);
+  }
+
+  .form-label {
+    font-size: 0.8rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .vin-input-wrapper {
+    gap: 0.5rem;
+  }
+
+  .vin-input-section .form-control,
+  .vs-field :deep(.form-control) {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .vin-decode-btn {
+    min-height: 42px;
+    padding: 0.5rem 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .vehicle-selector-row {
+    flex-direction: column;
+    gap: 1rem;
+    border-bottom: none;
+    border-top: 1px solid #43434d;
+    padding-top: 1rem;
+  }
+
+  .vs-field {
+    flex: 1 1 100%;
+  }
+
+  .form-label {
+    font-size: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .divider-section {
+    margin: 1rem 0;
+    gap: 0.5rem;
+  }
+
+  .vin-input-wrapper {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .vin-input-section .form-control {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+    padding: 0.5rem;
+  }
+
+  .vin-decode-btn {
+    width: 100%;
+    min-height: 44px;
+    font-size: 14px;
+    padding: 0.5rem 1rem;
+  }
+
+  .vin-input-section h6 {
+    font-size: 0.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .vs-field :deep(.form-control) {
+    min-height: 44px;
+    font-size: 16px;
+    padding: 0.5rem;
+  }
+
+  .vin-input-section .alert {
+    font-size: 0.75rem;
+    padding: 0.5rem;
+    width: 100%;
   }
 }
 

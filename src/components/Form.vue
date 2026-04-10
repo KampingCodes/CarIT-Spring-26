@@ -1,7 +1,6 @@
 <!-- Form -->
 
 <script setup>
-import NaviBar from './NaviBar.vue';
 import { reactive } from 'vue';
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -30,7 +29,6 @@ function handleSubmit() {
 </script>
 
 <template>
-  <NaviBar />
   <main>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">
@@ -88,31 +86,101 @@ function handleSubmit() {
   display: block;
   margin-bottom: 15px;
   font-weight: bold;
+  font-size: 14px;
 }
 
 .form-container input {
   display: block;
-  width: calc(100% - 2px);
-  padding: 8px;
-  margin-left: 2px;
+  width: 100%;
+  padding: 10px;
   margin-top: 8px;
   box-sizing: border-box;
   border: 1px solid #ccc;
   border-radius: 4px;
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.form-container input:focus {
+  outline: none;
+  border-color: #407BFF;
+  box-shadow: 0 0 5px rgba(64, 123, 255, 0.3);
 }
 
 button {
-  margin: 10px 2px;
-  padding: 10px 30px;
-  background-color: #007bff;
+  margin: 10px auto;
+  padding: 12px 30px;
+  background-color: #407BFF;
   color: white;
   font-weight: bold;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 14px;
+  min-height: 44px;
+  width: 100%;
+  transition: background-color 0.3s ease;
 }
 
 button:hover {
-  background-color: #0056b3;
+  background-color: #2e5cc8;
+}
+
+button:active {
+  background-color: #1e3a99;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .form-container {
+    max-width: 100%;
+    margin: 15px;
+    padding: 15px;
+  }
+
+  .form-container label {
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
+  .form-container input {
+    padding: 12px;
+    font-size: 16px;
+    margin-top: 5px;
+  }
+
+  button {
+    margin: 15px auto;
+    padding: 14px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .form-container {
+    margin: 10px;
+    padding: 12px;
+    border-radius: 6px;
+  }
+
+  .form-container label {
+    margin-bottom: 10px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .form-container input {
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 4px;
+    margin-top: 6px;
+  }
+
+  button {
+    width: 100%;
+    margin: 12px 0;
+    padding: 12px 20px;
+  }
 }
 </style>

@@ -680,15 +680,13 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 0.5rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.flowchart-toolbar-button {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border: 0.5px solid var(--flowchart-color-border-tertiary);
+.viewer-btn {
+  border: 1px solid #d0d7de;
+  background: #fff;
+  color: #1f2937;
   border-radius: 999px;
   background: var(--flowchart-color-background-primary);
   color: var(--flowchart-color-text-primary);
@@ -727,16 +725,11 @@ onBeforeUnmount(() => {
 .flowchart-viewport {
   position: relative;
   overflow: hidden;
-  min-height: var(--flowchart-embedded-height, 34rem);
-  height: var(--flowchart-embedded-height, 34rem);
-  border: 0.5px solid var(--flowchart-color-border-tertiary);
-  border-radius: 12px;
-  background-color: var(--flowchart-color-background-secondary);
-  background-image: var(--flowchart-dots-image);
-  background-repeat: repeat;
-  background-size: 24px 24px;
-  cursor: grab;
-  user-select: none;
+  border: 1px solid #dfe3e8;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(13, 110, 253, 0.12) 1px, transparent 0) 0 0 / 24px 24px,
+    #fff;
   touch-action: none;
   margin-bottom: 5rem;
 }
@@ -789,6 +782,10 @@ onBeforeUnmount(() => {
 .flowchart-fullscreen-card {
   width: min(96vw, 1400px);
   height: min(92vh, 960px);
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -816,20 +813,10 @@ onBeforeUnmount(() => {
 
 .flowchart-fullscreen-title {
   margin: 0;
-  font-size: 18px;
-  line-height: 1.3;
-  font-weight: 500;
-  color: var(--flowchart-color-text-primary);
-}
-
-.flowchart-viewport--fullscreen {
-  background-color: Canvas;
-  background-image: var(--flowchart-dots-image);
-}
-
-.flowchart-viewport :deep(svg) {
-  display: block;
-  overflow: visible;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6c757d;
 }
 
 .flowchart-viewport :deep(.flowchart-node--interactive) {
