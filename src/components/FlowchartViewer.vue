@@ -38,6 +38,21 @@ const htmlOverflowY = ref('');
 
 const hasSvg = computed(() => typeof props.svg === 'string' && props.svg.trim().length > 0);
 const dotsPatternUrl = `${import.meta.env.BASE_URL}dots.png`;
+const viewerThemeStyle = computed(() => ({
+  '--flowchart-dots-image': `url(${dotsPatternUrl})`,
+  '--flowchart-color-text-primary': 'var(--color-text-primary, #0d0d14)',
+  '--flowchart-color-text-secondary': 'var(--color-text-secondary, #3c3c50)',
+  '--flowchart-color-background-primary': 'var(--color-surface, #ffffff)',
+  '--flowchart-color-background-secondary': 'var(--color-diagram-surface, #f8f9fa)',
+  '--flowchart-color-background-secondary-hover': 'var(--color-surface-raised, #f0f2f6)',
+  '--flowchart-color-border-tertiary': 'var(--color-border, #e2e4ec)',
+  '--flowchart-color-border-diagram': 'var(--color-diagram-border, #e9ecef)',
+  '--flowchart-color-accent': 'var(--color-brand, #407BFF)',
+  '--flowchart-color-accent-hover': 'var(--color-brand-hover, #5489ff)',
+  '--flowchart-color-accent-contrast': '#ffffff',
+  '--flowchart-shadow': 'var(--color-card-shadow, rgba(0, 0, 0, 0.08))',
+  '--flowchart-overlay': 'rgba(15, 23, 42, 0.7)'
+}));
 const defaultFitPadding = 32;
 const defaultFitScaleFactor = 1.12;
 const minZoomScale = 0.1;
@@ -561,7 +576,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flowchart-viewer" :style="{ '--flowchart-dots-image': `url(${dotsPatternUrl})` }">
+  <div class="flowchart-viewer" :style="viewerThemeStyle">
     <div class="flowchart-toolbar" aria-label="Flowchart controls">
       <p class="flowchart-toolbar-hint">Drag to pan · Scroll to zoom</p>
       <div class="flowchart-toolbar-actions">
@@ -601,6 +616,7 @@ onBeforeUnmount(() => {
     <div
       v-if="isFullscreen"
       class="flowchart-fullscreen-overlay"
+      :style="viewerThemeStyle"
       @click.self="handleOverlayClick"
     >
       <div class="flowchart-fullscreen-card" role="dialog" aria-modal="true" @click.stop>
@@ -642,20 +658,29 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .flowchart-viewer {
-  --flowchart-color-text-primary: var(--color-text-primary, CanvasText);
-  --flowchart-color-text-secondary: var(--color-text-secondary, GrayText);
-  --flowchart-color-background-primary: var(--color-background-primary, Canvas);
-  --flowchart-color-background-secondary: var(--color-background-secondary, Canvas);
-  --flowchart-color-border-tertiary: var(--color-border-tertiary, GrayText);
-  --flowchart-color-accent: var(--color-accent-primary, var(--color-text-primary, CanvasText));
-  --flowchart-color-accent-contrast: var(--color-background-primary, Canvas);
+  --flowchart-color-text-primary: var(--color-text-primary, #0d0d14);
+  --flowchart-color-text-secondary: var(--color-text-secondary, #3c3c50);
+  --flowchart-color-background-primary: var(--color-surface, #ffffff);
+  --flowchart-color-background-secondary: var(--color-diagram-surface, #f8f9fa);
+  --flowchart-color-background-secondary-hover: var(--color-surface-raised, #f0f2f6);
+  --flowchart-color-border-tertiary: var(--color-border, #e2e4ec);
+  --flowchart-color-border-diagram: var(--color-diagram-border, #e9ecef);
+  --flowchart-color-accent: var(--color-brand, #407BFF);
+  --flowchart-color-accent-hover: var(--color-brand-hover, #5489ff);
+  --flowchart-color-accent-contrast: #ffffff;
+  --flowchart-shadow: var(--color-card-shadow, rgba(0, 0, 0, 0.08));
   --flowchart-overlay: rgba(15, 23, 42, 0.7);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  background: transparent;
+  padding: 1rem;
+  border: 1px solid var(--flowchart-color-border-tertiary);
+  border-radius: 16px;
+  background: var(--flowchart-color-background-primary);
+  box-shadow: 0 12px 32px var(--flowchart-shadow);
   color: var(--flowchart-color-text-primary);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin-bottom: 5rem;
 }
 
 .flowchart-toolbar {
@@ -680,13 +705,15 @@ onBeforeUnmount(() => {
   justify-content: flex-end;
   gap: 0.5rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
-.viewer-btn {
-  border: 1px solid #d0d7de;
-  background: #fff;
-  color: #1f2937;
+.flowchart-toolbar-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 0.5px solid var(--flowchart-color-border-tertiary);
   border-radius: 999px;
   background: var(--flowchart-color-background-primary);
   color: var(--flowchart-color-text-primary);
@@ -697,11 +724,13 @@ onBeforeUnmount(() => {
   padding: 6px 14px;
   min-height: 32px;
   cursor: pointer;
-  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 2px 6px var(--flowchart-shadow);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
 .flowchart-toolbar-button:hover:not(:disabled),
 .flowchart-toolbar-button:focus-visible:not(:disabled) {
+  background: var(--flowchart-color-background-secondary-hover);
   border-color: var(--flowchart-color-accent);
   outline: none;
 }
@@ -722,16 +751,27 @@ onBeforeUnmount(() => {
   border-color: var(--flowchart-color-accent);
 }
 
+.flowchart-toolbar-button--featured:hover:not(:disabled),
+.flowchart-toolbar-button--featured:focus-visible:not(:disabled) {
+  background: var(--flowchart-color-accent-hover);
+  border-color: var(--flowchart-color-accent-hover);
+}
+
 .flowchart-viewport {
   position: relative;
   overflow: hidden;
-  border: 1px solid #dfe3e8;
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(13, 110, 253, 0.12) 1px, transparent 0) 0 0 / 24px 24px,
-    #fff;
+  min-height: var(--flowchart-embedded-height, 34rem);
+  height: var(--flowchart-embedded-height, 34rem);
+  border: 1px solid var(--flowchart-color-border-diagram);
+  border-radius: 12px;
+  background-color: var(--flowchart-color-background-secondary);
+  background-image: var(--flowchart-dots-image);
+  background-repeat: repeat;
+  background-size: 24px 24px;
+  cursor: grab;
+  user-select: none;
   touch-action: none;
-  margin-bottom: 5rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
 .flowchart-viewport.is-dragging {
@@ -782,19 +822,14 @@ onBeforeUnmount(() => {
 .flowchart-fullscreen-card {
   width: min(96vw, 1400px);
   height: min(92vh, 960px);
-  background: #fff;
-  border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
-  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
   padding: 1.25rem;
   border-radius: 20px;
-  border: 0.5px solid var(--flowchart-color-border-tertiary);
-  background: Canvas;
-  background-color: var(--flowchart-color-background-primary, Canvas);
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.18);
+  border: 1px solid var(--flowchart-color-border-tertiary);
+  background-color: var(--flowchart-color-background-primary);
+  box-shadow: 0 24px 64px var(--flowchart-shadow);
 }
 
 .flowchart-fullscreen-header {
@@ -813,10 +848,20 @@ onBeforeUnmount(() => {
 
 .flowchart-fullscreen-title {
   margin: 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #6c757d;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--flowchart-color-text-primary);
+}
+
+.flowchart-viewport--fullscreen {
+  background-color: var(--flowchart-color-background-secondary);
+  background-image: var(--flowchart-dots-image);
+}
+
+.flowchart-viewport :deep(svg) {
+  display: block;
+  overflow: visible;
 }
 
 .flowchart-viewport :deep(.flowchart-node--interactive) {
