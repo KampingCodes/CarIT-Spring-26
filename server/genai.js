@@ -154,14 +154,6 @@ CRITICAL FORMATTING RULES:
 Return ONLY the mermaid code block with your diagnostic flowchart, no other text or explanations.`;
 }
 
-/**
- * Helper to return a displayable value or a default placeholder
- * when empty. Treats undefined, null, empty string, and strings
- * containing only whitespace as empty.
- * @param {any} val The value
- * @param {string} placeholder The default placeholder
- * @returns {string} The displayable value
-*/
 function formatField(val, placeholder = "None") {
   if (val === undefined || val === null) return placeholder;
   if (typeof val === "string") {

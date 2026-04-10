@@ -1,7 +1,6 @@
 <!-- Form -->
 
 <script setup>
-import NaviBar from './NaviBar.vue';
 import { reactive } from 'vue';
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
@@ -30,7 +29,6 @@ function handleSubmit() {
 </script>
 
 <template>
-  <NaviBar />
   <main>
     <div class="form-container">
       <form @submit.prevent="handleSubmit">

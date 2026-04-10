@@ -153,13 +153,12 @@ async function submitVehicle() {
           <!-- Garage picker for logged-in users -->
           <div v-if="authState.isAuthenticated" class="garage-picker">
             <MyGarage ref="garageRef" :selectable="true" @select="onGarageSelect" />
-            <div class="divider-text mt-3">
+            <div class="divider-text">
               <span>or enter a new vehicle</span>
             </div>
           </div>
 
           <div class="vehicle-selector">
-            <h5 class="mb-3">Select Your Vehicle</h5>
             <div v-if="!authState.isAuthenticated" class="alert alert-warning guest-notice mb-3">
               You're continuing as a guest. Your generated flowchart is available only for this session unless you sign in.
             </div>
@@ -220,35 +219,35 @@ async function submitVehicle() {
 }
 
 .vehicle-selector {
-  background: #ffffff;
+  background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
   padding: 24px;
 }
 .vehicle-selector h5 {
-  color: #2c3e50;
+  color: var(--color-text-primary);
   font-weight: 600;
   margin-bottom: 1.5rem;
 }
 .vehicle-selector label.form-label {
   font-weight: 500;
-  color: #333;
+  color: var(--color-text-secondary);
   margin-bottom: 0.25rem;
 }
 .vehicle-selector select.form-select {
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-border);
   padding: 0.5rem 1rem;
   font-size: 1rem;
-  background: #f8f9fa;
-  color: #222;
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
   margin-bottom: 1rem;
   transition: border-color 0.2s;
 }
 .vehicle-selector select.form-select:focus {
   border-color: var(--primary, #0d6efd);
   outline: none;
-  background: #fff;
+  background: var(--color-surface);
 }
 .vehicle-selector .alert-success {
   background: #e6f4ea;
@@ -274,8 +273,9 @@ async function submitVehicle() {
 .divider-text {
   display: flex;
   align-items: center;
-  margin-bottom: 1rem;
-  color: #888;
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  color: var(--color-text-muted);
   font-size: 0.9rem;
 }
 
@@ -283,7 +283,7 @@ async function submitVehicle() {
 .divider-text::after {
   content: '';
   flex: 1;
-  border-bottom: 1px solid #dee2e6;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .divider-text span {

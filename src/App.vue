@@ -1,11 +1,17 @@
 <script setup>
+import { watchEffect } from 'vue';
 import NaviBar from "./components/NaviBar.vue";
-import ExpLevelPopUp from "./components/ExpLevelPopUp.vue";
+import { useThemeStore } from './stores/theme';
 
+const themeStore = useThemeStore();
+
+// Keep data-theme on <html> in sync with store, persisting across navigation
+watchEffect(() => {
+  document.documentElement.setAttribute('data-theme', themeStore.isDark ? 'dark' : 'light');
+});
 </script>
 
 <template>
   <NaviBar />
-  <ExpLevelPopUp />
   <router-view />
 </template>

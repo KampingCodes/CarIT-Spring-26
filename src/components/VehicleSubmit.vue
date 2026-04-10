@@ -1,5 +1,4 @@
 <script setup>
-import NaviBar from "./NaviBar.vue";
 import { useRoute } from "vue-router";
 import { addVehicle } from "../vehicles.js";
 import { authState } from "../auth.js";
@@ -30,9 +29,6 @@ const formatField = (val, placeholder = "None") => {
 
 <template>
   <div>
-    <main>
-      <NaviBar />
-    </main>
     <div class="vehicle-container">
       <h1>Vehicle Submitted</h1>
       <div class="vehicle-info">

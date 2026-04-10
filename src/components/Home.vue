@@ -57,6 +57,7 @@ onBeforeUnmount(() => {
                   :style="[
                     { background: themeColor },
                     { borderColor: themeColor },
+                    { color: '#ffffff' },
                   ]"
                 >
                   {{ buttonTry }}
