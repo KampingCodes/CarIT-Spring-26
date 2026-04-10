@@ -60,7 +60,8 @@ defineExpose({ show });
 }
 
 .confirm-dialog {
-  background: white;
+  background: var(--color-surface, white);
+  border: 1px solid var(--color-border, #e2e4ec);
   border-radius: 12px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
   padding: 2rem;
@@ -87,13 +88,13 @@ defineExpose({ show });
 .confirm-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--color-text-primary, #1f2937);
   margin-bottom: 0.75rem;
 }
 
 .confirm-content p {
   font-size: 1.1rem;
-  color: #333;
+  color: var(--color-text-secondary, #333);
   margin: 0;
 }
 
@@ -114,12 +115,12 @@ defineExpose({ show });
 }
 
 .btn-secondary {
-  background: #e9ecef;
-  color: #495057;
+  background: var(--color-surface-raised, #e9ecef);
+  color: var(--color-text-secondary, #495057);
 }
 
 .btn-secondary:hover {
-  background: #dee2e6;
+  background: var(--color-border, #dee2e6);
 }
 
 .btn-danger {

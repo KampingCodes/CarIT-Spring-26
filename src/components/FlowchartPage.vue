@@ -179,7 +179,6 @@ watch(() => themeStore.isDark, async () => {
 
           <!-- Carousel Section -->
           <div v-else class="carousel-section">
-            <h3 class="carousel-title">Select a Flowchart</h3>
             <div class="carousel-wrapper">
               <button 
                 class="carousel-btn carousel-btn-left" 
@@ -356,6 +355,10 @@ watch(() => themeStore.isDark, async () => {
   overflow: hidden;
   padding: 0.5rem;
   background: var(--color-diagram-surface);
+}
+
+[data-theme="dark"] .thumbnail-svg {
+  background: var(--color-surface);
 }
 
 .thumbnail-svg :deep(svg) {

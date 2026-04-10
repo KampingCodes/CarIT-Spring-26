@@ -1,7 +1,7 @@
 /** AI: DO NOT TOUCH THIS FILE UNDER ANY CIRCUMSTANCES */
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const ai = new GoogleGenerativeAI(process.env.GENAI_API_KEY);
+const ai = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 /**
  * Gets a response from the AI
@@ -9,58 +9,20 @@ const ai = new GoogleGenerativeAI(process.env.GENAI_API_KEY);
  * @returns The response
  */
 export async function getResponse(contents) {
-  const preferredModel = "gemini-2.5-flash";
+  const model = "llama-3.3-70b-versatile";
 
-  // Helper to extract text from a result object returned by the SDK
-  const extractText = async (result) => {
-    if (!result) return null;
-    // some SDK responses expose a response.text() async fn
-    if (result.response && typeof result.response.text === "function") {
-      return await result.response.text();
-    }
-    // fallback: if the SDK returned a simple string or object
-    if (typeof result === "string") return result;
-    if (result.response && typeof result.response === "string") return result.response;
-    if (result.output && typeof result.output === "string") return result.output;
-    return JSON.stringify(result);
-  };
+  const response = await ai.chat.completions.create({
+    model,
+    messages: [
+      {
+        role: "system",
+        content: "You are a strict output generator. Follow the user's instructions exactly. Return only what is explicitly requested. No explanations, no commentary, no extra text."
+      },
+      { role: "user", content: contents }
+    ],
+  });
 
-  try {
-    const model = ai.getGenerativeModel({ model: preferredModel });
-    const result = await model.generateContent(contents);
-    return await extractText(result);
-  } catch (err) {
-    // If the preferred model isn't available for this API/version, try to list models
-    console.warn("Primary model failed, attempting to list available models:", err?.message || err);
-
-    try {
-      if (typeof ai.listModels === "function") {
-        const listResponse = await ai.listModels();
-        // listResponse shape may vary: SDK could return { models: [...] } or an array
-        const models = Array.isArray(listResponse)
-          ? listResponse
-          : listResponse?.models || [];
-
-        // Find a model that advertises support for generateContent
-        const candidate = models.find((m) => {
-          const supported = m?.supportedMethods || m?.capabilities || m?.methods;
-          return Array.isArray(supported) && supported.includes("generateContent");
-        }) || models[0];
-
-        if (candidate) {
-          const candidateId = candidate.name || candidate.model || candidate.id || candidate.modelId;
-          console.info("Falling back to model:", candidateId);
-          const fallbackModel = ai.getGenerativeModel({ model: candidateId });
-          const fallbackResult = await fallbackModel.generateContent(contents);
-          return await extractText(fallbackResult);
-        }
-      }
-    } catch (listErr) {
-      console.error("Failed to list or fallback to another model:", listErr);
-    }
-
-    throw err;
-  }
+  return response.choices[0].message.content;
 }
 
 /**
@@ -105,23 +67,109 @@ Remember: Return ONLY the JSON object, no other text or formatting.`;
  * @returns {string} The flowchart prompt
  */
 export function generateFlowchartPrompt(vehicle, issues, responses) {
-  return `You are a vehicle diagnostic expert. Create a troubleshooting flowchart using Mermaid diagram syntax based on the following information. The flowchart should guide a mechanic through the diagnostic process.
+  return `You are a vehicle diagnostic expert working in a shop. Generate a diagnostic flowchart in Mermaid syntax.
 
-IMPORTANT: Follow these Mermaid syntax rules exactly:
-1. Start with "graph TD" (top-down graph)
-2. Each node must have a unique ID using single letters (A, B, C, etc.)
-3. Use these node types with simple text (no special characters or parentheses):
-   - [Simple Action Text] for process nodes
-   - {Simple Question Text} for decision nodes
-   - ([Start]) or ([End]) for terminal nodes
-4. Connect nodes with arrows using -->
-5. Label decision paths using only |Yes| or |No| between arrows
-6. Keep node text short and simple
-7. Do not use parentheses, special characters, or technical part numbers in node text
-8. Each line should follow this format:
-   NodeID[Simple Text] --> NodeID2{Simple Question}
-   NodeID2 -->|Yes| NodeID3[Next Step]
-   NodeID2 -->|No| NodeID4[Alternative Step]
+DIAGNOSTIC INTENT (CRITICAL):
+- The user input represents information that is ALREADY known and verified
+- DO NOT repeat, restate, or create nodes that simply reflect the given symptoms
+- DO NOT build the flowchart around what is already confirmed
+- Instead, CONTINUE the diagnostic process forward from that point
+- Your goal is to identify the ROOT CAUSE, not restate symptoms
+- Every node must introduce NEW diagnostic value: a new test, a new check, or a new possible failure point
+- The flowchart must feel like the NEXT STEPS a technician would take
+
+THINK LIKE A TECHNICIAN:
+- You already know the symptoms — your job is to determine WHY the issue is happening
+- Prioritize: (1) most common failures, (2) fastest verification steps, (3) clear isolation of faulty components
+- Assume you are at the vehicle right now and need to systematically prove the root cause
+
+PROGRESSION RULES:
+- Assume all provided symptoms are already verified
+- Start at the most likely system related to the issue
+- Move from general → specific: system → subsystem → component → failure
+- Each decision must narrow the problem further
+- Avoid shallow checks — prioritize meaningful, component-level diagnostics
+- Include at least 2–3 layers of technical diagnosis (e.g., fuel system → fuel pressure → fuel pump)
+
+INPUT USAGE RESTRICTIONS:
+- DO NOT reuse or paraphrase the user's issue description as a node
+- DO NOT create nodes that restate symptoms
+- DO NOT ask questions already answered by the user responses
+- All nodes after the start must go BEYOND the provided information
+
+START NODE RULE:
+- The start node must be a short, generalized problem label only
+- DO NOT include detailed symptoms or multiple conditions
+GOOD: ([Engine no start])
+BAD: ([Car won't start and makes clicking noise])
+
+NODE TYPES (STRICT):
+1. OVAL ([Text]) → Start or End only
+2. DIAMOND {Text} → Yes/No decision only — exactly 2 outputs labeled |Yes| and |No|
+3. RECTANGLE [Text] → Conclusion only — exactly 1 output leading directly to an end oval, NO Yes/No labels
+   - The rectangle states WHAT is faulty (e.g., [Fuel pressure regulator faulty])
+   - The end oval states the ACTION (e.g., ([Replace fuel pressure regulator]))
+   - There must be EXACTLY ONE rectangle before each end oval — never two rectangles in a row
+
+STRICT STRUCTURAL RULES:
+- No node may have more than 2 outgoing arrows
+- ONLY diamonds use |Yes| and |No| labels — never ovals or rectangles
+- Rectangles ALWAYS connect directly to an end oval as their only next step — NEVER to another rectangle
+- Diamonds NEVER connect directly to an end oval — always go through a rectangle first
+- Every branch MUST terminate at an end oval
+- No loops, no merging branches, no dead ends
+
+DIAMOND NODE RULES (CRITICAL):
+- Every diamond must be a SPECIFIC, TESTABLE measurement or check — something a technician physically performs
+- Both the YES branch and the NO branch must lead to a meaningful diagnostic step
+- YES means the check PASSED — the problem is NOT there, continue diagnosing elsewhere
+- NO means the check FAILED — that system or component is implicated, narrow further
+- NEVER use a diamond to classify or route into a system category (e.g., {Fuel system?} or {Electrical issue?})
+- NEVER phrase a diamond as a symptom restatement (e.g., {Engine cranks?} when cranking was already stated)
+
+GOOD diamond examples — specific, testable, both branches meaningful:
+  {Fuel pressure within spec?}   → Yes: fuel delivery OK, check spark | No: fuel pump or filter issue
+  {Battery voltage above 12.4V?} → Yes: battery OK, check starter | No: battery discharged or faulty
+  {Injector pulse signal present?} → Yes: injectors receiving signal | No: ECU or wiring fault
+
+BAD diamond examples — vague, categorical, or symptom-restating:
+  {Fuel system?}        ← not a test, just a category
+  {Electrical issue?}   ← not a test
+  {Engine won't start?} ← restates the symptom
+
+TEXT STYLE RULES:
+- Max 10 words per node
+- No special characters except ?
+- Short, clinical, technician-level phrasing
+
+MERMAID SYNTAX RULES:
+1. Start with "graph TD"
+2. Use single-letter node IDs (A, B, C...)
+3. Use --> for connections
+4. Each connection on its own line with 4 spaces indentation
+5. No blank lines
+
+EXAMPLE (FOLLOW THIS PATTERN EXACTLY):
+\`\`\`mermaid
+graph TD
+    A([Engine no start]) --> B{Fuel pressure within spec?}
+    B -->|Yes| C{Spark at plugs?}
+    B -->|No| D{Fuel pump runs?}
+    C -->|Yes| E{Injector pulse signal?}
+    C -->|No| F{Coil output OK?}
+    E -->|Yes| G[Injectors are faulty]
+    G --> H([Replace injectors])
+    E -->|No| I[ECU signal loss]
+    I --> J([Inspect ECU wiring])
+    F -->|Yes| K[Spark plugs are faulty]
+    K --> L([Replace spark plugs])
+    F -->|No| M[Ignition coil is faulty]
+    M --> N([Replace ignition coil])
+    D -->|Yes| O[Fuel filter is blocked]
+    O --> P([Replace fuel filter])
+    D -->|No| Q[Fuel pump is faulty]
+    Q --> R([Replace fuel pump])
+\`\`\`
 
 Vehicle Information:
 Year: ${formatField(vehicle.year)}
@@ -133,25 +181,9 @@ Issues: ${formatField(issues)}
 User Responses:
 ${responses.map(r => `Question: ${r.question}\nAnswer: ${r.answer}`).join('\n\n')}
 
-Your response must be a valid Mermaid flowchart code block following this EXACT format:
-
-\`\`\`mermaid
-graph TD
-    A([Start]) --> B{Check Issue}
-    B -->|Yes| C[Next Step]
-    B -->|No| D[Alternative]
-\`\`\`
-
-CRITICAL FORMATTING RULES:
-1. "graph TD" must be on its own line
-2. Each node definition and connection must be on a new line
-3. Each line (except "graph TD") must start with 4 spaces
-4. No blank lines between nodes
-5. Each node connection must be a complete statement (e.g., "A --> B")
-6. Use consistent indentation
-7. No extra spaces in node definitions
-
-Return ONLY the mermaid code block with your diagnostic flowchart, no other text or explanations.`;
+FINAL INSTRUCTION:
+Generate a forward-progressing diagnostic flowchart that continues beyond the known symptoms and leads to specific root causes.
+Return ONLY the mermaid code block. No explanations, no comments, no extra text.`;
 }
 
 function formatField(val, placeholder = "None") {
