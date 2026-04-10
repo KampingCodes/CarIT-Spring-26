@@ -553,7 +553,10 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   position: relative; }
   @media (max-width: 991.98px) {
     .untree_co-section {
-      padding: 50px 0; } }
+      padding: 70px 0 50px 0; } }
+  @media (max-width: 767.98px) {
+    .untree_co-section {
+      padding: 90px 0 40px 0; } }
   .untree_co-section .heading {
     font-size: 38px;
     color: #000000; }
@@ -1028,7 +1031,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
       .site-footer .social li a:hover {
         background: #739eff;
         color: #ffffff; }
-        
+
 /* Extra small devices (phones, 576px and down) */
 @media (max-width: 575.98px) {
   /* General Typography */
@@ -1091,7 +1094,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   
   /* Hero Section */
   .untree_co-home, .untree_co-home > .container > .row {
-    padding: 2rem 0 0 0;
+    padding: 3.5rem 0 0 0;
     min-height: calc(100vh - 60px); }
   
   .untree_co-home .heading {
@@ -1108,7 +1111,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
   
   /* Sections */
   .untree_co-section {
-    padding: 30px 0; }
+    padding: 80px 0 30px 0; }
   
   .untree_co-section .heading {
     font-size: 22px; }
@@ -1196,6 +1199,9 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
 
 /* Small devices (tablets, 576px to 768px) */
 @media (min-width: 576px) and (max-width: 767.98px) {
+  .untree_co-home, .untree_co-home > .container > .row {
+    padding: 6rem 0 0 0; }
+  
   .untree_co-home .heading {
     font-size: 38px; }
   
@@ -1219,6 +1225,9 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
 
 /* Medium devices and up - Landscape phones (768px to 991px) */
 @media (min-width: 768px) and (max-width: 991.98px) {
+  .untree_co-home, .untree_co-home > .container > .row {
+    padding: 5rem 0 0 0; }
+  
   .untree_co-home .heading {
     font-size: 45px; }
   
