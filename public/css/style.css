@@ -509,7 +509,7 @@ h1, .h1, h2, .h2, h3, .h3, h4, .h4 {
 
 .untree_co-home, .untree_co-home > .container > .row {
   /* keep top padding only; remove bottom padding so content won't push page height */
-  padding: 4rem 0 0 0;
+  padding: 3.5rem 0 0 0;
   /* make home occupy viewport height (subtract header height if needed).
     Adjust the 80px value if your header is a different height. */
   min-height: calc(100vh - 80px);
