@@ -5,6 +5,7 @@ import 'primeicons/primeicons.css';
 
 import { themeColor, siteName } from '../items';
 import { authState, login, logout } from '../auth.js';
+import DarkModeToggle from './DarkModeToggle.vue';
 
 const route = useRoute();
 
@@ -140,6 +141,9 @@ onBeforeUnmount(() => {
         </ul>
 
         <ul class="d-none d-lg-inline-block site-menu nav-actions">
+          <li class="nav-toggle-item">
+            <DarkModeToggle />
+          </li>
           <li v-if="!isLoggedIn" class="cta-primary">
             <a @click="handleLogin" :style="[{ backgroundColor: themeColor, cursor: 'pointer' }]">Login / Sign Up</a>
           </li>
@@ -194,6 +198,8 @@ onBeforeUnmount(() => {
       </ul>
 
       <div class="mobile-nav-actions">
+        <DarkModeToggle class="mobile-theme-toggle" />
+
         <a
           v-if="!isLoggedIn"
           class="mobile-action mobile-action-primary"
@@ -253,6 +259,12 @@ onBeforeUnmount(() => {
 .nav-links,
 .nav-actions {
   padding-left: 0;
+}
+
+.nav-toggle-item {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 10px;
 }
 
 .nav-action-spacing {
@@ -397,6 +409,10 @@ onBeforeUnmount(() => {
 .mobile-nav-slide-leave-to {
   opacity: 0;
   transform: translateX(24px);
+}
+
+.mobile-theme-toggle {
+  align-self: flex-start;
 }
 
 @media (max-width: 991.98px) {
