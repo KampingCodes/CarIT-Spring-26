@@ -121,7 +121,6 @@ function getRequestUserId(req) {
     res.send('Server is running!');
   });
 
-
   app.post('/api/create-user', validateAuth, async (req, res) => {
     try {
       const userId = getRequestUserId(req);
