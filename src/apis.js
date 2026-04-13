@@ -1,6 +1,8 @@
 import { getToken } from './auth.js';
 import axios from 'axios'
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 async function buildHeaders() {
   const token = await getToken();
   const headers = {};
@@ -13,7 +15,7 @@ async function buildHeaders() {
 }
 
 async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE}/api/${endpoint}`;
   const config = { headers: await buildHeaders() };
   if (params) config.params = params;
   try {
@@ -25,7 +27,7 @@ async function serverGet(endpoint, params) {
 }
 
 async function serverPost(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE}/api/${endpoint}`;
   try {
     const response = await axios.post(url, data, { headers: await buildHeaders() });
     return response.data;
