@@ -37,7 +37,7 @@ async function serverPost(endpoint, data) {
 }
 
 async function serverPatch(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.patch(url, data, { headers: await buildHeaders() });
     return response.data;
@@ -47,7 +47,7 @@ async function serverPatch(endpoint, data) {
 }
 
 async function serverDelete(endpoint) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.delete(url, { headers: await buildHeaders() });
     return response.data;

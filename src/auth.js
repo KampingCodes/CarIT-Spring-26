@@ -96,9 +96,10 @@ async function createUser() {
   const token = await getToken(true);
   if (!token) return;
   
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   try {
     const res = await axios.post(
-      'http://localhost:3000/api/create-user',
+      `${apiBase}/api/create-user`,
       {},
       { headers: { authorization: `Bearer ${token}` }, timeout: 3000 },
     );
