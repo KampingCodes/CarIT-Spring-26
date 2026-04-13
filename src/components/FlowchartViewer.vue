@@ -1,6 +1,6 @@
 <script setup>
 import Panzoom from '@panzoom/panzoom';
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
   svg: {
@@ -9,7 +9,7 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'Flowchart'
+    default: ''
   },
   embeddedHeight: {
     type: String,
@@ -23,734 +23,880 @@ const props = defineProps({
 
 const emit = defineEmits(['node-activate']);
 
+const inlineViewportRef = ref(null);
+const inlineStageRef = ref(null);
+const fullscreenViewportRef = ref(null);
+const fullscreenStageRef = ref(null);
+
 const isFullscreen = ref(false);
-const inlineViewport = ref(null);
-const inlineStage = ref(null);
-const fullscreenViewport = ref(null);
-const fullscreenStage = ref(null);
+const bodyOverflow = ref('');
+const bodyOverflowX = ref('');
+const bodyOverflowY = ref('');
+const htmlOverflow = ref('');
+const htmlOverflowX = ref('');
+const htmlOverflowY = ref('');
 
-const MIN_SCALE = 0.15;
-const MAX_SCALE = 6;
-const BUTTON_ZOOM_STEP = 0.28;
-// Start/reset transform values.
-// Manual tuning:
-// - Increase scale to start more zoomed in; decrease it to start more zoomed out.
-// - Move right: increase X. Move left: decrease X.
-// - Move down: increase Y. Move up: decrease Y.
-const INLINE_START_SCALE = 0.327529;
-const FULLSCREEN_START_SCALE = 0.327529;
-const INLINE_START_X = -1924.42;
-const FULLSCREEN_START_X = -1924.42;
-const INLINE_START_Y = -2657.18;
-const FULLSCREEN_START_Y = -2657.18;
+const hasSvg = computed(() => typeof props.svg === 'string' && props.svg.trim().length > 0);
+const dotsPatternUrl = `${import.meta.env.BASE_URL}dots.png`;
+const viewerThemeStyle = computed(() => ({
+  '--flowchart-dots-image': `url(${dotsPatternUrl})`,
+  '--flowchart-color-text-primary': 'var(--color-text-primary, #0d0d14)',
+  '--flowchart-color-text-secondary': 'var(--color-text-secondary, #3c3c50)',
+  '--flowchart-color-background-primary': 'var(--color-surface, #ffffff)',
+  '--flowchart-color-background-secondary': 'var(--color-diagram-surface, #f8f9fa)',
+  '--flowchart-color-background-secondary-hover': 'var(--color-surface-raised, #f0f2f6)',
+  '--flowchart-color-border-tertiary': 'var(--color-border, #e2e4ec)',
+  '--flowchart-color-border-diagram': 'var(--color-diagram-border, #e9ecef)',
+  '--flowchart-color-accent': 'var(--color-brand, #407BFF)',
+  '--flowchart-color-accent-hover': 'var(--color-brand-hover, #5489ff)',
+  '--flowchart-color-accent-contrast': '#ffffff',
+  '--flowchart-shadow': 'var(--color-card-shadow, rgba(0, 0, 0, 0.08))',
+  '--flowchart-overlay': 'rgba(15, 23, 42, 0.7)'
+}));
+const defaultFitPadding = 32;
+const defaultFitScaleFactor = 1.12;
+const minZoomScale = 0.1;
+const maxZoomScale = 6;
+const wheelZoomSensitivity = 0.0035;
+const wheelZoomDeltaLimit = 160;
+const stageViewportOverscan = 1.5;
 
-const contexts = {
-  inline: {
-    instance: null,
-    wheelHandler: null,
-    pointerDownHandler: null,
-    pointerUpHandler: null,
-    clickHandler: null,
-    keydownHandler: null,
-    windowBlurHandler: null,
-    resetFrame: null,
-    viewport: inlineViewport,
-    stage: inlineStage
-  },
-  fullscreen: {
-    instance: null,
-    wheelHandler: null,
-    pointerDownHandler: null,
-    pointerUpHandler: null,
-    clickHandler: null,
-    keydownHandler: null,
-    windowBlurHandler: null,
-    resetFrame: null,
-    viewport: fullscreenViewport,
-    stage: fullscreenStage
-  }
-};
-
-const hasSvg = computed(() => Boolean(props.svg));
-
-const getContext = (mode) => contexts[mode];
-
-const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-
-const getContentMetrics = (stageElement) => {
-  const fallbackMetrics = {
-    x: 0,
-    y: 0,
-    width: stageElement?.scrollWidth || stageElement?.clientWidth || 1,
-    height: stageElement?.scrollHeight || stageElement?.clientHeight || 1
+function createViewerContext(name, viewportRef, stageRef) {
+  return {
+    name,
+    viewportRef,
+    stageRef,
+    panzoom: null,
+    svgElement: null,
+    contentLayout: null,
+    cleanup: [],
+    rafIds: [],
+    lastPointerClientPoint: null
   };
+}
 
-  const svgElement = stageElement?.querySelector('svg');
+const inlineContext = createViewerContext('inline', inlineViewportRef, inlineStageRef);
+const fullscreenContext = createViewerContext('fullscreen', fullscreenViewportRef, fullscreenStageRef);
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function removeCleanup(context) {
+  while (context.cleanup.length) {
+    const cleanup = context.cleanup.pop();
+    try {
+      cleanup?.();
+    } catch {
+      // noop
+    }
+  }
+}
+
+function cancelPendingFrames(context) {
+  context.rafIds.forEach((frameId) => cancelAnimationFrame(frameId));
+  context.rafIds = [];
+}
+
+function destroyPanzoom(context) {
+  if (context.panzoom) {
+    context.panzoom.destroy();
+    context.panzoom = null;
+  }
+}
+
+function resetContext(context) {
+  cancelPendingFrames(context);
+  removeCleanup(context);
+  destroyPanzoom(context);
+  context.svgElement = null;
+  context.contentLayout = null;
+  context.lastPointerClientPoint = null;
+
+  const viewport = context.viewportRef.value;
+  if (viewport) {
+    viewport.classList.remove('is-dragging');
+  }
+
+  const stage = context.stageRef.value;
+  if (stage) {
+    stage.innerHTML = '';
+    stage.style.width = '0px';
+    stage.style.height = '0px';
+  }
+}
+
+function getContextBounds(svgElement) {
   const viewBox = svgElement?.viewBox?.baseVal;
-
-  if (viewBox?.width && viewBox?.height) {
+  if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
     return {
-      x: viewBox.x || 0,
-      y: viewBox.y || 0,
+      x: viewBox.x,
+      y: viewBox.y,
       width: viewBox.width,
       height: viewBox.height
     };
   }
 
-  if (svgElement?.getBBox) {
-    try {
-      const box = svgElement.getBBox();
-      if (box.width && box.height) {
-        return {
-          x: box.x || 0,
-          y: box.y || 0,
-          width: box.width,
-          height: box.height
-        };
-      }
-    } catch {
-      return fallbackMetrics;
+  try {
+    const box = svgElement?.getBBox?.();
+    if (box && box.width > 0 && box.height > 0) {
+      return {
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height
+      };
     }
+  } catch {
+    // getBBox can fail before layout is ready
   }
 
-  return fallbackMetrics;
-};
+  const width = Number.parseFloat(svgElement?.getAttribute('width') || '0');
+  const height = Number.parseFloat(svgElement?.getAttribute('height') || '0');
 
-const prepareSvg = (stageElement) => {
-  const svgElement = stageElement?.querySelector('svg');
-
-  if (!stageElement || !svgElement) {
-    return null;
+  if (width > 0 && height > 0) {
+    return {
+      x: 0,
+      y: 0,
+      width,
+      height
+    };
   }
 
-  const metrics = getContentMetrics(stageElement);
-  const safeWidth = Math.max(metrics.width, 1);
-  const safeHeight = Math.max(metrics.height, 1);
+  return null;
+}
 
-  stageElement.style.width = `${safeWidth}px`;
-  stageElement.style.height = `${safeHeight}px`;
-  svgElement.style.display = 'block';
-  svgElement.style.width = `${safeWidth}px`;
-  svgElement.style.height = `${safeHeight}px`;
-  svgElement.style.maxWidth = 'none';
-  svgElement.style.maxHeight = 'none';
+function getNodeLabel(nodeElement) {
+  const labelElement = nodeElement.querySelector('.nodeLabel, .label, text');
+  const label = labelElement?.textContent?.replace(/\s+/g, ' ').trim();
+  return label || 'Flowchart node';
+}
 
-  return {
-    ...metrics,
-    width: safeWidth,
-    height: safeHeight
-  };
-};
+function emitNodeActivation(nodeElement) {
+  const rawId = (nodeElement.getAttribute('id') || nodeElement.dataset.id || '').trim();
+  const label = getNodeLabel(nodeElement);
+  const nodeId = (nodeElement.dataset.id || rawId || label).trim();
 
-const fitDiagram = (mode, allowShrink = true) => {
-  const context = getContext(mode);
-  const viewportElement = context.viewport.value;
-  const stageElement = context.stage.value;
-  const instance = context.instance;
-
-  if (!viewportElement || !stageElement || !instance) {
-    return;
-  }
-
-  const padding = mode === 'fullscreen' ? 48 : 32;
-  const viewportWidth = Math.max(viewportElement.clientWidth - padding, 1);
-  const viewportHeight = Math.max(viewportElement.clientHeight - padding, 1);
-  const metrics = prepareSvg(stageElement) || getContentMetrics(stageElement);
-  const { x: contentX, y: contentY, width, height } = metrics;
-
-  const fitScale = Math.min(viewportWidth / width, viewportHeight / height);
-  const nextScale = allowShrink ? fitScale : Math.max(fitScale, 1);
-  const safeScale = Number.isFinite(nextScale) && nextScale > 0 ? nextScale : 1;
-  const scale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, safeScale));
-  const targetWidth = width * scale;
-  const targetHeight = height * scale;
-  const x = (viewportElement.clientWidth - targetWidth) / 2 - (contentX * scale);
-  const y = (viewportElement.clientHeight - targetHeight) / 2 - (contentY * scale);
-
-  instance.zoom(scale, { animate: false, force: true });
-  instance.pan(x, y, { animate: false, force: true });
-};
-
-const resetToStart = (mode) => {
-  const context = getContext(mode);
-  const viewportElement = context.viewport.value;
-  const stageElement = context.stage.value;
-  const instance = context.instance;
-
-  if (!viewportElement || !stageElement || !instance) {
-    return;
-  }
-
-  const metrics = prepareSvg(stageElement) || getContentMetrics(stageElement);
-  const scale = clamp(
-    mode === 'fullscreen' ? FULLSCREEN_START_SCALE : INLINE_START_SCALE,
-    MIN_SCALE,
-    MAX_SCALE
-  );
-  const x = mode === 'fullscreen' ? FULLSCREEN_START_X : INLINE_START_X;
-  const y = mode === 'fullscreen' ? FULLSCREEN_START_Y : INLINE_START_Y;
-
-  instance.zoom(scale, { animate: false, force: true });
-  instance.pan(
-    x,
-    y,
-    { animate: false, force: true }
-  );
-};
-
-const scheduleResetToStart = (mode) => {
-  const context = getContext(mode);
-
-  if (context.resetFrame) {
-    cancelAnimationFrame(context.resetFrame);
-  }
-
-  context.resetFrame = requestAnimationFrame(() => {
-    context.resetFrame = requestAnimationFrame(() => {
-      context.resetFrame = null;
-      resetToStart(mode);
-    });
+  emit('node-activate', {
+    nodeId,
+    label,
+    rawId
   });
-};
+}
 
-const getViewportCenterPoint = (viewportElement) => {
-  const rect = viewportElement?.getBoundingClientRect();
-
-  if (!rect) {
-    return null;
-  }
-
-  return {
-    clientX: rect.left + rect.width / 2,
-    clientY: rect.top + rect.height / 2
-  };
-};
-
-const zoomAtViewportCenter = (direction) => {
-  const mode = isFullscreen.value ? 'fullscreen' : 'inline';
-  const context = getContext(mode);
-  const instance = context.instance;
-  const viewportElement = context.viewport.value;
-
-  if (!instance || !viewportElement) {
+function enhanceNodes(context) {
+  const stage = context.stageRef.value;
+  if (!stage) {
     return;
   }
 
-  const centerPoint = getViewportCenterPoint(viewportElement);
-
-  if (!centerPoint) {
-    return;
-  }
-
-  const scale = instance.getScale();
-  const nextScale = scale * Math.exp(direction * BUTTON_ZOOM_STEP);
-
-  instance.zoomToPoint(nextScale, centerPoint, { animate: true });
-};
-
-const zoomIn = () => {
-  zoomAtViewportCenter(1);
-};
-
-const zoomOut = () => {
-  zoomAtViewportCenter(-1);
-};
-
-const resetView = () => {
-  resetToStart(isFullscreen.value ? 'fullscreen' : 'inline');
-};
-
-const destroyPanzoom = (mode) => {
-  const context = getContext(mode);
-  const viewportElement = context.viewport.value;
-  const stageElement = context.stage.value;
-
-  if (viewportElement && context.wheelHandler) {
-    viewportElement.removeEventListener('wheel', context.wheelHandler);
-  }
-
-  if (viewportElement && context.pointerDownHandler) {
-    viewportElement.removeEventListener('pointerdown', context.pointerDownHandler);
-  }
-
-  if (viewportElement && context.pointerUpHandler) {
-    viewportElement.removeEventListener('pointerup', context.pointerUpHandler);
-    viewportElement.removeEventListener('pointercancel', context.pointerUpHandler);
-  }
-
-  if (stageElement && context.clickHandler) {
-    stageElement.removeEventListener('click', context.clickHandler);
-  }
-
-  if (stageElement && context.keydownHandler) {
-    stageElement.removeEventListener('keydown', context.keydownHandler);
-  }
-
-  if (context.pointerUpHandler) {
-    window.removeEventListener('pointerup', context.pointerUpHandler);
-  }
-
-  if (context.windowBlurHandler) {
-    window.removeEventListener('blur', context.windowBlurHandler);
-  }
-
-  context.instance?.destroy();
-  context.instance = null;
-  context.wheelHandler = null;
-  context.pointerDownHandler = null;
-  context.pointerUpHandler = null;
-  context.clickHandler = null;
-  context.keydownHandler = null;
-  context.windowBlurHandler = null;
-
-  if (context.resetFrame) {
-    cancelAnimationFrame(context.resetFrame);
-    context.resetFrame = null;
-  }
-};
-
-const initPanzoom = async (mode) => {
-  const context = getContext(mode);
-  const viewportElement = context.viewport.value;
-  const stageElement = context.stage.value;
-
-  destroyPanzoom(mode);
-
-  if (!props.svg || !viewportElement || !stageElement) {
-    return;
-  }
-
-  await nextTick();
-
-  if (!stageElement.querySelector('svg')) {
-    return;
-  }
-
-  prepareSvg(stageElement);
-  enableInteractiveNodes(stageElement);
-
-  context.instance = Panzoom(stageElement, {
-    minScale: MIN_SCALE,
-    maxScale: MAX_SCALE,
-    step: 0.2,
-    animate: true,
-    canvas: true,
-    pinchAndPan: true,
-    touchAction: 'none'
-  });
-
-  context.wheelHandler = (event) => {
-    event.preventDefault();
-    context.instance?.zoomWithWheel(event);
-  };
-
-  context.pointerDownHandler = (event) => {
-    if (event.button !== undefined && event.button !== 0) {
-      return;
-    }
-
-    viewportElement.classList.add('is-dragging');
-  };
-
-  context.pointerUpHandler = () => {
-    viewportElement.classList.remove('is-dragging');
-  };
-
-  context.windowBlurHandler = () => {
-    viewportElement.classList.remove('is-dragging');
-  };
-
-  viewportElement.addEventListener('wheel', context.wheelHandler, { passive: false });
-  viewportElement.addEventListener('pointerdown', context.pointerDownHandler);
-  viewportElement.addEventListener('pointerup', context.pointerUpHandler);
-  viewportElement.addEventListener('pointercancel', context.pointerUpHandler);
-  window.addEventListener('pointerup', context.pointerUpHandler);
-  window.addEventListener('blur', context.windowBlurHandler);
-
-  context.clickHandler = (event) => {
-    const nodeElement = event.target?.closest?.('.node');
-    if (!nodeElement || !stageElement.contains(nodeElement)) {
-      return;
-    }
-
-    emitNodeActivation(nodeElement);
-  };
-
-  context.keydownHandler = (event) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
-    const nodeElement = event.target?.closest?.('.node');
-    if (!nodeElement || !stageElement.contains(nodeElement)) {
-      return;
-    }
-
-    event.preventDefault();
-    emitNodeActivation(nodeElement);
-  };
-
-  stageElement.addEventListener('click', context.clickHandler);
-  stageElement.addEventListener('keydown', context.keydownHandler);
-
-  resetToStart(mode);
-  scheduleResetToStart(mode);
-};
-
-const enableInteractiveNodes = (stageElement) => {
-  const nodeElements = stageElement?.querySelectorAll?.('.node') || [];
-
-  nodeElements.forEach((nodeElement) => {
+  const nodes = Array.from(stage.querySelectorAll('.node'));
+  nodes.forEach((nodeElement) => {
+    const label = getNodeLabel(nodeElement);
     nodeElement.setAttribute('tabindex', '0');
     nodeElement.setAttribute('role', 'button');
+    nodeElement.setAttribute('aria-label', label);
     nodeElement.classList.add('flowchart-node--interactive');
-    const label = getNodeLabel(nodeElement);
-    nodeElement.setAttribute('aria-label', label ? `Enhance context for ${label}` : 'Enhance context for flowchart node');
+
+    const onClick = () => emitNodeActivation(nodeElement);
+    const onFocus = () => emitNodeActivation(nodeElement);
+    const onKeydown = (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        emitNodeActivation(nodeElement);
+      }
+    };
+
+    nodeElement.addEventListener('click', onClick);
+    nodeElement.addEventListener('focus', onFocus);
+    nodeElement.addEventListener('keydown', onKeydown);
+
+    context.cleanup.push(() => {
+      nodeElement.removeEventListener('click', onClick);
+      nodeElement.removeEventListener('focus', onFocus);
+      nodeElement.removeEventListener('keydown', onKeydown);
+    });
   });
-};
+}
 
-const emitNodeActivation = (nodeElement) => {
-  const nodeId = nodeElement.getAttribute('id') || '';
-  const label = getNodeLabel(nodeElement);
-  emit('node-activate', { nodeId, label, rawId: nodeId });
-};
+function setExplicitDimensions(context, bounds) {
+  const stage = context.stageRef.value;
+  const viewport = context.viewportRef.value;
+  const svgElement = context.svgElement;
+  if (!stage || !viewport || !svgElement || !bounds) {
+    return;
+  }
 
-const getNodeLabel = (nodeElement) => {
-  const labelElement = nodeElement.querySelector('.nodeLabel, .label, text');
-  return labelElement?.textContent?.replace(/\s+/g, ' ').trim() || '';
-};
+  const contentWidth = Math.max(bounds.width, 1);
+  const contentHeight = Math.max(bounds.height, 1);
+  const stageWidth = Math.max(
+    contentWidth + viewport.clientWidth * stageViewportOverscan * 2,
+    viewport.clientWidth * (1 + stageViewportOverscan * 2),
+    contentWidth
+  );
+  const stageHeight = Math.max(
+    contentHeight + viewport.clientHeight * stageViewportOverscan * 2,
+    viewport.clientHeight * (1 + stageViewportOverscan * 2),
+    contentHeight
+  );
+  const contentOffsetX = (stageWidth - contentWidth) / 2;
+  const contentOffsetY = (stageHeight - contentHeight) / 2;
 
-const openFullscreen = async () => {
-  if (!props.fullscreenEnabled || !props.svg) {
+  context.contentLayout = {
+    contentWidth,
+    contentHeight,
+    contentOffsetX,
+    contentOffsetY,
+    stageWidth,
+    stageHeight
+  };
+
+  stage.style.width = `${stageWidth}px`;
+  stage.style.height = `${stageHeight}px`;
+
+  if (!svgElement.viewBox?.baseVal?.width || !svgElement.viewBox?.baseVal?.height) {
+    svgElement.setAttribute('viewBox', `${bounds.x} ${bounds.y} ${contentWidth} ${contentHeight}`);
+  }
+
+  svgElement.setAttribute('width', `${contentWidth}`);
+  svgElement.setAttribute('height', `${contentHeight}`);
+  svgElement.style.width = `${contentWidth}px`;
+  svgElement.style.height = `${contentHeight}px`;
+  svgElement.style.position = 'absolute';
+  svgElement.style.left = `${contentOffsetX}px`;
+  svgElement.style.top = `${contentOffsetY}px`;
+  svgElement.style.display = 'block';
+  svgElement.style.overflow = 'visible';
+}
+
+function bindPanzoom(context) {
+  const viewport = context.viewportRef.value;
+  const stage = context.stageRef.value;
+  if (!viewport || !stage) {
+    return;
+  }
+
+  context.panzoom = Panzoom(stage, {
+    minScale: minZoomScale,
+    maxScale: maxZoomScale,
+    origin: '0 0',
+    canvas: true
+  });
+
+  const onWheel = (event) => {
+    event.preventDefault();
+    context.lastPointerClientPoint = {
+      clientX: event.clientX,
+      clientY: event.clientY
+    };
+
+    const currentScale = context.panzoom?.getScale?.();
+    if (!currentScale) {
+      return;
+    }
+
+    const deltaScale = event.deltaMode === 1
+      ? event.deltaY * 16
+      : event.deltaMode === 2
+        ? event.deltaY * viewport.clientHeight
+        : event.deltaY;
+
+    const limitedDelta = clamp(deltaScale, -wheelZoomDeltaLimit, wheelZoomDeltaLimit);
+    const nextScale = clamp(
+      currentScale * Math.exp(-limitedDelta * wheelZoomSensitivity),
+      minZoomScale,
+      maxZoomScale
+    );
+
+    const focal = getFocalPoint(context, context.lastPointerClientPoint);
+    context.panzoom?.zoom(nextScale, { animate: false, force: true, focal });
+  };
+
+  const onPointerMove = (event) => {
+    context.lastPointerClientPoint = {
+      clientX: event.clientX,
+      clientY: event.clientY
+    };
+  };
+
+  const onPointerLeave = () => {
+    context.lastPointerClientPoint = null;
+  };
+
+  const onPointerDown = (event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    context.lastPointerClientPoint = {
+      clientX: event.clientX,
+      clientY: event.clientY
+    };
+    viewport.classList.add('is-dragging');
+  };
+
+  const onPointerUp = () => {
+    viewport.classList.remove('is-dragging');
+  };
+
+  viewport.addEventListener('wheel', onWheel, { passive: false });
+  viewport.addEventListener('pointermove', onPointerMove);
+  viewport.addEventListener('pointerleave', onPointerLeave);
+  viewport.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+
+  context.cleanup.push(() => viewport.removeEventListener('wheel', onWheel));
+  context.cleanup.push(() => viewport.removeEventListener('pointermove', onPointerMove));
+  context.cleanup.push(() => viewport.removeEventListener('pointerleave', onPointerLeave));
+  context.cleanup.push(() => viewport.removeEventListener('pointerdown', onPointerDown));
+  context.cleanup.push(() => window.removeEventListener('pointerup', onPointerUp));
+  context.cleanup.push(() => window.removeEventListener('pointercancel', onPointerUp));
+}
+
+function fitDiagram(context, padding = defaultFitPadding) {
+  const viewport = context.viewportRef.value;
+  const stage = context.stageRef.value;
+  const svgElement = context.svgElement || stage?.querySelector('svg');
+
+  if (!viewport || !stage || !svgElement || !context.panzoom) {
+    return false;
+  }
+
+  const viewportWidth = viewport.clientWidth;
+  const viewportHeight = viewport.clientHeight;
+  if (viewportWidth <= 0 || viewportHeight <= 0) {
+    return false;
+  }
+
+  const bounds = getContextBounds(svgElement);
+  if (!bounds) {
+    return false;
+  }
+
+  context.svgElement = svgElement;
+  setExplicitDimensions(context, bounds);
+
+  const contentLayout = context.contentLayout;
+  const contentWidth = contentLayout?.contentWidth || bounds.width;
+  const contentHeight = contentLayout?.contentHeight || bounds.height;
+  const contentOffsetX = contentLayout?.contentOffsetX || 0;
+  const contentOffsetY = contentLayout?.contentOffsetY || 0;
+
+  const fitScale = Math.min(
+    Math.max(viewportWidth - padding, 1) / contentWidth,
+    Math.max(viewportHeight - padding, 1) / contentHeight
+  );
+
+  const scale = clamp(
+    fitScale * defaultFitScaleFactor,
+    minZoomScale,
+    maxZoomScale
+  );
+
+  const desiredLeft = (viewportWidth - contentWidth * scale) / 2;
+  const desiredTop = (viewportHeight - contentHeight * scale) / 2;
+  const x = desiredLeft / scale - contentOffsetX;
+  const y = desiredTop / scale - contentOffsetY;
+
+  context.panzoom.zoom(scale, { animate: false, force: true });
+  context.panzoom.pan(x, y, { animate: false, force: true });
+  return true;
+}
+
+function scheduleFit(context) {
+  cancelPendingFrames(context);
+
+  const frameOne = requestAnimationFrame(() => {
+    const frameTwo = requestAnimationFrame(() => {
+      context.rafIds = context.rafIds.filter((frameId) => frameId !== frameTwo);
+      fitDiagram(context);
+    });
+
+    context.rafIds = context.rafIds.filter((frameId) => frameId !== frameOne);
+    context.rafIds.push(frameTwo);
+  });
+
+  context.rafIds.push(frameOne);
+}
+
+function mountSvgIntoContext(context) {
+  const stage = context.stageRef.value;
+  if (!stage) {
+    return;
+  }
+
+  resetContext(context);
+
+  if (!hasSvg.value) {
+    return;
+  }
+
+  stage.innerHTML = props.svg;
+  const svgElement = stage.querySelector('svg');
+  if (!svgElement) {
+    stage.innerHTML = '';
+    return;
+  }
+
+  context.svgElement = svgElement;
+  svgElement.setAttribute('preserveAspectRatio', svgElement.getAttribute('preserveAspectRatio') || 'xMidYMid meet');
+  svgElement.setAttribute('focusable', 'false');
+  svgElement.setAttribute('aria-hidden', 'false');
+
+  const bounds = getContextBounds(svgElement);
+  if (bounds) {
+    setExplicitDimensions(context, bounds);
+  }
+
+  enhanceNodes(context);
+  bindPanzoom(context);
+  scheduleFit(context);
+}
+
+async function rebuildContext(context) {
+  await nextTick();
+  mountSvgIntoContext(context);
+}
+
+function getFocalPoint(context, clientPoint) {
+  const viewport = context.viewportRef.value;
+  const rect = viewport?.getBoundingClientRect?.();
+
+  if (!rect) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: clamp(clientPoint.clientX - rect.left, 0, rect.width),
+    y: clamp(clientPoint.clientY - rect.top, 0, rect.height)
+  };
+}
+
+function resetView(context) {
+  fitDiagram(context);
+}
+
+function lockBodyScroll() {
+  bodyOverflow.value = document.body.style.overflow;
+  bodyOverflowX.value = document.body.style.overflowX;
+  bodyOverflowY.value = document.body.style.overflowY;
+  htmlOverflow.value = document.documentElement.style.overflow;
+  htmlOverflowX.value = document.documentElement.style.overflowX;
+  htmlOverflowY.value = document.documentElement.style.overflowY;
+
+  document.body.style.overflow = 'hidden';
+  document.body.style.overflowX = 'hidden';
+  document.body.style.overflowY = 'hidden';
+  document.documentElement.style.overflow = 'hidden';
+  document.documentElement.style.overflowX = 'hidden';
+  document.documentElement.style.overflowY = 'hidden';
+}
+
+function restoreBodyScroll() {
+  document.body.style.overflow = bodyOverflow.value;
+  document.body.style.overflowX = bodyOverflowX.value;
+  document.body.style.overflowY = bodyOverflowY.value;
+  document.documentElement.style.overflow = htmlOverflow.value;
+  document.documentElement.style.overflowX = htmlOverflowX.value;
+  document.documentElement.style.overflowY = htmlOverflowY.value;
+}
+
+function closeFullscreen() {
+  isFullscreen.value = false;
+}
+
+async function openFullscreen() {
+  if (!props.fullscreenEnabled || !hasSvg.value || isFullscreen.value) {
     return;
   }
 
   isFullscreen.value = true;
-  document.body.style.overflow = 'hidden';
-  await nextTick();
-  initPanzoom('fullscreen');
-};
+}
 
-const closeFullscreen = () => {
-  isFullscreen.value = false;
-  document.body.style.overflow = '';
-  destroyPanzoom('fullscreen');
-};
+function handleOverlayClick() {
+  closeFullscreen();
+}
+
+function handleWindowResize() {
+  if (inlineContext.panzoom) {
+    scheduleFit(inlineContext);
+  }
+
+  if (isFullscreen.value && fullscreenContext.panzoom) {
+    scheduleFit(fullscreenContext);
+  }
+}
+
+function handleWindowKeydown(event) {
+  if (event.key === 'Escape' && isFullscreen.value) {
+    closeFullscreen();
+  }
+}
 
 watch(
   () => props.svg,
   async () => {
-    await nextTick();
-    initPanzoom('inline');
+    await rebuildContext(inlineContext);
     if (isFullscreen.value) {
-      initPanzoom('fullscreen');
+      await rebuildContext(fullscreenContext);
     }
   },
-  { immediate: true }
+  { flush: 'post' }
 );
 
-watch(isFullscreen, async (value) => {
-  if (!value) {
-    return;
-  }
+watch(
+  () => isFullscreen.value,
+  async (open) => {
+    if (open) {
+      lockBodyScroll();
+      await rebuildContext(fullscreenContext);
+      return;
+    }
 
-  await nextTick();
-  initPanzoom('fullscreen');
+    resetContext(fullscreenContext);
+    restoreBodyScroll();
+  },
+  { flush: 'post' }
+);
+
+onMounted(async () => {
+  window.addEventListener('resize', handleWindowResize);
+  window.addEventListener('keydown', handleWindowKeydown);
+  await rebuildContext(inlineContext);
 });
 
 onBeforeUnmount(() => {
-  destroyPanzoom('inline');
-  destroyPanzoom('fullscreen');
-  document.body.style.overflow = '';
+  window.removeEventListener('resize', handleWindowResize);
+  window.removeEventListener('keydown', handleWindowKeydown);
+  resetContext(inlineContext);
+  resetContext(fullscreenContext);
+  restoreBodyScroll();
 });
 </script>
 
 <template>
-  <div class="flowchart-viewer">
-    <div class="flowchart-viewer__toolbar">
-      <div class="flowchart-viewer__hint">
-        <span>Drag to pan</span>
-        <span> - </span>
-        <span>Scroll or pinch to zoom</span>
-      </div>
-      <div class="flowchart-viewer__actions">
-        <button type="button" class="viewer-btn" @click="zoomOut" :disabled="!hasSvg">−</button>
-        <button type="button" class="viewer-btn" @click="zoomIn" :disabled="!hasSvg">+</button>
-        <button type="button" class="viewer-btn" @click="resetView" :disabled="!hasSvg">Reset</button>
+  <div class="flowchart-viewer" :style="viewerThemeStyle">
+    <div class="flowchart-toolbar" aria-label="Flowchart controls">
+      <p class="flowchart-toolbar-hint">Drag to pan · Scroll to zoom</p>
+      <div class="flowchart-toolbar-actions">
+        <button
+          type="button"
+          class="flowchart-toolbar-button"
+          :disabled="!hasSvg"
+          @click="resetView(inlineContext)"
+        >
+          <span class="flowchart-toolbar-button-icon pi pi-refresh" aria-hidden="true"></span>
+          <span>Reset</span>
+        </button>
         <button
           v-if="fullscreenEnabled"
           type="button"
-          class="viewer-btn viewer-btn--primary"
-          @click="openFullscreen"
+          class="flowchart-toolbar-button flowchart-toolbar-button--featured"
           :disabled="!hasSvg"
+          @click="openFullscreen"
         >
-          Fullscreen
+          <span class="flowchart-toolbar-button-icon pi pi-window-maximize" aria-hidden="true"></span>
+          <span>Fullscreen</span>
         </button>
       </div>
     </div>
 
-    <div ref="inlineViewport" class="flowchart-viewer__viewport" :style="{ '--viewer-height': embeddedHeight }">
-      <div ref="inlineStage" class="flowchart-viewer__stage" v-html="svg"></div>
+    <div
+      ref="inlineViewportRef"
+      class="flowchart-viewport"
+      :style="{ '--flowchart-embedded-height': embeddedHeight }"
+    >
+      <div ref="inlineStageRef" class="flowchart-stage"></div>
+      <div v-if="!hasSvg" class="flowchart-empty-state">Flowchart unavailable.</div>
     </div>
+  </div>
 
-
-    <Teleport to="body">
-      <div v-if="isFullscreen" class="flowchart-viewer__overlay" @click.self="closeFullscreen">
-        <div class="flowchart-viewer__overlay-card">
-          <div class="flowchart-viewer__overlay-header">
-            <div>
-              <p class="flowchart-viewer__overlay-label">Interactive Viewer</p>
-              <h3 class="flowchart-viewer__overlay-title">{{ title }}</h3>
-            </div>
-            <div class="flowchart-viewer__actions flowchart-viewer__actions--overlay">
-              <button type="button" class="viewer-btn" @click="zoomOut">−</button>
-              <button type="button" class="viewer-btn" @click="zoomIn">+</button>
-              <button type="button" class="viewer-btn" @click="resetView">Reset</button>
-              <button type="button" class="viewer-btn viewer-btn--primary" @click="closeFullscreen">Close</button>
-            </div>
+  <Teleport to="body">
+    <div
+      v-if="isFullscreen"
+      class="flowchart-fullscreen-overlay"
+      :style="viewerThemeStyle"
+      @click.self="handleOverlayClick"
+    >
+      <div class="flowchart-fullscreen-card" role="dialog" aria-modal="true" @click.stop>
+        <div class="flowchart-fullscreen-header">
+          <div class="flowchart-fullscreen-heading">
+            <p class="flowchart-fullscreen-label">Interactive viewer</p>
+            <h2 class="flowchart-fullscreen-title">{{ title || 'Flowchart viewer' }}</h2>
           </div>
-
-          <div ref="fullscreenViewport" class="flowchart-viewer__viewport flowchart-viewer__viewport--fullscreen">
-            <div ref="fullscreenStage" class="flowchart-viewer__stage" v-html="svg"></div>
+          <div class="flowchart-toolbar-actions">
+            <button
+              type="button"
+              class="flowchart-toolbar-button"
+              :disabled="!hasSvg"
+              @click="resetView(fullscreenContext)"
+            >
+              <span class="flowchart-toolbar-button-icon pi pi-refresh" aria-hidden="true"></span>
+              <span>Reset</span>
+            </button>
+            <button
+              type="button"
+              class="flowchart-toolbar-button flowchart-toolbar-button--featured"
+              :disabled="!hasSvg"
+              @click="closeFullscreen"
+            >
+              <span class="flowchart-toolbar-button-icon pi pi-times" aria-hidden="true"></span>
+              <span>Close</span>
+            </button>
           </div>
         </div>
+
+        <div ref="fullscreenViewportRef" class="flowchart-viewport flowchart-viewport--fullscreen">
+          <div ref="fullscreenStageRef" class="flowchart-stage"></div>
+          <div v-if="!hasSvg" class="flowchart-empty-state">Flowchart unavailable.</div>
+        </div>
       </div>
-    </Teleport>
-    <div class="flowchart-viewer__bottom-spacer"></div>
-  </div>
+    </div>
+  </Teleport>
 </template>
 
 <style scoped>
 .flowchart-viewer {
-  width: 100%;
+  --flowchart-color-text-primary: var(--color-text-primary, #0d0d14);
+  --flowchart-color-text-secondary: var(--color-text-secondary, #3c3c50);
+  --flowchart-color-background-primary: var(--color-surface, #ffffff);
+  --flowchart-color-background-secondary: var(--color-diagram-surface, #f8f9fa);
+  --flowchart-color-background-secondary-hover: var(--color-surface-raised, #f0f2f6);
+  --flowchart-color-border-tertiary: var(--color-border, #e2e4ec);
+  --flowchart-color-border-diagram: var(--color-diagram-border, #e9ecef);
+  --flowchart-color-accent: var(--color-brand, #407BFF);
+  --flowchart-color-accent-hover: var(--color-brand-hover, #5489ff);
+  --flowchart-color-accent-contrast: #ffffff;
+  --flowchart-shadow: var(--color-card-shadow, rgba(0, 0, 0, 0.08));
+  --flowchart-overlay: rgba(15, 23, 42, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--flowchart-color-border-tertiary);
+  border-radius: 16px;
+  background: var(--flowchart-color-background-primary);
+  box-shadow: 0 12px 32px var(--flowchart-shadow);
+  color: var(--flowchart-color-text-primary);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  margin-bottom: 5rem;
 }
 
-.flowchart-viewer__toolbar {
+.flowchart-toolbar {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 0.75rem;
+  justify-content: space-between;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
-.flowchart-viewer__actions {
+.flowchart-toolbar-hint,
+.flowchart-fullscreen-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--flowchart-color-text-secondary);
+}
+
+.flowchart-toolbar-actions {
   display: flex;
+  align-items: center;
+  justify-content: flex-end;
   gap: 0.5rem;
   flex-wrap: wrap;
-  justify-content: flex-end;
 }
 
-.viewer-btn {
-  border: 1px solid var(--color-border, #d0d7de);
-  background: var(--color-surface, #fff);
-  color: var(--color-text-primary, #1f2937);
+.flowchart-toolbar-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: 0.5px solid var(--flowchart-color-border-tertiary);
   border-radius: 999px;
-  padding: 0.45rem 0.95rem;
-  font-size: 0.95rem;
+  background: var(--flowchart-color-background-primary);
+  color: var(--flowchart-color-text-primary);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
   line-height: 1;
-  transition: all 0.2s ease;
+  padding: 6px 14px;
+  min-height: 32px;
+  cursor: pointer;
+  box-shadow: 0 2px 6px var(--flowchart-shadow);
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
 }
 
-.viewer-btn:hover:not(:disabled) {
-  border-color: #0d6efd;
-  color: #0d6efd;
+.flowchart-toolbar-button:hover:not(:disabled),
+.flowchart-toolbar-button:focus-visible:not(:disabled) {
+  background: var(--flowchart-color-background-secondary-hover);
+  border-color: var(--flowchart-color-accent);
+  outline: none;
 }
 
-.viewer-btn:disabled {
-  opacity: 0.6;
+.flowchart-toolbar-button:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
-.viewer-btn--primary {
-  background: #0d6efd;
-  border-color: #0d6efd;
-  color: #fff;
+.flowchart-toolbar-button-icon {
+  font-size: 12px;
+  line-height: 1;
 }
 
-.viewer-btn--primary:hover:not(:disabled) {
-  background: #0b5ed7;
-  border-color: #0b5ed7;
-  color: #fff;
+.flowchart-toolbar-button--featured {
+  background: var(--flowchart-color-accent);
+  color: var(--flowchart-color-accent-contrast);
+  border-color: var(--flowchart-color-accent);
 }
 
-.flowchart-viewer__viewport {
-  --viewer-height: 34rem;
+.flowchart-toolbar-button--featured:hover:not(:disabled),
+.flowchart-toolbar-button--featured:focus-visible:not(:disabled) {
+  background: var(--flowchart-color-accent-hover);
+  border-color: var(--flowchart-color-accent-hover);
+}
+
+.flowchart-viewport {
   position: relative;
-  width: 100%;
-  min-height: min(var(--viewer-height), 70vh);
-  height: min(var(--viewer-height), 70vh);
   overflow: hidden;
-  border: 1px solid var(--color-border, #dfe3e8);
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 1px 1px, rgba(13, 110, 253, 0.12) 1px, transparent 0) 0 0 / 24px 24px,
-    var(--color-surface, #fff);
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  cursor: move;
+  min-height: var(--flowchart-embedded-height, 34rem);
+  height: var(--flowchart-embedded-height, 34rem);
+  border: 1px solid var(--flowchart-color-border-diagram);
+  border-radius: 12px;
+  background-color: var(--flowchart-color-background-secondary);
+  background-image: var(--flowchart-dots-image);
+  background-repeat: repeat;
+  background-size: 24px 24px;
   cursor: grab;
-  cursor: -webkit-grab;
+  user-select: none;
+  touch-action: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
-.flowchart-viewer__viewport.is-dragging {
-  cursor: move;
+.flowchart-viewport.is-dragging {
   cursor: grabbing;
-  cursor: -webkit-grabbing;
 }
 
-.flowchart-viewer__viewport :deep(svg),
-.flowchart-viewer__viewport :deep(svg *) {
-  cursor: inherit;
+.flowchart-viewport--fullscreen {
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
-.flowchart-viewer__viewport--fullscreen {
-  height: calc(100vh - 12rem);
-  min-height: 26rem;
-}
-
-.flowchart-viewer__stage {
+.flowchart-stage {
   position: absolute;
   top: 0;
   left: 0;
-  display: block;
-  max-width: none;
+  width: 0;
+  height: 0;
   transform-origin: top left;
   will-change: transform;
 }
 
-.flowchart-viewer__stage :deep(svg) {
-  display: block;
-  width: auto !important;
-  max-width: none !important;
-  height: auto !important;
-}
-
-.flowchart-viewer__stage :deep(.label),
-.flowchart-viewer__stage :deep(foreignObject) {
-  pointer-events: none;
-}
-
-.flowchart-viewer__stage :deep(foreignObject) {
-  overflow: visible;
-}
-
-.flowchart-viewer__stage :deep(foreignObject div),
-.flowchart-viewer__stage :deep(foreignObject span),
-.flowchart-viewer__stage :deep(foreignObject p) {
-  white-space: normal !important;
-  overflow: visible !important;
-  text-overflow: clip !important;
-  word-break: break-word;
-}
-
-.flowchart-viewer__stage :deep(.flowchart-node--interactive) {
-  cursor: pointer;
-}
-
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible rect),
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible polygon),
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:focus-visible path),
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover rect),
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover polygon),
-.flowchart-viewer__stage :deep(.flowchart-node--interactive:hover path) {
-  stroke: #0d6efd !important;
-  stroke-width: 3px !important;
-}
-
-.flowchart-viewer__note {
-  margin-top: 0.75rem;
-  margin-bottom: 0;
-  color: #6c757d;
-  font-size: 0.95rem;
-}
-
-.flowchart-viewer__bottom-spacer {
-  width: 100%;
-  height: 3.5rem;
-  flex-shrink: 0;
-}
-
-.flowchart-viewer__overlay {
-  position: fixed;
+.flowchart-empty-state {
+  position: absolute;
   inset: 0;
-  z-index: 2000;
-  background: rgba(15, 23, 42, 0.75);
-  padding: 1.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--flowchart-color-text-secondary);
+  pointer-events: none;
 }
 
-.flowchart-viewer__overlay-card {
+.flowchart-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--flowchart-overlay);
+}
+
+.flowchart-fullscreen-card {
   width: min(96vw, 1400px);
   height: min(92vh, 960px);
-  background: var(--color-surface, #fff);
-  border-radius: 20px;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
-  padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 20px;
+  border: 1px solid var(--flowchart-color-border-tertiary);
+  background-color: var(--flowchart-color-background-primary);
+  box-shadow: 0 24px 64px var(--flowchart-shadow);
 }
 
-.flowchart-viewer__overlay-header {
+.flowchart-fullscreen-header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  align-items: flex-start;
   flex-wrap: wrap;
 }
 
-.flowchart-viewer__overlay-label {
-  margin: 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-text-muted, #6c757d);
+.flowchart-fullscreen-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.flowchart-viewer__overlay-title {
-  margin: 0.15rem 0 0;
-  font-size: 1.5rem;
+.flowchart-fullscreen-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 500;
+  color: var(--flowchart-color-text-primary);
+}
+
+.flowchart-viewport--fullscreen {
+  background-color: var(--flowchart-color-background-secondary);
+  background-image: var(--flowchart-dots-image);
+}
+
+.flowchart-viewport :deep(svg) {
+  display: block;
+  overflow: visible;
+}
+
+.flowchart-viewport :deep(.flowchart-node--interactive) {
+  cursor: pointer;
+  outline: none;
+}
+
+.flowchart-viewport :deep(.flowchart-node--interactive:focus-visible) {
+  outline: none;
+}
+
+.flowchart-viewport :deep(.flowchart-node--interactive:hover rect),
+.flowchart-viewport :deep(.flowchart-node--interactive:hover polygon),
+.flowchart-viewport :deep(.flowchart-node--interactive:hover path),
+.flowchart-viewport :deep(.flowchart-node--interactive:focus-visible rect),
+.flowchart-viewport :deep(.flowchart-node--interactive:focus-visible polygon),
+.flowchart-viewport :deep(.flowchart-node--interactive:focus-visible path) {
+  stroke: var(--flowchart-color-accent) !important;
+  stroke-width: 2px !important;
 }
 
 @media (max-width: 768px) {
-  .flowchart-viewer__toolbar,
-  .flowchart-viewer__overlay-header {
-    flex-direction: column;
+  .flowchart-toolbar,
+  .flowchart-fullscreen-header {
     align-items: stretch;
   }
 
-  .flowchart-viewer__actions,
-  .flowchart-viewer__actions--overlay {
+  .flowchart-toolbar-actions {
     justify-content: flex-start;
   }
 
-  .flowchart-viewer__viewport {
-    min-height: min(var(--viewer-height), 60vh);
-    height: min(var(--viewer-height), 60vh);
-  }
-
-  .flowchart-viewer__overlay {
-    padding: 0.75rem;
-  }
-
-  .flowchart-viewer__overlay-card {
-    width: 100%;
-    height: 100%;
-    border-radius: 18px;
+  .flowchart-fullscreen-card {
+    width: min(96vw, 1400px);
+    height: min(94vh, 960px);
     padding: 1rem;
-  }
-
-  .flowchart-viewer__viewport--fullscreen {
-    height: calc(100vh - 13rem);
-    min-height: 20rem;
-  }
-
-  .flowchart-viewer__bottom-spacer {
-    height: 4.5rem;
   }
 }
 </style>

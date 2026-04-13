@@ -50,6 +50,11 @@
   --theme-toggle-bg:        #e8eaf0;
   --theme-toggle-color:     #3c3c50;
   --theme-toggle-hover-bg:  #dde0ea;
+
+  /* Scrollbars */
+  --color-scrollbar-track:  #f0f2f6;
+  --color-scrollbar-thumb:  #c7ccda;
+  --color-scrollbar-thumb-hover: #aeb6c8;
 }
 
 /* ── Dark mode tokens ───────────────────────────────────────── */
@@ -91,9 +96,9 @@
   --color-input-border:     #4a4a64;
   --color-input-text:       #eaeaf6;
 
-  /* Mermaid diagram surface — keep light so SVGs remain legible */
-  --color-diagram-surface:  #eef0f6;
-  --color-diagram-border:   #cdd0dc;
+  /* Mermaid diagram surface — dark canvas with high-contrast nodes */
+  --color-diagram-surface:  #16161d;
+  --color-diagram-border:   #38384e;
 
   /* Misc */
   --color-page-bg-subtle:   #1e1e27;
@@ -106,6 +111,11 @@
   --theme-toggle-bg:        #2c2c3a;
   --theme-toggle-color:     #eaeaf6;
   --theme-toggle-hover-bg:  #383850;
+
+  /* Scrollbars */
+  --color-scrollbar-track:  #22222c;
+  --color-scrollbar-thumb:  #4a4a64;
+  --color-scrollbar-thumb-hover: #60607a;
 }
 
 /* ============================================================
@@ -656,23 +666,34 @@ svg *,
 }
 
 /* ============================================================
-   Scrollbars — Dark theme (webkit)
+   Scrollbars — Global themed styling
    ============================================================ */
 
-[data-theme="dark"] ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) var(--color-scrollbar-track);
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-track {
-  background: var(--color-bg-subtle);
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
+::-webkit-scrollbar-track {
+  background: var(--color-scrollbar-track);
+  border-radius: 999px;
 }
 
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid var(--color-scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--color-scrollbar-track);
 }

@@ -1,4 +1,4 @@
-import { getToken } from './auth.js';
+import { getToken, refreshAdminStatus } from './auth.js';
 import axios from 'axios'
 
 async function buildHeaders() {
@@ -20,6 +20,7 @@ async function serverGet(endpoint, params) {
     const response = await axios.get(url, config);
     return response.data;
   } catch (err) {
+    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
@@ -30,6 +31,7 @@ async function serverPost(endpoint, data) {
     const response = await axios.post(url, data, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
+    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
@@ -40,6 +42,7 @@ async function serverPatch(endpoint, data) {
     const response = await axios.patch(url, data, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
+    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
@@ -50,7 +53,23 @@ async function serverDelete(endpoint) {
     const response = await axios.delete(url, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
+    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
+  }
+}
+
+async function refreshAdminStatusIfNeeded(endpoint, err) {
+  const status = err?.response?.status;
+  const isAdminEndpoint = endpoint === 'admin/status' || endpoint.startsWith('admin/');
+
+  if (!isAdminEndpoint || (status !== 401 && status !== 403)) {
+    return;
+  }
+
+  try {
+    await refreshAdminStatus({ suppressErrors: true, force: true });
+  } catch {
+    // Intentionally ignore refresh failures and preserve the original API error.
   }
 }
 

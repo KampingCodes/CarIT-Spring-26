@@ -18,29 +18,29 @@ export function getMermaidConfig(isDark = false) {
     theme: 'base',
     themeVariables: {
       // Overall canvas
-      background:            '#22222c',
+      background:            '#16161d',
       // Primary nodes (rectangles, etc.)
-      primaryColor:          '#2c2c3a',
-      primaryTextColor:      '#eaeaf6',
-      primaryBorderColor:    '#38384e',
+      primaryColor:          '#38384e',
+      primaryTextColor:      '#ffffff',
+      primaryBorderColor:    '#60607a',
       // Secondary / tertiary nodes
-      secondaryColor:        '#1e1e27',
-      secondaryTextColor:    '#b0b0cc',
-      secondaryBorderColor:  '#38384e',
-      tertiaryColor:         '#18181f',
-      tertiaryTextColor:     '#b0b0cc',
-      tertiaryBorderColor:   '#38384e',
+      secondaryColor:        '#38384e',
+      secondaryTextColor:    '#ffffff',
+      secondaryBorderColor:  '#60607a',
+      tertiaryColor:         '#38384e',
+      tertiaryTextColor:     '#ffffff',
+      tertiaryBorderColor:   '#60607a',
       // Lines and labels
-      lineColor:             '#6090ff',
-      edgeLabelBackground:   '#2c2c3a',
+      lineColor:             '#9ab6ff',
+      edgeLabelBackground:   '#1f2430',
       // Special node types
-      clusterBkg:            '#1e1e27',
-      clusterBorder:         '#38384e',
+      clusterBkg:            '#1f2430',
+      clusterBorder:         '#4b5673',
       titleColor:            '#eaeaf6',
       // Note nodes
-      noteBkgColor:          '#2c2c3a',
-      noteTextColor:         '#eaeaf6',
-      noteBorderColor:       '#38384e',
+      noteBkgColor:          '#38384e',
+      noteTextColor:         '#ffffff',
+      noteBorderColor:       '#60607a',
       // Font
       fontFamily:            'Nunito, Arial, sans-serif',
       fontSize:              '14px',
@@ -58,8 +58,8 @@ export function applyMermaidThemeToSvg(svg, isDark = false) {
   if (!isDark || !svg) return svg;
   // Mermaid adds <rect ... style="fill: white;" ...> or fill="#ffffff"/"white" as the first rect
   return svg
-    .replace(/(<rect[^>]*)(fill="white"|fill="#ffffff"|fill="#FFFFFF")/gi, '$1fill="#22222c"')
-    .replace(/(<rect[^>]*style="[^"]*fill:\s*)(white|#fff(?:fff)?)(;?[^"]*")/gi, '$1#22222c$3');
+    .replace(/(<rect[^>]*)(fill="white"|fill="#ffffff"|fill="#FFFFFF")/gi, '$1fill="#16161d"')
+    .replace(/(<rect[^>]*style="[^"]*fill:\s*)(white|#fff(?:fff)?)(;?[^"]*")/gi, '$1#16161d$3');
 }
 
 export function extractMermaidCode(flowchart = '') {

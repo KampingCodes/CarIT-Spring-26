@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, watch } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
 import { getGarage, addGarageVehicle, editGarageVehicle, removeGarageVehicle } from '../apis.js';
 import { authState } from '../auth.js';
+import PaginationControls from './PaginationControls.vue';
 import VehicleSelector from './VehicleSelector.vue';
 
 defineOptions({ inheritAttrs: false });
@@ -28,6 +29,14 @@ const confirmDeleteId = ref(null);
 const garageForm = ref({ year: '', make: '', model: '', trim: '' });
 const vehicleSelectorRef = ref(null);
 const initialLoading = ref(true);
+const garagePage = ref(1);
+const garagePageSize = 4;
+
+const totalGaragePages = computed(() => Math.max(1, Math.ceil(garage.value.length / garagePageSize)));
+const paginatedGarage = computed(() => {
+  const startIndex = (garagePage.value - 1) * garagePageSize;
+  return garage.value.slice(startIndex, startIndex + garagePageSize);
+});
 
 const resetGarageForm = () => {
   garageForm.value = { year: '', make: '', model: '', trim: '' };
@@ -124,6 +133,18 @@ watch(() => authState.isAuthenticated, (isAuth) => {
     loadGarage();
   } else {
     garage.value = [];
+    garagePage.value = 1;
+  }
+});
+
+watch(garage, (cars) => {
+  if (cars.length === 0) {
+    garagePage.value = 1;
+    return;
+  }
+
+  if (garagePage.value > totalGaragePages.value) {
+    garagePage.value = totalGaragePages.value;
   }
 });
 </script>
@@ -162,7 +183,7 @@ watch(() => authState.isAuthenticated, (isAuth) => {
       No vehicles in your garage yet.{{ editable ? ' Add one above!' : '' }}
     </div>
     <div v-else class="garage-list">
-      <div v-for="car in garage" :key="car._id"
+      <div v-for="car in paginatedGarage" :key="car._id"
         class="garage-card card p-3 mb-2"
         :class="{ 'garage-card-selectable': selectable, 'garage-card-selected': selectable && selectedCarId === car._id }"
         @click="selectable ? selectCar(car) : null"
@@ -181,6 +202,16 @@ watch(() => authState.isAuthenticated, (isAuth) => {
           </div>
         </div>
       </div>
+
+      <PaginationControls
+        v-if="garage.length > garagePageSize"
+        :page="garagePage"
+        :page-size="garagePageSize"
+        :page-size-options="[4]"
+        :total="garage.length"
+        :disabled="garageLoading"
+        @update:page="garagePage = $event"
+      />
     </div>
   </div>
 

@@ -299,25 +299,6 @@ watch(() => themeStore.isDark, async () => {
   scroll-behavior: smooth;
   padding: 1rem 0;
   flex: 1;
-  scrollbar-width: thin;
-}
-
-.carousel-container::-webkit-scrollbar {
-  height: 8px;
-}
-
-.carousel-container::-webkit-scrollbar-track {
-  background: var(--color-surface-raised);
-  border-radius: 4px;
-}
-
-.carousel-container::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-.carousel-container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
 }
 
 .thumbnail-card {
