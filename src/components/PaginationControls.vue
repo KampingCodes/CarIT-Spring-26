@@ -62,12 +62,7 @@ function updatePageSize(event) {
   <div class="pagination-controls" :class="{ disabled }">
     <div class="pagination-summary">
       <span class="pagination-count">Showing {{ startItem }}-{{ endItem }} of {{ total }}</span>
-      <label class="page-size-selector">
-        <span>Rows:</span>
-        <select :value="pageSize" :disabled="disabled" @change="updatePageSize">
-          <option v-for="option in pageSizeOptions" :key="option" :value="option">{{ option }}</option>
-        </select>
-      </label>
+
     </div>
 
     <div class="pagination-actions">
