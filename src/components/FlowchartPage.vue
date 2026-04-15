@@ -162,6 +162,28 @@ const closeNodePanel = () => {
   panelOpen.value = false;
 };
 
+// When an instruction is saved from NodeContextPanel, insert it immediately
+function onInstructionSaved({ flowchartId, instruction }) {
+  if (!flowchartId || !instruction) return;
+  const idx = flowcharts.value.findIndex(f => f.flowchartId === flowchartId);
+  if (idx === -1) return;
+  const target = flowcharts.value[idx];
+  const current = Array.isArray(target.instructions) ? target.instructions : [];
+  const exists = current.some(it => it.instructionId === instruction.instructionId);
+  const nextInstructions = exists ? current : [instruction, ...current];
+  const updated = {
+    ...target,
+    instructions: nextInstructions,
+    updatedAt: new Date().toISOString()
+  };
+  // Replace the item to trigger reactivity
+  flowcharts.value = [
+    ...flowcharts.value.slice(0, idx),
+    updated,
+    ...flowcharts.value.slice(idx + 1)
+  ];
+}
+
 watch(() => themeStore.isDark, async () => {
   initializeMermaid();
   await Promise.all(flowcharts.value.map(getDiagram));
@@ -297,6 +319,7 @@ watch(() => themeStore.isDark, async () => {
       :node="selectedNode"
       :context="{ vehicle: selectedFlowchart?.vehicle, issues: selectedFlowchart?.issues, mermaidCode: selectedFlowchart?.mermaidCode, flowchartId: selectedFlowchart?.flowchartId }"
       @close="closeNodePanel"
+      @instruction-saved="onInstructionSaved"
     />
   </div>
 </template>

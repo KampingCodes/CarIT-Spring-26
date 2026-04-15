@@ -19,7 +19,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'instruction-saved']);
 
 const question = ref('');
 const answer = ref('');
@@ -177,7 +177,10 @@ async function maybeSaveInstruction({ type, question, answer }) {
       question: question || '',
       answer: answer || ''
     };
-    await saveFlowchartInstruction(fId, payload);
+    const result = await saveFlowchartInstruction(fId, payload);
+    if (result && result.success && result.instruction) {
+      emit('instruction-saved', { flowchartId: fId, instruction: result.instruction });
+    }
   } catch (_e) {
     // Silently ignore save errors (e.g., unauthenticated/guest)
   }
