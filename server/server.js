@@ -65,8 +65,20 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // Enable CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'https://car-it-spring-26.vercel.app',
+  'http://localhost:5173',
+  'https://localhost:5173'
+];
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://localhost:5173',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
   credentials: true // If you’re using cookies or Authorization headers
 }));
 
