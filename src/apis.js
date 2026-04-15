@@ -12,7 +12,7 @@ async function buildHeaders() {
   return headers;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 async function serverGet(endpoint, params) {
   const url = `${API_BASE_URL}/api/${endpoint}`;
