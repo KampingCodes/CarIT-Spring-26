@@ -1,6 +1,6 @@
 <script setup>
 import { ref, watch, computed } from 'vue';
-import { getResponse as askAI } from '../apis';
+import { getResponse as askAI, saveFlowchartInstruction } from '../apis';
 
 const props = defineProps({
   open: {
@@ -19,7 +19,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'instruction-saved']);
 
 const question = ref('');
 const answer = ref('');
@@ -31,6 +31,7 @@ const formattedAnswer = computed(() => formatAnswer(answer.value));
 
 const title = computed(() => props.node?.label || 'Flowchart Node');
 const nodeId = computed(() => props.node?.nodeId || props.node?.rawId || '');
+const flowchartId = computed(() => props.context?.flowchartId || '');
 
 watch(
   () => [props.open, props.node?.nodeId],
@@ -67,6 +68,7 @@ function buildPrompt(userQuestion) {
   return [
     'You are a helpful automotive diagnostics expert.',
     'Answer clearly and concisely for a student mechanic.',
+    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting, DO NOT BOLD.',
     vehicleBlock,
     nodeBlock,
     flowchartBlock,
@@ -84,6 +86,12 @@ async function ask() {
     const prompt = buildPrompt(question.value.trim());
     const resp = await askAI(prompt);
     answer.value = typeof resp === 'string' ? resp : JSON.stringify(resp);
+    // Attempt to save as an instruction linked to this flowchart
+    await maybeSaveInstruction({
+      type: 'qa',
+      question: question.value.trim(),
+      answer: answer.value
+    });
   } catch (err) {
     const retry = err?.retryAfterSeconds ? ` Please try again in ${err.retryAfterSeconds} seconds.` : '';
     error.value = err?.message || 'Failed to get an answer.';
@@ -131,7 +139,7 @@ function buildInstructionsPrompt() {
     ' Steps: (numbered 1, 2, 3… very clear and beginner-friendly)',
     ' What to Look For: (bullets with normal/abnormal results and next action)',
     ' Time Estimate: (rough minutes)',
-    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting.'
+    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting, DO NOT BOLD.'
   ].join('\n');
 }
 
@@ -143,6 +151,12 @@ async function askGuide() {
     const prompt = buildInstructionsPrompt();
     const resp = await askAI(prompt);
     answer.value = typeof resp === 'string' ? resp : JSON.stringify(resp);
+    // Attempt to save the guided instructions
+    await maybeSaveInstruction({
+      type: 'guide',
+      question: `Guide for: ${title.value}`,
+      answer: answer.value
+    });
   } catch (err) {
     const retry = err?.retryAfterSeconds ? ` Please try again in ${err.retryAfterSeconds} seconds.` : '';
     error.value = err?.message || 'Failed to get an answer.';
@@ -152,13 +166,33 @@ async function askGuide() {
   }
 }
 
+async function maybeSaveInstruction({ type, question, answer }) {
+  try {
+    const fId = flowchartId.value;
+    if (!fId) return; // Not persisted or guest session
+    const payload = {
+      type,
+      nodeId: nodeId.value || '',
+      nodeLabel: title.value || '',
+      question: question || '',
+      answer: answer || ''
+    };
+    const result = await saveFlowchartInstruction(fId, payload);
+    if (result && result.success && result.instruction) {
+      emit('instruction-saved', { flowchartId: fId, instruction: result.instruction });
+    }
+  } catch (_e) {
+    // Silently ignore save errors (e.g., unauthenticated/guest)
+  }
+}
+
 function formatAnswer(text = '') {
   if (!text) return '';
 
   // Normalize line endings for consistent matching across platforms
   let work = String(text).replace(/\r\n?|\u2028|\u2029/g, '\n');
 
-  // Exact section names (no variance per your note)
+  // Exact section names
   const headers = [
     'Tools & Materials',
     'Safety Notes',
