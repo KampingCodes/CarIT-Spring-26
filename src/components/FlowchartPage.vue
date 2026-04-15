@@ -184,7 +184,6 @@ watch(() => themeStore.isDark, async () => {
 
           <!-- Carousel Section -->
           <div v-else class="carousel-section">
-            <h3 class="carousel-title">Select a Flowchart</h3>
             <div class="carousel-wrapper">
               <button 
                 class="carousel-btn carousel-btn-left" 
@@ -328,25 +327,6 @@ watch(() => themeStore.isDark, async () => {
   scroll-behavior: smooth;
   padding: 1rem 0;
   flex: 1;
-  scrollbar-width: thin;
-}
-
-.carousel-container::-webkit-scrollbar {
-  height: 8px;
-}
-
-.carousel-container::-webkit-scrollbar-track {
-  background: var(--color-surface-raised);
-  border-radius: 4px;
-}
-
-.carousel-container::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
-
-.carousel-container::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-muted);
 }
 
 .thumbnail-card {
@@ -384,6 +364,10 @@ watch(() => themeStore.isDark, async () => {
   overflow: hidden;
   padding: 0.5rem;
   background: var(--color-diagram-surface);
+}
+
+[data-theme="dark"] .thumbnail-svg {
+  background: var(--color-surface);
 }
 
 .thumbnail-svg :deep(svg) {

@@ -12,8 +12,10 @@ async function buildHeaders() {
   return headers;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   const config = { headers: await buildHeaders() };
   if (params) config.params = params;
   try {
@@ -25,7 +27,7 @@ async function serverGet(endpoint, params) {
 }
 
 async function serverPost(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.post(url, data, { headers: await buildHeaders() });
     return response.data;
@@ -35,7 +37,7 @@ async function serverPost(endpoint, data) {
 }
 
 async function serverPatch(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.patch(url, data, { headers: await buildHeaders() });
     return response.data;
@@ -45,7 +47,7 @@ async function serverPatch(endpoint, data) {
 }
 
 async function serverDelete(endpoint) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.delete(url, { headers: await buildHeaders() });
     return response.data;

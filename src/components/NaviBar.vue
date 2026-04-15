@@ -254,6 +254,8 @@ onBeforeUnmount(() => {
 
 .nav-actions {
   margin-left: auto;
+  display: inline-flex !important;
+  align-items: center;
 }
 
 .nav-links,
@@ -262,9 +264,8 @@ onBeforeUnmount(() => {
 }
 
 .nav-toggle-item {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  vertical-align: middle;
   margin-right: 10px;
 }
 

@@ -66,7 +66,7 @@ app.use(express.json({ limit: '10mb' }));
 
 // Enable CORS
 app.use(cors({
-  origin: 'https://localhost:5173', // Allow requests from your Vue dev server
+  origin: process.env.FRONTEND_URL || 'https://localhost:5173',
   credentials: true // If you’re using cookies or Authorization headers
 }));
 
@@ -121,7 +121,6 @@ function getRequestUserId(req) {
   app.get('/', (req, res) => {
     res.send('Server is running!');
   });
-
 
   app.post('/api/create-user', validateAuth, async (req, res) => {
     try {

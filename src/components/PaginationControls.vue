@@ -105,6 +105,7 @@ function updatePageSize(event) {
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid #edf2fb;
+  border-top-color: var(--color-border-subtle, #edf2fb);
   width: 100%;
   min-width: 0;
   overflow-x: hidden;
@@ -126,7 +127,7 @@ function updatePageSize(event) {
 }
 
 .pagination-summary {
-  color: #5b6475;
+  color: var(--color-text-secondary, #5b6475);
   font-size: 0.95rem;
   row-gap: 0.5rem;
   flex: 1 1 18rem;
@@ -166,9 +167,9 @@ function updatePageSize(event) {
 
 .page-button,
 .page-size-selector select {
-  border: 1px solid #d5dce8;
-  background: #fff;
-  color: #274472;
+  border: 1px solid var(--color-border, #d5dce8);
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #274472);
   border-radius: 999px;
   padding: 0.45rem 0.85rem;
   font-weight: 600;
@@ -178,10 +179,21 @@ function updatePageSize(event) {
   min-width: 2.75rem;
 }
 
+.page-button:hover:not(:disabled),
+.page-size-selector select:hover:not(:disabled) {
+  background: var(--color-surface-raised, #f0f2f6);
+}
+
+.page-button:focus-visible,
+.page-size-selector select:focus-visible {
+  outline: 2px solid var(--color-brand, #407bff);
+  outline-offset: 2px;
+}
+
 .page-button.active {
-  background: #407bff;
+  background: var(--color-brand, #407bff);
   color: #fff;
-  border-color: #407bff;
+  border-color: var(--color-brand, #407bff);
 }
 
 .page-button:disabled {
@@ -189,7 +201,7 @@ function updatePageSize(event) {
 }
 
 .page-ellipsis {
-  color: #7c8aa5;
+  color: var(--color-text-muted, #7c8aa5);
   font-weight: 700;
 }
 
