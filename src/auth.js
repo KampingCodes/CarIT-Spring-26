@@ -145,7 +145,7 @@ export async function refreshAdminStatus(options = {}) {
       return { isAdmin: false, accessLevel: 'user' };
     }
 
-    const response = await axios.get('http://localhost:3000/api/admin/status', {
+    const response = await axios.get(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/status`, {
       headers: { authorization: `Bearer ${token}` }
     });
 
