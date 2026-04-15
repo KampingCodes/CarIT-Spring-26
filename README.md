@@ -43,8 +43,8 @@ GENAI_API_KEY=<google_genai_api_key>
 MONGODB_URI=mongodb+srv://<username>:<password>@ai-diagnostic-tool-proj.njtobnl.mongodb.net/?appName=AI-Diagnostic-Tool-Project
 VITE_AUTH0_DOMAIN=dev-4h6xdz700e55oeeo.us.auth0.com
 VITE_AUTH0_CLIENT_ID=ZhtmRqp1qTd9RJETvVP70tVfJyI81Ceb
-VITE_AUTH0_AUDIENCE=https://my-carit-api
-AUTH0_AUDIENCE=https://my-carit-api
+VITE_AUTH0_AUDIENCE=https://carit-api
+AUTH0_AUDIENCE=https://carit-api
 AUTH0_DOMAIN=dev-4h6xdz700e55oeeo.us.auth0.com
 ```
 
