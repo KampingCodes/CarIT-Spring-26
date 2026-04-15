@@ -163,6 +163,7 @@ export async function saveFlowchart(userid, flowchartData) {
     issues: flowchartData.issues,
     responses: normalizeResponses(flowchartData.responses),
     nodeContexts: normalizeNodeContexts(flowchartData.nodeContexts),
+    instructions: normalizeInstructions(flowchartData.instructions),
     createdAt: timestamp,
     updatedAt: timestamp,
     lastRefinedNodeId: '',
@@ -255,6 +256,45 @@ export async function updateFlowchartNodeContext(userid, flowchartId, nodeId, no
   return flowchart;
 }
 
+export async function addFlowchartInstruction(userid, flowchartId, entry) {
+  if (!userid || !flowchartId || !entry || !entry.answer || !entry.type) {
+    console.log("addFlowchartInstruction: Missing required fields");
+    return "Missing required fields";
+  }
+
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) {
+    return "User not found";
+  }
+
+  const target = flowcharts.find((item) => item.flowchartId === flowchartId);
+  if (!target) {
+    return "Flowchart not found";
+  }
+
+  const timestamp = new Date().toISOString();
+  const prepared = normalizeInstructions([
+    {
+      instructionId: entry.instructionId,
+      type: entry.type,
+      nodeId: entry.nodeId,
+      nodeLabel: entry.nodeLabel,
+      question: entry.question,
+      answer: entry.answer,
+      createdAt: entry.createdAt || timestamp
+    }
+  ]);
+
+  const nextInstructions = normalizeInstructions([...(target.instructions || []), ...prepared]);
+  target.instructions = nextInstructions;
+  target.updatedAt = timestamp;
+
+  const sortedFlowcharts = sortFlowchartsByUpdatedAt(flowcharts);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: sortedFlowcharts } });
+  return { success: true, instruction: prepared[0] };
+}
+
 export async function overwriteFlowchart(userid, flowchartId, updates) {
   if (!userid || !flowchartId || !updates?.flowchart || !updates?.mermaidCode) {
     console.log("overwriteFlowchart: Missing required fields");
@@ -287,6 +327,7 @@ export async function overwriteFlowchart(userid, flowchartId, updates) {
     flowchart: updates.flowchart,
     mermaidCode: extractMermaidCode(updates.flowchart, updates.mermaidCode),
     nodeContexts: mergedNodeContexts,
+    instructions: normalizeInstructions(updates.instructions || existing.instructions),
     updatedAt,
     lastRefinedNodeId: updates.lastRefinedNodeId || existing.lastRefinedNodeId || '',
     lastRefinedNodeLabel: updates.lastRefinedNodeLabel || existing.lastRefinedNodeLabel || ''
@@ -341,6 +382,7 @@ function normalizeFlowchartRecord(flowchart, index, total) {
     issues: typeof flowchart?.issues === 'string' ? flowchart.issues : '',
     responses: normalizeResponses(flowchart?.responses),
     nodeContexts: normalizeNodeContexts(flowchart?.nodeContexts),
+    instructions: normalizeInstructions(flowchart?.instructions),
     createdAt,
     updatedAt,
     lastRefinedNodeId: typeof flowchart?.lastRefinedNodeId === 'string' ? flowchart.lastRefinedNodeId : '',
@@ -352,6 +394,7 @@ function normalizeFlowchartRecord(flowchart, index, total) {
     || !isValidDate(flowchart?.updatedAt)
     || !flowchart?.mermaidCode
     || !flowchart?.nodeContexts
+    || !Array.isArray(flowchart?.instructions)
     || normalizeResponses(flowchart?.responses).length !== (Array.isArray(flowchart?.responses) ? flowchart.responses.length : 0);
 
   return { record, didMutate };
@@ -401,6 +444,38 @@ function normalizeNodeContexts(nodeContexts = {}) {
       })
       .filter(Boolean)
   );
+}
+
+function normalizeInstructions(instructions = []) {
+  if (!Array.isArray(instructions)) {
+    return [];
+  }
+
+  return instructions
+    .map((entry) => {
+      const nodeId = normalizeText(entry?.nodeId);
+      const nodeLabel = normalizeText(entry?.nodeLabel);
+      const type = normalizeText(entry?.type);
+      const question = normalizeText(entry?.question);
+      const answer = typeof entry?.answer === 'string' ? entry.answer.trim() : '';
+      const createdAt = isValidDate(entry?.createdAt) ? entry.createdAt : new Date().toISOString();
+
+      if (!answer || !type) {
+        return null;
+      }
+
+      return {
+        instructionId: typeof entry?.instructionId === 'string' && entry.instructionId.trim() ? entry.instructionId : randomUUID(),
+        type, // 'guide' | 'qa'
+        nodeId,
+        nodeLabel,
+        question,
+        answer,
+        createdAt
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
 function sortFlowchartsByUpdatedAt(flowcharts = []) {
