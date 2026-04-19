@@ -290,4 +290,21 @@ async function submitVehicle() {
   padding: 0 1rem;
   white-space: nowrap;
 }
+
+@media (max-width: 768px) {
+  .untree_co-section#features-section {
+    padding-top: 1.25rem;
+  }
+
+  .heading.mb-4 {
+    margin-bottom: 1rem !important;
+  }
+
+  .submit-btn {
+    font-size: 0.95rem;
+    padding: 0.65rem 1.5rem;
+    margin-left: 0;
+    border-radius: 1.25rem;
+  }
+}
 </style>

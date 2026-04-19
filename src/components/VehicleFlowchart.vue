@@ -229,4 +229,14 @@ function parseAnswers(encodedAnswers) {
   border: 1px solid #ffe08a;
   color: #725400;
 }
+
+@media (max-width: 768px) {
+  .untree_co-section#features-section {
+    padding-top: 3rem;
+  }
+
+  .flowchart-page-shell {
+    margin: 0 auto;
+  }
+}
 </style>

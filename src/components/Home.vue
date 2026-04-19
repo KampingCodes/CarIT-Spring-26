@@ -7,6 +7,7 @@ import { RouterLink } from 'vue-router';
 
 const homeHeading = "Fix Your Car with Ai";
 const buttonTry = "Start";
+const mobileSummary = "It fixes your car what else do you need to know.";
 
 let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
@@ -43,11 +44,12 @@ onBeforeUnmount(() => {
                 {{ homeHeading }}
               </h1>
               <div class="excerpt" data-aos="fade-up" data-aos-delay="100">
-                <p>
+                <p class="desktop-excerpt">
                   Working on a vehicle yourself can be intimidating and confusing without some level of guidance.
                   Whether you're a trained professional, hobbyist, or just someone trying not to give $1000s to a repair shop,
                   Our Ai-powered diagnostic tool can help you identify and fix issues with your vehicle quickly and easily.
                 </p>
+                <p class="mobile-excerpt">{{ mobileSummary }}</p>
               </div>
               <p data-aos="fade-up" data-aos-delay="0">
                 <RouterLink
@@ -131,20 +133,28 @@ onBeforeUnmount(() => {
   line-height: 1.55;
 }
 
+.mobile-excerpt {
+  display: none;
+}
+
 .home-cta {
   white-space: nowrap;
 }
 
 @media (max-width: 991.98px) {
   .home-shell {
-    padding-top: 6.5rem;
+    padding-top: 5.35rem;
+  }
+
+  .home-row > .col-12 {
+    align-items: flex-start;
   }
 
   .home-content-row {
     align-content: flex-start;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
-    gap: 0.85rem;
+    gap: 0.7rem;
   }
 
   .home-copy-column {
@@ -152,7 +162,7 @@ onBeforeUnmount(() => {
     max-width: 460px;
     margin: 0 auto;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
   }
 
   .home-image-column {
@@ -160,50 +170,67 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 0.1rem;
   }
 
   .home-image {
     width: min(86vw, 320px);
-    max-height: 36vh;
+    max-height: 33vh;
     margin: 0 auto;
   }
 
   .heading {
     font-size: clamp(2.4rem, 8.9vw, 3.6rem);
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .excerpt {
-    margin-bottom: 0.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+    max-width: 28rem;
+  }
+
+  .desktop-excerpt {
+    display: none;
+  }
+
+  .mobile-excerpt {
+    display: block;
   }
 
   .excerpt p {
     font-size: clamp(1.04rem, 3.05vw, 1.12rem);
-    line-height: 1.45;
+    line-height: 1.42;
+  }
+
+  .home-cta {
+    min-width: 11.5rem;
+    padding: 0.68rem 2.25rem;
+    border-radius: 999px;
   }
 }
 
 @media (max-width: 575.98px) {
   .home-shell {
-    padding-top: 5.75rem;
+    padding-top: 4.85rem;
   }
 
   .home-content-row {
-    gap: 0.7rem;
+    gap: 0.55rem;
   }
 
   .home-copy-column {
     max-width: 340px;
-    gap: 0.35rem;
+    gap: 0.3rem;
   }
 
   .home-image-column {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.1rem;
   }
 
   .home-image {
     width: min(80vw, 265px);
-    max-height: 30vh;
+    max-height: 27vh;
   }
 
   .heading {
@@ -211,33 +238,39 @@ onBeforeUnmount(() => {
   }
 
   .excerpt p {
-    font-size: 1.04rem;
-    line-height: 1.5;
+    font-size: 0.98rem;
+    line-height: 1.42;
+  }
+
+  .home-cta {
+    min-width: 10.75rem;
+    padding: 0.62rem 2.1rem;
+    font-size: 0.84rem;
   }
 
 }
 
 @media (max-width: 399.98px), (max-width: 575.98px) and (max-height: 740px) {
   .home-shell {
-    padding-top: 5.15rem;
+    padding-top: 4.45rem;
   }
 
   .home-content-row {
-    gap: 0.45rem;
+    gap: 0.35rem;
   }
 
   .home-copy-column {
     max-width: 300px;
-    gap: 0.2rem;
+    gap: 0.15rem;
   }
 
   .home-image-column {
-    margin-bottom: 0.15rem;
+    margin-bottom: 0;
   }
 
   .home-image {
     width: min(68vw, 215px);
-    max-height: 24vh;
+    max-height: 22vh;
   }
 
   .heading {
@@ -247,32 +280,33 @@ onBeforeUnmount(() => {
   }
 
   .excerpt {
-    margin-bottom: 0.35rem;
+    margin-bottom: 0.2rem;
   }
 
   .excerpt p {
-    font-size: 0.92rem;
-    line-height: 1.36;
+    font-size: 0.84rem;
+    line-height: 1.3;
   }
 
   .home-cta {
-    padding: 0.7rem 1.7rem;
-    font-size: 0.82rem;
+    min-width: 10rem;
+    padding: 0.58rem 1.9rem;
+    font-size: 0.79rem;
   }
 }
 
 @media (max-width: 575.98px) and (max-height: 680px) {
   .home-shell {
-    padding-top: 4.9rem;
+    padding-top: 4.2rem;
   }
 
   .home-content-row {
-    gap: 0.3rem;
+    gap: 0.2rem;
   }
 
   .home-image {
     width: min(62vw, 190px);
-    max-height: 21vh;
+    max-height: 19vh;
   }
 
   .heading {
@@ -280,13 +314,14 @@ onBeforeUnmount(() => {
   }
 
   .excerpt p {
-    font-size: 0.86rem;
-    line-height: 1.3;
+    font-size: 0.78rem;
+    line-height: 1.24;
   }
 
   .home-cta {
-    padding: 0.62rem 1.45rem;
-    font-size: 0.78rem;
+    min-width: 9.5rem;
+    padding: 0.54rem 1.7rem;
+    font-size: 0.75rem;
   }
 }
 

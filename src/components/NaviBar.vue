@@ -79,7 +79,7 @@ function handleScroll() {
 }
 
 function handleResize() {
-  if (window.innerWidth >= 992) {
+  if (window.innerWidth >= 1200) {
     closeMobileMenu();
   }
 }
@@ -134,13 +134,13 @@ onBeforeUnmount(() => {
           {{ siteName }}<span class="text-primary">.</span>
         </RouterLink>
 
-        <ul class="d-none d-lg-inline-block site-menu nav-links">
+        <ul class="d-none d-lg-inline-block site-menu nav-links desktop-nav-links">
           <li v-for="item in visibleNavItems" :key="item.to" :class="{ active: isActive(item.to) }">
             <RouterLink :to="item.to" class="nav-link">{{ item.label }}</RouterLink>
           </li>
         </ul>
 
-        <ul class="d-none d-lg-inline-block site-menu nav-actions">
+        <ul class="d-none d-lg-inline-block site-menu nav-actions desktop-nav-actions">
           <li class="nav-toggle-item">
             <DarkModeToggle />
           </li>
@@ -161,15 +161,18 @@ onBeforeUnmount(() => {
           </li>
         </ul>
 
-        <button
-          type="button"
-          :class="['burger', 'nav-burger', 'd-inline-block', 'd-lg-none', { active: isMobileMenuOpen }]"
-          :aria-expanded="isMobileMenuOpen"
-          aria-label="Toggle navigation menu"
-          @click="toggleMobileMenu"
-        >
-          <span></span>
-        </button>
+        <div class="mobile-nav-controls d-inline-flex d-lg-none mobile-only-controls">
+          <DarkModeToggle class="mobile-nav-theme-toggle" />
+          <button
+            type="button"
+            :class="['nav-burger', { active: isMobileMenuOpen }]"
+            :aria-expanded="isMobileMenuOpen"
+            :aria-label="isMobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'"
+            @click="toggleMobileMenu"
+          >
+            <i :class="['pi', isMobileMenuOpen ? 'pi-times' : 'pi-bars']" aria-hidden="true"></i>
+          </button>
+        </div>
       </div>
     </div>
   </nav>
@@ -198,8 +201,6 @@ onBeforeUnmount(() => {
       </ul>
 
       <div class="mobile-nav-actions">
-        <DarkModeToggle class="mobile-theme-toggle" />
-
         <a
           v-if="!isLoggedIn"
           class="mobile-action mobile-action-primary"
@@ -263,6 +264,15 @@ onBeforeUnmount(() => {
   padding-left: 0;
 }
 
+.desktop-nav-links,
+.desktop-nav-actions {
+  display: none !important;
+}
+
+.mobile-only-controls {
+  display: inline-flex !important;
+}
+
 .nav-toggle-item {
   display: flex;
   align-items: center;
@@ -284,21 +294,81 @@ onBeforeUnmount(() => {
 }
 
 .nav-burger {
-  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  margin-left: 0;
   border: 0;
+  border-radius: 0;
   padding: 0;
+  background: transparent;
+  color: var(--color-text-primary, #0d0d14);
+  box-shadow: none;
+  line-height: 1;
+}
+
+.nav-burger i {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.nav-burger:hover {
+  color: var(--color-brand, #407bff);
+}
+
+.nav-burger:focus-visible,
+.mobile-nav-close:focus-visible,
+.mobile-nav-link:focus-visible,
+.mobile-action:focus-visible {
+  outline: 2px solid var(--color-brand, #407bff);
+  outline-offset: 2px;
+}
+
+.mobile-nav-controls {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  line-height: 1;
+}
+
+.mobile-nav-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.mobile-nav-theme-toggle :deep(.theme-toggle) {
+  width: auto;
+  height: auto;
+  padding: 0;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mobile-nav-theme-toggle :deep(.theme-toggle:hover) {
   background: transparent;
 }
 
+.mobile-nav-theme-toggle :deep(.theme-toggle svg) {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
 .nav-bottom-offset {
-  height: 20px;
+  height: 50px;
 }
 
 .mobile-nav-backdrop {
   position: fixed;
   inset: 0;
   z-index: 1990;
-  background: rgba(15, 23, 42, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
 }
 
 .mobile-nav-panel {
@@ -312,8 +382,10 @@ onBeforeUnmount(() => {
   width: min(320px, 88vw);
   height: 100vh;
   padding: 1.5rem 1.25rem;
-  background: #ffffff;
-  box-shadow: -10px 0 30px rgba(15, 23, 42, 0.16);
+  background: var(--color-mobile-menu-bg, #ffffff);
+  color: var(--color-text-primary, #0d0d14);
+  border-left: 1px solid var(--color-border, #e2e4ec);
+  box-shadow: -10px 0 30px rgba(15, 23, 42, 0.18);
   overflow-y: auto;
 }
 
@@ -325,11 +397,11 @@ onBeforeUnmount(() => {
 }
 
 .mobile-nav-header .logo {
-  color: #000000;
+  color: var(--color-text-primary, #0d0d14);
 }
 
 .mobile-nav-header .logo:hover {
-  color: #000000;
+  color: var(--color-text-primary, #0d0d14);
 }
 
 .mobile-nav-close {
@@ -338,10 +410,16 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 0;
+  border: 1px solid var(--color-border, #e2e4ec);
   border-radius: 999px;
-  background: #f4f7fb;
-  color: #000000;
+  background: var(--color-surface-raised, #f4f7fb);
+  color: var(--color-text-primary, #0d0d14);
+}
+
+.mobile-nav-close:hover {
+  background: var(--color-surface, #ffffff);
+  color: var(--color-brand, #407bff);
+  border-color: var(--color-brand, #407bff);
 }
 
 .mobile-nav-links,
@@ -366,13 +444,20 @@ onBeforeUnmount(() => {
 }
 
 .mobile-nav-link {
-  color: rgba(0, 0, 0, 0.72);
-  background: #f8fafc;
+  color: var(--color-text-secondary, rgba(0, 0, 0, 0.72));
+  background: var(--color-bg-subtle, #f8fafc);
+  border: 1px solid var(--color-border-subtle, #eceef4);
+}
+
+.mobile-nav-link:hover {
+  color: var(--color-brand, #407bff);
+  background: var(--color-brand-light, #eef4ff);
 }
 
 .mobile-nav-links li.active .mobile-nav-link {
-  color: #000000;
-  background: #eef4ff;
+  color: var(--color-text-primary, #0d0d14);
+  background: var(--color-brand-light, #eef4ff);
+  border-color: var(--color-brand, #407bff);
 }
 
 .mobile-action {
@@ -382,9 +467,9 @@ onBeforeUnmount(() => {
 }
 
 .mobile-action-outline {
-  border-color: rgba(0, 0, 0, 0.1);
-  color: #000000;
-  background: #ffffff;
+  border-color: var(--color-border, rgba(0, 0, 0, 0.1));
+  color: var(--color-text-primary, #0d0d14);
+  background: var(--color-surface, #ffffff);
 }
 
 .mobile-action-primary {
@@ -413,11 +498,22 @@ onBeforeUnmount(() => {
   transform: translateX(24px);
 }
 
-.mobile-theme-toggle {
-  align-self: flex-start;
+@media (min-width: 1200px) {
+  .desktop-nav-links,
+  .desktop-nav-actions {
+    display: inline-block !important;
+  }
+
+  .mobile-only-controls {
+    display: none !important;
+  }
+
+  .nav-bottom-offset {
+    height: 20px;
+  }
 }
 
-@media (max-width: 991.98px) {
+@media (max-width: 1199.98px) {
   .site-navigation {
     gap: 1rem;
   }

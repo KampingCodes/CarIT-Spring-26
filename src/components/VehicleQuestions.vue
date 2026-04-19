@@ -242,4 +242,18 @@ onMounted(getFeedback)
   border-radius: 8px;
   color: #725400;
 }
+
+@media (max-width: 768px) {
+  .untree_co-section#features-section {
+    padding-top: 3rem;
+  }
+
+  .container {
+    margin: 0.75rem auto 0 !important;
+  }
+
+  h3 {
+    margin-top: 0;
+  }
+}
 </style>

@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = defineProps({
   page: { type: Number, required: true },
@@ -13,6 +13,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['update:page', 'update:pageSize']);
+const isCompactPagination = ref(false);
+let compactPaginationMediaQuery;
 
 const totalPages = computed(() => Math.max(1, Math.ceil((props.total || 0) / props.pageSize)));
 const currentPage = computed(() => Math.min(Math.max(props.page, 1), totalPages.value));
@@ -56,6 +58,24 @@ function goToPage(page) {
 function updatePageSize(event) {
   emit('update:pageSize', Number(event.target.value));
 }
+
+function syncCompactPagination(event) {
+  isCompactPagination.value = Boolean(event?.matches);
+}
+
+onMounted(() => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return;
+  }
+
+  compactPaginationMediaQuery = window.matchMedia('(max-width: 767px)');
+  syncCompactPagination(compactPaginationMediaQuery);
+  compactPaginationMediaQuery.addEventListener('change', syncCompactPagination);
+});
+
+onBeforeUnmount(() => {
+  compactPaginationMediaQuery?.removeEventListener('change', syncCompactPagination);
+});
 </script>
 
 <template>
@@ -66,10 +86,15 @@ function updatePageSize(event) {
     </div>
 
     <div class="pagination-actions">
-      <button class="page-button" :disabled="disabled || currentPage <= 1" @click="goToPage(1)"><<</button>
-      <button class="page-button" :disabled="disabled || currentPage <= 1" @click="goToPage(currentPage - 1)"><</button>
+      <div class="page-nav-group">
+        <button class="page-button page-nav-button" aria-label="Go to first page" :disabled="disabled || currentPage <= 1" @click="goToPage(1)">«</button>
+        <button class="page-button page-nav-button" aria-label="Go to previous page" :disabled="disabled || currentPage <= 1" @click="goToPage(currentPage - 1)">‹</button>
+      </div>
 
-      <div class="page-number-group">
+      <div v-if="isCompactPagination" class="page-status" aria-live="polite">
+        Page {{ currentPage }} of {{ totalPages }}
+      </div>
+      <div v-else class="page-number-group" aria-label="Pagination pages">
         <template v-for="item in visiblePages" :key="item">
           <span v-if="typeof item !== 'number'" class="page-ellipsis">…</span>
           <button
@@ -84,8 +109,10 @@ function updatePageSize(event) {
         </template>
       </div>
 
-      <button class="page-button" :disabled="disabled || currentPage >= totalPages" @click="goToPage(currentPage + 1)">></button>
-      <button class="page-button" :disabled="disabled || currentPage >= totalPages" @click="goToPage(totalPages)">>></button>
+      <div class="page-nav-group">
+        <button class="page-button page-nav-button" aria-label="Go to next page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(currentPage + 1)">›</button>
+        <button class="page-button page-nav-button" aria-label="Go to last page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(totalPages)">»</button>
+      </div>
     </div>
   </div>
 </template>
@@ -112,6 +139,7 @@ function updatePageSize(event) {
 
 .pagination-summary,
 .pagination-actions,
+.page-nav-group,
 .page-number-group,
 .page-size-selector {
   display: flex;
@@ -152,12 +180,29 @@ function updatePageSize(event) {
   justify-content: flex-end;
   flex: 0 0 auto;
   gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page-nav-group {
+  gap: 0.45rem;
+  flex-wrap: nowrap;
 }
 
 .page-number-group {
   justify-content: center;
   flex: 0 0 auto;
   gap: 0.45rem;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.page-status {
+  color: var(--color-text-secondary, #5b6475);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-width: 0;
 }
 
 .page-button,
@@ -172,6 +217,19 @@ function updatePageSize(event) {
 
 .page-button {
   min-width: 2.75rem;
+  min-height: 2.75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-nav-button {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.page-number {
+  min-width: 2.5rem;
 }
 
 .page-button:hover:not(:disabled),
@@ -213,33 +271,108 @@ function updatePageSize(event) {
   }
 
   .page-number-group {
-    justify-content: flex-end;
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }
 
-@media (max-width: 640px) {
-  .pagination-summary,
-  .pagination-actions {
-    flex-direction: column;
-    align-items: stretch;
+@media (max-width: 767px) {
+  .pagination-controls {
+    gap: 0.85rem;
+  }
+
+  .pagination-summary {
+    width: 100%;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
   }
 
   .pagination-count,
   .page-size-selector {
-    width: 100%;
-    justify-content: space-between;
+    width: auto;
+    justify-content: flex-start;
   }
 
   .pagination-actions {
-    gap: 0.75rem;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-top: 0.25rem;
   }
 
   .page-number-group {
+    width: auto;
     justify-content: center;
+    flex-wrap: wrap;
   }
 
   .page-button {
-    min-height: 2.5rem;
+    min-height: 2.35rem;
+    min-width: 2.35rem;
+    padding: 0.4rem 0.7rem;
+  }
+
+  .page-number-group {
+    gap: 0.35rem;
+  }
+
+  .page-size-selector select {
+    min-width: 3.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination-controls {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+  }
+
+  .pagination-summary {
+    font-size: 0.9rem;
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+  }
+
+  .pagination-count,
+  .page-size-selector {
+    width: auto;
+    justify-content: flex-start;
+  }
+
+  .pagination-count {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .page-size-selector {
+    flex: 0 0 auto;
+  }
+
+  .pagination-actions {
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+
+  .page-nav-group {
+    gap: 0.35rem;
+  }
+
+  .page-status {
+    flex: 1 1 auto;
+    text-align: center;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+
+  .page-nav-button {
+    min-width: 2.1rem;
+    padding: 0.38rem 0.55rem;
   }
 }
 </style>

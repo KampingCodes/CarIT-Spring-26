@@ -660,31 +660,34 @@ watch(() => authState.adminAccessLevel, () => {
               </div>
             </div>
             <div v-if="loading.admins" class="panel-loading">Loading admin accounts...</div>
-            <div v-else-if="admins.items.length > 0" class="table-shell">
-              <table class="admin-table">
-                <thead>
-                  <tr>
-                    <th>Username</th>
-                    <th>Email</th>
-                    <th>Access Level</th>
-                    <th>Granted</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="admin in admins.items" :key="admin.userId">
-                    <td>{{ admin.username }}</td>
-                    <td>{{ admin.email || '—' }}</td>
-                    <td><span class="pill">{{ admin.accessLevel }}</span></td>
-                    <td>{{ formatDate(admin.grantedAt) }}</td>
-                    <td class="actions-cell">
-                      <button class="btn btn-outline-danger btn-sm" :disabled="admin.isBootstrap || loading.save" @click="revokeAdmin(admin.userId)">
-                        Revoke
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-else-if="admins.items.length > 0" class="records-shell">
+              <div class="record-grid compact-grid admin-grid">
+                <article v-for="admin in admins.items" :key="admin.userId" class="record-card compact-card admin-record-card">
+                  <div class="admin-card-header">
+                    <div class="admin-card-identity">
+                      <h3 :title="admin.username || admin.userId">{{ admin.username || admin.userId }}</h3>
+                      <p :title="admin.email">{{ admin.email || 'No email on file' }}</p>
+                    </div>
+                    <span class="pill admin-card-pill">{{ admin.accessLevel }}</span>
+                  </div>
+                  <div class="admin-card-meta">
+                    <div class="record-detail-item">
+                      <span class="record-detail-label">Granted</span>
+                      <strong>{{ formatDate(admin.grantedAt) }}</strong>
+                    </div>
+                    <span v-if="admin.isBootstrap" class="record-secondary-meta admin-card-protection">Protected</span>
+                  </div>
+                  <div class="admin-card-footer">
+                    <div class="record-detail-item admin-card-userid">
+                      <span class="record-detail-label">User ID</span>
+                      <strong :title="admin.userId">{{ admin.userId }}</strong>
+                    </div>
+                    <button class="btn btn-outline-danger btn-sm admin-card-button" :disabled="admin.isBootstrap || loading.save" @click="revokeAdmin(admin.userId)">
+                      Revoke
+                    </button>
+                  </div>
+                </article>
+              </div>
               <PaginationControls
                 :page="admins.page"
                 :page-size="admins.pageSize"
@@ -698,7 +701,7 @@ watch(() => authState.adminAccessLevel, () => {
           </div>
         </section>
 
-        <section v-if="activeTab === 'users'" class="admin-panel table-panel">
+        <section v-if="activeTab === 'users'" class="admin-panel table-panel users-panel">
           <div class="panel-header split-header">
             <div>
               <h2>User Records</h2>
@@ -709,7 +712,7 @@ watch(() => authState.adminAccessLevel, () => {
           </div>
           <div v-if="loading.users" class="panel-loading">Loading users...</div>
           <div v-else-if="users.items.length > 0" class="records-shell">
-            <div class="record-grid compact-grid">
+            <div class="record-grid compact-grid users-grid">
               <article v-for="user in users.items" :key="user.userId" class="record-card compact-card user-record-card">
                 <div class="user-card-header">
                   <div class="user-card-identity">
@@ -761,7 +764,7 @@ watch(() => authState.adminAccessLevel, () => {
           <div v-else class="panel-empty-state">No user accounts match your current search.</div>
         </section>
 
-        <section v-if="activeTab === 'vehicles'" class="admin-panel table-panel">
+        <section v-if="activeTab === 'vehicles'" class="admin-panel table-panel vehicles-panel">
           <div class="panel-header split-header">
             <div>
               <h2>Vehicle Records</h2>
@@ -786,7 +789,7 @@ watch(() => authState.adminAccessLevel, () => {
               </div>
             </div>
 
-            <div class="record-grid compact-grid">
+            <div class="record-grid compact-grid vehicles-grid">
               <article v-for="vehicle in vehicles.items" :key="vehicle.carId" class="record-card compact-card selectable-card vehicle-record-card" :class="{ selected: isVehicleSelected(vehicle.carId) }">
                 <div class="record-selection-row">
                   <label class="selection-toggle">
@@ -839,7 +842,7 @@ watch(() => authState.adminAccessLevel, () => {
           <div v-else class="panel-empty-state">No vehicle records match your current search.</div>
         </section>
 
-        <section v-if="activeTab === 'flowcharts'" class="admin-panel table-panel">
+        <section v-if="activeTab === 'flowcharts'" class="admin-panel table-panel flowcharts-panel">
           <div class="panel-header split-header">
             <div>
               <h2>Flowchart Records</h2>
@@ -864,30 +867,32 @@ watch(() => authState.adminAccessLevel, () => {
               </div>
             </div>
 
-            <article v-for="record in flowcharts.items" :key="`${record.ownerUserId}:${record.flowchartId}`" class="record-card selectable-card" :class="{ selected: isFlowchartSelected(record) }">
-              <div class="record-selection-row">
-                <label class="selection-toggle">
-                  <input type="checkbox" :checked="isFlowchartSelected(record)" @change="toggleFlowchartSelection(record)" />
-                </label>
-              </div>
-
-              <div class="record-summary">
-                <div>
-                  <h3>{{ vehicleLabel(record.vehicle) || record.flowchartId }}</h3>
-                  <p>{{ record.ownerName || record.ownerUserId }} · {{ record.issues }}</p>
+            <div class="record-grid compact-grid flowcharts-grid">
+              <article v-for="record in flowcharts.items" :key="`${record.ownerUserId}:${record.flowchartId}`" class="record-card compact-card selectable-card flowchart-record-card" :class="{ selected: isFlowchartSelected(record) }">
+                <div class="record-selection-row">
+                  <label class="selection-toggle">
+                    <input type="checkbox" :checked="isFlowchartSelected(record)" @change="toggleFlowchartSelection(record)" />
+                  </label>
                 </div>
-                <div class="record-meta">
-                  <span>{{ record.responses?.length || 0 }} responses</span>
-                  <span>{{ formatDate(record.updatedAt) }}</span>
-                </div>
-              </div>
 
-              <div class="record-actions">
-                <button class="btn btn-outline-danger btn-sm compact-icon-button" title="Delete flowchart" aria-label="Delete flowchart" @click="deleteRecord('flowcharts', record)">
-                  <i class="pi pi-trash"></i>
-                </button>
-              </div>
-            </article>
+                <div class="record-summary flowchart-card-header">
+                  <div class="flowchart-card-identity">
+                    <h3>{{ vehicleLabel(record.vehicle) || record.flowchartId }}</h3>
+                    <p>{{ record.ownerName || record.ownerUserId }} · {{ record.issues }}</p>
+                  </div>
+                  <div class="record-meta flowchart-card-meta">
+                    <span>{{ record.responses?.length || 0 }} responses</span>
+                    <span>{{ formatDate(record.updatedAt) }}</span>
+                  </div>
+                </div>
+
+                <div class="record-actions compact-actions-row flowchart-card-actions">
+                  <button class="btn btn-outline-danger btn-sm compact-icon-button subtle-icon-button danger" title="Delete flowchart" aria-label="Delete flowchart" @click="deleteRecord('flowcharts', record)">
+                    <i class="pi pi-trash"></i>
+                  </button>
+                </div>
+              </article>
+            </div>
             <PaginationControls
               :page="flowcharts.page"
               :page-size="flowcharts.pageSize"
@@ -911,8 +916,8 @@ watch(() => authState.adminAccessLevel, () => {
             </div>
           </div>
           <div v-if="loading.audit" class="panel-loading">Loading audit history...</div>
-          <div v-else-if="auditLogs.items.length > 0" class="audit-list">
-            <article v-for="entry in auditLogs.items" :key="entry._id" class="audit-card">
+          <div v-else-if="auditLogs.items.length > 0" class="audit-list compact-grid audit-grid">
+            <article v-for="entry in auditLogs.items" :key="entry._id" class="audit-card compact-card">
               <div class="audit-header">
                 <strong>{{ entry.action }}</strong>
                 <span>{{ formatDate(entry.createdAt) }}</span>
@@ -989,7 +994,7 @@ watch(() => authState.adminAccessLevel, () => {
 }
 
 .hero-badge {
-  background: linear-gradient(135deg, #407bff, #6ba2ff);
+  background:  #407bff;
   color: #fff;
   border-radius: 999px;
   padding: 0.65rem 1rem;
@@ -1033,6 +1038,7 @@ watch(() => authState.adminAccessLevel, () => {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
+  scrollbar-width: thin;
 }
 
 .tab-button {
@@ -1042,6 +1048,8 @@ watch(() => authState.adminAccessLevel, () => {
   background: #fff;
   color: #274472;
   font-weight: 600;
+  min-height: 2.85rem;
+  white-space: nowrap;
 }
 
 .tab-button.active {
@@ -1079,8 +1087,13 @@ watch(() => authState.adminAccessLevel, () => {
 }
 
 .search-row {
+  display: flex;
   min-width: min(100%, 340px);
   max-width: 100%;
+}
+
+.search-row .form-control {
+  min-height: 2.85rem;
 }
 
 .form-grid {
@@ -1151,39 +1164,54 @@ label span {
 .records-shell {
   display: grid;
   gap: 1rem;
+  min-width: 0;
 }
 
 .record-grid {
   display: grid;
   gap: 0.9rem;
+  min-width: 0;
 }
 
 .compact-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+
+.users-grid,
+.vehicles-grid,
+.flowcharts-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .record-card,
 .editor-card,
 .audit-card {
-  padding: 1rem;
+  padding: 0.95rem;
 }
 
 .record-card {
   border: 1px solid #d9e4f4;
   border-radius: 16px;
   background: #f3f7fd;
+  min-width: 0;
 }
 
 .compact-card {
-  padding: 1.1rem;
+  padding: 0.95rem;
 }
 
 .user-record-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 208px;
-  background: linear-gradient(180deg, #f4f7fc 0%, #eef4fb 100%);
+  min-height: 0;
+  background: #eef4fb;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
@@ -1197,8 +1225,8 @@ label span {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 160px;
-  background: linear-gradient(180deg, #f4f7fc 0%, #edf3fb 100%);
+  min-height: 0;
+  background: #edf3fb;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
 }
 
@@ -1206,6 +1234,202 @@ label span {
   transform: translateY(-2px);
   border-color: #c9d8ee;
   box-shadow: 0 18px 30px rgba(39, 68, 114, 0.08);
+}
+
+.admin-record-card,
+.flowchart-record-card,
+.audit-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 0;
+  background: #eef4fb;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.flowchart-record-card {
+  height: 16.5rem;
+  overflow: hidden;
+}
+
+.admin-record-card:hover,
+.flowchart-record-card:hover,
+.audit-card:hover {
+  transform: translateY(-2px);
+  border-color: #c9d8ee;
+  box-shadow: 0 18px 30px rgba(39, 68, 114, 0.08);
+}
+
+.admin-card-header,
+.flowchart-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  background: transparent;
+}
+
+.admin-card-identity,
+.flowchart-card-identity {
+  min-width: 0;
+  flex: 1;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-card-identity h3,
+.flowchart-card-identity h3 {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.3;
+  color: #132238;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-card-identity p,
+.flowchart-card-identity p {
+  margin-top: 0.45rem;
+  margin-bottom: 0;
+  color: #607089;
+  line-height: 1.4;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  background: transparent;
+  box-shadow: none;
+}
+
+.admin-card-pill {
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.record-detail-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+}
+
+.admin-card-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid rgba(39, 68, 114, 0.09);
+  background: transparent;
+}
+
+.admin-card-footer {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 0.8rem;
+  background: transparent;
+}
+
+.record-detail-item {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  background: transparent;
+}
+
+.record-detail-item strong {
+  color: #132238;
+  overflow-wrap: anywhere;
+}
+
+.record-detail-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #607089;
+}
+
+.admin-card-actions,
+.flowchart-card-actions {
+  margin-top: 0.85rem;
+}
+
+.admin-card-button {
+  min-width: 0;
+  width: auto;
+  justify-self: end;
+  background: transparent;
+}
+
+.admin-card-protection {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.admin-card-userid strong {
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.flowchart-card-meta {
+  margin-top: 0.85rem;
+}
+
+.flowchart-card-header {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(6rem, 6rem) minmax(2.5rem, 2.5rem);
+  align-content: start;
+}
+
+.flowchart-card-actions {
+  margin-top: auto;
+  min-height: 3rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.1rem;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.flowchart-card-identity {
+  min-height: 6rem;
+}
+
+.flowchart-card-identity h3 {
+  min-height: 2.6rem;
+}
+
+.flowchart-card-identity p {
+  min-height: 3rem;
+}
+
+.flowchart-card-meta {
+  min-height: 2.5rem;
+  align-content: start;
+}
+
+.audit-grid .audit-card {
+  min-height: 0;
+}
+
+.audit-card {
+  gap: 0.85rem;
+}
+
+.audit-body {
+  display: grid;
+  gap: 0.35rem;
 }
 
 .user-card-header {
@@ -1225,18 +1449,22 @@ label span {
   font-size: 1rem;
   line-height: 1.3;
   color: #132238;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .user-card-email {
   margin-top: 0.45rem;
   color: #607089;
   line-height: 1.4;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .user-card-meta {
@@ -1262,12 +1490,18 @@ label span {
   font-size: 1.02rem;
   line-height: 1.3;
   color: #132238;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }
 
 .vehicle-card-trim {
   margin-top: 0.45rem;
   color: #607089;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .compact-card h3 {
@@ -1277,7 +1511,7 @@ label span {
 
 .compact-card p {
   margin-bottom: 0;
-  font-size: 0.9rem;
+  font-size: 0.86rem;
 }
 
 .compact-summary {
@@ -1295,6 +1529,8 @@ label span {
   gap: 0.75rem;
   flex-wrap: wrap;
   color: #4c5a70;
+  min-width: 0;
+  font-size: 0.82rem;
 }
 
 .record-secondary-meta {
@@ -1326,8 +1562,8 @@ label span {
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
-  margin-top: 1rem;
-  padding-top: 0.95rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
   border-top: 1px solid rgba(39, 68, 114, 0.09);
 }
 
@@ -1357,8 +1593,8 @@ label span {
   align-items: center;
   justify-content: flex-end;
   gap: 0.8rem;
-  margin-top: 0.7rem;
-  padding-top: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.8rem;
   border-top: 1px solid rgba(39, 68, 114, 0.09);
 }
 
@@ -1380,6 +1616,11 @@ label span {
   border: 1px solid #edf2fb;
   border-radius: 14px;
   background: #f8fbff;
+  flex-wrap: wrap;
+}
+
+.bulk-toolbar-actions {
+  flex-wrap: wrap;
 }
 
 .selection-toggle {
@@ -1436,7 +1677,7 @@ label span {
 }
 
 .compact-actions-row .btn {
-  flex: 1 1 5.5rem;
+  flex: 1 1 4.5rem;
   min-width: 0;
   padding: 0.38rem 0.6rem;
   font-size: 0.78rem;
@@ -1481,7 +1722,7 @@ label span {
 
 .audit-body {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.35rem;
 }
 
 .audit-actions {
@@ -1504,6 +1745,12 @@ label span {
 .btn {
   border-radius: 999px;
   font-weight: 600;
+}
+
+@media (max-width: 1199px) {
+  .compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 991px) {
@@ -1541,11 +1788,350 @@ label span {
   .admin-table td:last-child {
     width: auto;
   }
+
+  .search-row {
+    width: 100%;
+  }
+
+  .admin-card-header,
+  .flowchart-card-header,
+  .audit-header {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .users-panel .user-card-footer,
+  .vehicles-panel .vehicle-card-footer {
+    margin-top: 1.15rem;
+    align-items: flex-end;
+    justify-content: flex-end;
+  }
+
+  .users-panel .user-card-icon-actions,
+  .vehicles-panel .vehicle-card-icon-actions {
+    width: auto;
+    align-self: flex-end;
+    justify-content: flex-end;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .users-panel .user-card-icon-actions .btn,
+  .vehicles-panel .vehicle-card-icon-actions .btn {
+    flex: 0 0 auto;
+  }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
+  .admin-dashboard-page {
+    padding-bottom: 1.5rem;
+  }
+
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .admin-hero,
+  .admin-panel,
+  .summary-card,
+  .audit-card,
+  .record-card,
+  .editor-card {
+    border-radius: 16px;
+  }
+
+  .admin-panel,
+  .summary-card,
+  .audit-card,
+  .record-card,
+  .editor-card {
+    padding: 1rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .summary-value {
+    font-size: 1.7rem;
+  }
+
+  .admin-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    margin-left: -0.1rem;
+    margin-right: -0.1rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .tab-button {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+  }
+
+  .split-header {
+    gap: 1rem;
+  }
+
+  .panel-header {
+    margin-bottom: 0.9rem;
+  }
+
+  .search-row,
+  .search-row .form-control {
+    width: 100%;
+  }
+
+  .bulk-toolbar,
+  .bulk-toolbar-actions,
+  .record-selection-row,
+  .record-actions,
+  .editor-actions,
+  .audit-actions {
+    width: 100%;
+  }
+
+  .bulk-toolbar-actions,
+  .editor-actions,
+  .record-actions,
+  .audit-actions {
+    justify-content: stretch;
+  }
+
+  .bulk-toolbar-actions .btn,
+  .editor-actions .btn,
+  .record-actions .btn,
+  .audit-actions .btn,
+  .user-card-grant-button {
+    width: 100%;
+  }
+
+  .compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .users-panel .record-grid,
+  .vehicles-panel .record-grid,
+  .flowcharts-panel .record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .users-panel .record-card,
+  .vehicles-panel .record-card,
+  .flowcharts-panel .record-card {
+    padding: 0.85rem;
+    border-radius: 18px;
+    min-height: 10.5rem;
+  }
+
+  .flowcharts-panel .flowchart-record-card {
+    height: 15.5rem;
+  }
+
+  .user-card-header,
+  .user-card-footer,
+  .vehicle-card-footer,
+  .record-summary,
+  .audit-header {
+    gap: 0.85rem;
+  }
+
+  .admin-card-header,
+  .flowchart-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .admin-card-meta {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .users-panel .user-card-header,
+  .users-panel .user-card-footer,
+  .vehicles-panel .record-selection-row,
+  .vehicles-panel .vehicle-card-footer,
+  .flowcharts-panel .record-selection-row,
+  .flowcharts-panel .flowchart-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .users-panel .user-card-footer,
+  .vehicles-panel .vehicle-card-footer,
+  .flowcharts-panel .flowchart-card-actions {
+    margin-top: auto;
+  }
+
+  .users-panel .user-card-footer {
+    margin-top: 1.05rem;
+  }
+
+  .flowcharts-panel .flowchart-card-actions {
+    padding-top: 1rem;
+    min-height: 2.7rem;
+  }
+
+  .user-card-icon-actions,
+  .vehicle-card-icon-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .users-panel .user-card-icon-actions,
+  .vehicles-panel .vehicle-card-icon-actions,
+  .flowcharts-panel .flowchart-card-actions {
+    width: auto;
+    justify-content: flex-end;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    align-self: flex-end;
+  }
+
+  .user-card-icon-actions .btn,
+  .vehicle-card-icon-actions .btn {
+    flex: 1 1 0;
+  }
+
+  .users-panel .user-card-icon-actions .btn,
+  .vehicles-panel .vehicle-card-icon-actions .btn,
+  .flowcharts-panel .flowchart-card-actions .btn {
+    width: 2.35rem;
+    flex: 0 0 auto;
+  }
+
+  .record-meta {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .users-panel .record-meta,
+  .flowcharts-panel .record-meta {
+    justify-content: flex-start;
+  }
+
+  .users-panel .user-card-meta {
+    padding-bottom: 0.85rem;
+  }
+
+  .flowcharts-panel .flowchart-card-meta {
+    display: grid;
+    gap: 0.2rem;
+    margin-top: 0;
+    min-height: 2.35rem;
+  }
+
+  .users-panel .user-card-grant-button,
+  .vehicles-panel .bulk-toolbar-actions .btn,
+  .flowcharts-panel .bulk-toolbar-actions .btn {
+    width: 100%;
+  }
+
+  .admin-card-button {
+    width: 100%;
+    justify-self: stretch;
+  }
+}
+
+@media (max-width: 520px) {
+  .compact-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .users-panel .record-grid,
+  .vehicles-panel .record-grid,
+  .flowcharts-panel .record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  .record-card,
+  .compact-card,
+  .audit-card {
+    padding: 0.85rem;
+  }
+
+  .users-panel .record-card,
+  .vehicles-panel .record-card,
+  .flowcharts-panel .record-card {
+    padding: 0.8rem;
+    min-height: 10rem;
+  }
+
+  .flowcharts-panel .flowchart-record-card {
+    height: 14.75rem;
+  }
+
+  .user-card-grant-button {
+    padding: 0.48rem 0.72rem;
+    font-size: 0.76rem;
+  }
+
+  .compact-icon-button {
+    min-width: 2.15rem;
+    width: 2.15rem;
+    height: 2.1rem;
+  }
+
+  .record-detail-label,
+  .admin-card-protection,
+  .record-meta {
+    font-size: 0.74rem;
+  }
+
+  .admin-card-identity h3,
+  .flowchart-card-identity h3,
+  .user-card-identity h3,
+  .vehicle-card-identity h3 {
+    font-size: 0.92rem;
+  }
+
+  .admin-card-identity p,
+  .flowchart-card-identity p,
+  .user-card-email,
+  .vehicle-card-trim,
+  .compact-card p {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 420px) {
   .compact-grid {
     grid-template-columns: 1fr;
+  }
+
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .users-panel .record-grid,
+  .vehicles-panel .record-grid,
+  .flowcharts-panel .record-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .users-panel .record-card,
+  .vehicles-panel .record-card,
+  .flowcharts-panel .record-card {
+    min-height: 9.5rem;
+  }
+
+  .flowcharts-panel .flowchart-record-card {
+    height: 14.25rem;
   }
 
   .user-card-icon-actions {
@@ -1557,20 +2143,54 @@ label span {
     width: 100%;
     justify-content: flex-end;
   }
+
+  .users-panel .user-card-icon-actions,
+  .vehicles-panel .vehicle-card-icon-actions,
+  .flowcharts-panel .flowchart-card-actions {
+    width: auto;
+    justify-content: flex-end;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    align-self: flex-end;
+  }
+
+  .record-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .users-panel .record-meta,
+  .flowcharts-panel .record-meta {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .users-panel .user-card-meta {
+    padding-bottom: 0.7rem;
+  }
 }
 
 /* ── Dark mode ── */
 .dark-mode.admin-dashboard-page {
-  background: linear-gradient(180deg, #0f1623 0%, #111827 32%);
+  --color-surface: #162234;
+  --color-surface-raised: #1b2a40;
+  --color-border: #33465f;
+  --color-border-subtle: rgba(148, 163, 184, 0.16);
+  --color-text-primary: #e2e8f0;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #7b8da5;
+  --color-brand: #4f8cff;
+  background: linear-gradient(180deg, #0d1420 0%, #111a29 32%, #0f1726 100%);
 }
 
 .dark-mode .admin-empty-state,
 .dark-mode .admin-panel,
 .dark-mode .summary-card,
 .dark-mode .audit-card {
-  background: #1a2232;
-  border-color: rgba(64, 123, 255, 0.2);
-  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  background: #162234;
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.38);
 }
 
 .dark-mode h1,
@@ -1595,57 +2215,50 @@ label span {
   color: #e2e8f0;
 }
 
+.dark-mode .summary-card {
+  background: #162234;
+}
+
 .dark-mode label span {
   color: #94a3b8;
 }
 
 .dark-mode .form-control {
-  background: #0f1623;
-  border-color: #2d3f55;
+  background: #101928;
+  border-color: rgba(148, 163, 184, 0.18);
   color: #e2e8f0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .dark-mode .form-control::placeholder {
   color: #4a5a6e;
 }
 
+.dark-mode .form-control:focus {
+  border-color: rgba(79, 140, 255, 0.55);
+  box-shadow: 0 0 0 0.18rem rgba(79, 140, 255, 0.14);
+}
+
 .dark-mode .tab-button {
-  background: #1a2232;
-  border-color: rgba(64, 123, 255, 0.25);
-  color: #94a3b8;
+  background: rgba(22, 34, 52, 0.96);
+  border-color: rgba(148, 163, 184, 0.14);
+  color: #a9b8cb;
 }
 
 .dark-mode .tab-button.active {
-  background: #407bff;
+  background: #447fff;
   color: #fff;
-  border-color: #407bff;
+  border-color: transparent;
+  box-shadow: none;
 }
 
-.dark-mode .record-card,
-[data-theme="dark"] .record-card {
-  background: #1e2d42;
-  border-color: #2d3f55;
+.dark-mode .record-card {
+  background: #172438;
+  border-color: rgba(148, 163, 184, 0.12);
 }
 
-.dark-mode .user-card-header,
-.dark-mode .user-card-footer,
-.dark-mode .user-card-identity,
-.dark-mode .user-card-meta,
-.dark-mode .vehicle-card-header,
-.dark-mode .vehicle-card-identity,
-.dark-mode .vehicle-card-footer {
-  background: transparent;
-  border-color: inherit;
-}
-
-/* Override theme.css [class*="card-"] blanket background on all nested card-* elements */
-.dark-mode .record-card [class*="card-"] {
-  background: transparent;
-}
-
-.dark-mode .user-record-card,
-[data-theme="dark"] .user-record-card {
-  background: linear-gradient(180deg, #1e2d42 0%, #192538 100%);
+.dark-mode .user-record-card {
+  background: #172438;
 }
 
 .dark-mode .user-record-card:hover,
@@ -1654,9 +2267,14 @@ label span {
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
 }
 
-.dark-mode .vehicle-record-card,
-[data-theme="dark"] .vehicle-record-card {
-  background: linear-gradient(180deg, #1e2d42 0%, #192538 100%);
+.dark-mode .vehicle-record-card {
+  background: #172438;
+}
+
+.dark-mode .admin-record-card,
+.dark-mode .flowchart-record-card,
+.dark-mode .audit-card {
+  background: #172438;
 }
 
 .dark-mode .vehicle-record-card:hover,
@@ -1665,28 +2283,62 @@ label span {
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
 }
 
+.dark-mode .admin-record-card:hover,
+.dark-mode .flowchart-record-card:hover,
+.dark-mode .audit-card:hover {
+  border-color: #3a5070;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
+}
+
 .dark-mode .user-card-identity h3,
-.dark-mode .vehicle-card-identity h3 {
+.dark-mode .vehicle-card-identity h3,
+.dark-mode .admin-card-identity h3,
+.dark-mode .flowchart-card-identity h3 {
   color: #e2e8f0;
 }
 
+.dark-mode .admin-card-identity,
+.dark-mode .admin-card-identity h3,
+.dark-mode .admin-card-identity p {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .dark-mode .user-card-email,
-.dark-mode .vehicle-card-trim {
+.dark-mode .vehicle-card-trim,
+.dark-mode .admin-card-identity p,
+.dark-mode .flowchart-card-identity p,
+.dark-mode .record-detail-label {
   color: #7a8fa6;
 }
 
 .dark-mode .editor-card {
-  background: #162030;
-  border-color: #2d3f55;
+  background: #111b2b;
+  border-color: rgba(148, 163, 184, 0.12);
 }
 
 .dark-mode .bulk-toolbar {
-  background: #162030;
-  border-color: #2d3f55;
+  background: rgba(17, 27, 43, 0.92);
+  border-color: rgba(148, 163, 184, 0.12);
 }
 
 .dark-mode .selection-toggle {
   color: #94a3b8;
+}
+
+.dark-mode .admin-card-meta,
+.dark-mode .admin-card-footer,
+.dark-mode .user-card-footer,
+.dark-mode .vehicle-card-footer {
+  border-top-color: rgba(148, 163, 184, 0.12);
+}
+
+.dark-mode .admin-card-header,
+.dark-mode .admin-card-meta,
+.dark-mode .admin-card-footer,
+.dark-mode .record-detail-item {
+  background: transparent !important;
+  box-shadow: none;
 }
 
 .dark-mode .admin-table th,
@@ -1700,22 +2352,37 @@ label span {
 }
 
 .dark-mode .vehicle-card-usage {
-  background: rgba(255, 255, 255, 0.06);
-  color: #94a3b8;
-}
-
-.dark-mode .user-card-footer {
-  border-top-color: rgba(255, 255, 255, 0.07);
-}
-
-.dark-mode .vehicle-card-footer {
-  border-top-color: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.05);
+  color: #a5b4c7;
 }
 
 .dark-mode .subtle-icon-button {
-  border-color: rgba(64, 123, 255, 0.25);
-  background: transparent;
-  color: #94a3b8;
+  border-color: rgba(148, 163, 184, 0.16);
+  background: rgba(255, 255, 255, 0.03);
+  color: #b5c2d3;
+}
+
+.dark-mode .subtle-icon-button.danger {
+  border-color: rgba(220, 53, 69, 0.3);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark-mode .btn-outline-primary,
+.dark-mode .btn-outline-danger,
+.dark-mode .btn-secondary {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dark-mode .btn-outline-primary {
+  border-color: rgba(79, 140, 255, 0.28);
+  color: #8ab5ff;
+}
+
+.dark-mode .btn-outline-primary:hover,
+.dark-mode .btn-outline-primary:focus {
+  background: rgba(79, 140, 255, 0.12);
+  border-color: rgba(79, 140, 255, 0.42);
+  color: #dbeafe;
 }
 
 .dark-mode .subtle-icon-button:hover {
@@ -1724,26 +2391,37 @@ label span {
   color: #7fb3ff;
 }
 
-.dark-mode .subtle-icon-button.danger {
-  border-color: rgba(220, 53, 69, 0.3);
-  background: transparent;
-  color: #94a3b8;
+.dark-mode .btn-outline-danger {
+  border-color: rgba(248, 113, 113, 0.26);
+  color: #fca5a5;
 }
 
-.dark-mode .subtle-icon-button.danger:hover {
-  background: rgba(220, 53, 69, 0.3);
-  border-color: rgba(220, 53, 69, 0.6);
-  color: #ff8a8a;
+.dark-mode .admin-card-button {
+  background: transparent;
 }
+
+.dark-mode .btn-outline-danger:hover,
+.dark-mode .btn-outline-danger:focus {
+  background: rgba(248, 113, 113, 0.12);
+  border-color: rgba(248, 113, 113, 0.4);
+  color: #ffe4e6;
+}
+
+.dark-mode .btn-primary {
+  background: #447fff;
+  border-color: transparent;
+  box-shadow: none;
+}
+
 
 .dark-mode .pill {
-  background: rgba(64, 123, 255, 0.2);
-  color: #7fb3ff;
+  background: rgba(79, 140, 255, 0.18);
+  color: #98beff;
 }
 
 .dark-mode .pill-admin {
-  background: rgba(21, 163, 74, 0.2);
-  color: #4ade80;
+  background: rgba(34, 197, 94, 0.16);
+  color: #6ee7a2;
 }
 
 .dark-mode .audit-header {
@@ -1752,6 +2430,14 @@ label span {
 
 .dark-mode .audit-status {
   color: #4ade80;
+}
+
+.dark-mode .record-detail-item strong {
+  color: #e2e8f0;
+}
+
+.dark-mode .pagination-controls {
+  border-top-color: rgba(148, 163, 184, 0.12);
 }
 
 .dark-mode .selectable-card.selected {
