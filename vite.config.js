@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename)
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [vue(), mkcert()],
+  plugins: [vue(), ...(process.env.NODE_ENV !== 'production' ? [mkcert()] : [])],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -19,6 +19,12 @@ export default defineConfig({
     https: {
       host: 'localhost',
       port: 5173,
-        },
+    },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+      },
+    },
   }
 })

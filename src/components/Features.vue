@@ -1,147 +1,211 @@
 <script setup>
-import { themeColor } from "../items";
-const heading = "Features";
-const subHeading = "it fixes your car what else do you need to know";
+import { RouterLink } from 'vue-router';
+import { themeColor } from '../items';
 
-const advantages = [
+const steps = [
   {
-    name: "Vehicle Selecter",
-    des: "Select your vehicle from a wide range of makes and models to get accurate diagnostics and solutions tailored specifically for your car.",
+    num: '01',
+    title: 'Select Your Vehicle',
+    desc: 'Choose your year, make, model, and trim. CARit instantly checks for any active NHTSA safety recalls on your vehicle.',
+    route: '/VehicleInfo',
+    color: 'color-1',
   },
   {
-    name: "Service Responce",
-    des: "Our AI will ask questions to better understand the issue as well as create a tree report for you to follow!",
+    num: '02',
+    title: 'Describe the Problem',
+    desc: 'Type out what you\'re experiencing — strange noises, warning lights, or performance issues. The more detail, the better.',
+    route: null,
+    color: 'color-2',
   },
   {
-    name: "Easy Login",
-    des: "Easy login with multiple options including Google and Facebook! No more remembering passwords!",
+    num: '03',
+    title: 'Answer AI Questions',
+    desc: 'Our AI asks targeted follow-up questions to narrow down the root cause, just like a trained mechanic would.',
+    route: null,
+    color: 'color-3',
   },
   {
-    name: "Interesting Profile",
-    des: "Crashout button goes hard!",
+    num: '04',
+    title: 'Get Your Diagnostic Flowchart',
+    desc: 'Receive an interactive, step-by-step decision tree tailored to your vehicle and symptoms. Follow it to diagnose and fix the issue yourself.',
+    route: null,
+    color: 'color-4',
+  },
+];
+
+const features = [
+  {
+    title: 'AI-Powered Diagnostics',
+    desc: 'Google Gemini AI analyzes your symptoms and vehicle data to produce accurate, context-aware diagnostic guidance.',
+    color: 'color-1',
+    icon: 'brain',
+  },
+  {
+    title: 'NHTSA Recall Check',
+    desc: 'Automatically cross-references your vehicle against the official NHTSA database and flags any open safety recalls.',
+    color: 'color-2',
+    icon: 'shield',
+  },
+  {
+    title: 'Interactive Flowcharts',
+    desc: 'Tap any node in the flowchart to get detailed descriptions, repair tips, and additional context right in the sidebar.',
+    color: 'color-3',
+    icon: 'flowchart',
+  },
+  {
+    title: 'My Garage',
+    desc: 'Save all your vehicles in one place. Switch between them instantly when starting a new diagnostic session.',
+    color: 'color-4',
+    icon: 'garage',
+  },
+  {
+    title: 'Saved Flowcharts',
+    desc: 'Every diagnosis you run can be saved and revisited. Pick up where you left off or share results with your mechanic.',
+    color: 'color-1',
+    icon: 'save',
+  },
+  {
+    title: 'Easy Sign-In',
+    desc: 'Sign in with Google — no passwords to remember. Your garage and flowcharts are always synced and ready.',
+    color: 'color-2',
+    icon: 'login',
   },
 ];
 </script>
 
 <template>
-  <div class="untree_co-section">
+  <!-- ── Hero ── -->
+  <div class="features-hero">
     <div class="container">
-      <div class="row mb-4">
-        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
-          <h2 class="heading">{{ heading }}</h2>
-          <p>{{ subHeading }}</p>
+      <div class="row justify-content-center">
+        <div class="col-lg-8 text-center" data-aos="fade-up" data-aos-delay="0">
+          <div class="features-badge" :style="{ color: themeColor }">How It Works</div>
+          <h1 class="features-hero-title">Stop Guessing.<br>Start Fixing.</h1>
+          <p class="features-hero-sub">
+            CARit combines AI-powered diagnostics with real-world repair guidance —
+            so whether you're a seasoned mechanic or a first-time wrench-turner,
+            you'll know exactly what to do next.
+          </p>
+          <RouterLink to="/VehicleInfo" class="btn btn-primary" :style="{ background: themeColor, borderColor: themeColor, color: '#fff' }">
+            Try It Now
+          </RouterLink>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── How It Works Steps ── -->
+  <div class="untree_co-section steps-section">
+    <div class="container">
+      <div class="row mb-5">
+        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
+          <h2 class="heading">The Process</h2>
+          <p>Four steps from symptom to solution</p>
+        </div>
+      </div>
+
+      <div class="steps-track">
+        <div
+          v-for="(step, i) in steps"
+          :key="step.num"
+          class="step-card"
+          :data-aos="'fade-up'"
+          :data-aos-delay="i * 100"
+        >
+          <div class="step-num" :style="{ color: themeColor, borderColor: themeColor }">{{ step.num }}</div>
+          <div class="step-connector" v-if="i < steps.length - 1" :style="{ background: themeColor }"></div>
+          <h4 class="step-title">{{ step.title }}</h4>
+          <p class="step-desc">{{ step.desc }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Capabilities ── -->
+  <div class="untree_co-section capabilities-section">
+    <div class="container">
+      <div class="row mb-5">
+        <div class="col-12 text-center" data-aos="fade-up" data-aos-delay="0">
+          <h2 class="heading">What CARit Can Do</h2>
+          <p>Everything you need to diagnose, track, and fix your vehicles</p>
+        </div>
+      </div>
+
       <div class="row">
-        <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="100">
-          <div class="service horizontal d-flex">
-            <div class="service-icon color-1 mb-4">
-              <svg
-                class="bi bi-app-indicator"
-                width="1em"
-                height="1em"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M5.5 2A3.5 3.5 0 0 0 2 5.5v5A3.5 3.5 0 0 0 5.5 14h5a3.5 3.5 0 0 0 3.5-3.5V8a.5.5 0 0 1 1 0v2.5a4.5 4.5 0 0 1-4.5 4.5h-5A4.5 4.5 0 0 1 1 10.5v-5A4.5 4.5 0 0 1 5.5 1H8a.5.5 0 0 1 0 1H5.5z"
-                />
-                <path d="M16 3a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+        <div
+          v-for="(feat, i) in features"
+          :key="feat.title"
+          class="col-lg-4 col-md-6 mb-4"
+          :data-aos="'fade-up'"
+          :data-aos-delay="(i % 3) * 100"
+        >
+          <div class="feat-card">
+            <div class="feat-icon-wrap" :class="feat.color">
+              <!-- Brain / AI icon -->
+              <svg v-if="feat.icon === 'brain'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9.5 2a2.5 2.5 0 0 1 5 0"/>
+                <path d="M9.5 2C7 2 5 4 5 6.5c0 1-.3 1.9-.8 2.6A3.5 3.5 0 0 0 5 15c0 .9.2 1.7.6 2.4A3 3 0 0 0 8 21h8a3 3 0 0 0 2.4-1.6c.4-.7.6-1.5.6-2.4a3.5 3.5 0 0 0-.8-6.9c-.5-.7-.8-1.6-.8-2.6C17.5 4 15.5 2 13 2"/>
+                <line x1="12" y1="9" x2="12" y2="14"/>
+                <line x1="9.5" y1="11.5" x2="14.5" y2="11.5"/>
+              </svg>
+              <!-- Shield / Recall icon -->
+              <svg v-else-if="feat.icon === 'shield'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <polyline points="9 12 11 14 15 10"/>
+              </svg>
+              <!-- Flowchart icon -->
+              <svg v-else-if="feat.icon === 'flowchart'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="6" height="4" rx="1"/>
+                <rect x="15" y="3" width="6" height="4" rx="1"/>
+                <rect x="9" y="17" width="6" height="4" rx="1"/>
+                <line x1="6" y1="7" x2="6" y2="12"/>
+                <line x1="18" y1="7" x2="18" y2="12"/>
+                <line x1="6" y1="12" x2="18" y2="12"/>
+                <line x1="12" y1="12" x2="12" y2="17"/>
+              </svg>
+              <!-- Garage / Car icon -->
+              <svg v-else-if="feat.icon === 'garage'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h13l4 4v4a2 2 0 0 1-2 2h-2"/>
+                <circle cx="7.5" cy="17.5" r="2.5"/>
+                <circle cx="17.5" cy="17.5" r="2.5"/>
+              </svg>
+              <!-- Save icon -->
+              <svg v-else-if="feat.icon === 'save'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <!-- Login icon -->
+              <svg v-else-if="feat.icon === 'login'" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                <polyline points="10 17 15 12 10 7"/>
+                <line x1="15" y1="12" x2="3" y2="12"/>
               </svg>
             </div>
-            <div class="service-contents">
-              <h3>{{ advantages[0].name }}</h3>
-              <p>{{ advantages[0].des }}</p>
-              <p>
-              </p>
-            </div>
+            <h4 class="feat-title">{{ feat.title }}</h4>
+            <p class="feat-desc">{{ feat.desc }}</p>
           </div>
         </div>
-        <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="200">
-          <div class="service horizontal d-flex">
-            <div class="service-icon color-2 mb-4">
-              <svg
-                class="bi bi-arrow-repeat"
-                width="1em"
-                height="1em"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M2.854 7.146a.5.5 0 0 0-.708 0l-2 2a.5.5 0 1 0 .708.708L2.5 8.207l1.646 1.647a.5.5 0 0 0 .708-.708l-2-2zm13-1a.5.5 0 0 0-.708 0L13.5 7.793l-1.646-1.647a.5.5 0 0 0-.708.708l2 2a.5.5 0 0 0 .708 0l2-2a.5.5 0 0 0 0-.708z"
-                />
-                <path
-                  fill-rule="evenodd"
-                  d="M8 3a4.995 4.995 0 0 0-4.192 2.273.5.5 0 0 1-.837-.546A6 6 0 0 1 14 8a.5.5 0 0 1-1.001 0 5 5 0 0 0-5-5zM2.5 7.5A.5.5 0 0 1 3 8a5 5 0 0 0 9.192 2.727.5.5 0 1 1 .837.546A6 6 0 0 1 2 8a.5.5 0 0 1 .501-.5z"
-                />
-              </svg>
-            </div>
-            <div class="service-contents">
-              <h3>{{ advantages[1].name }}</h3>
-              <p>{{ advantages[1].des }}</p>
-              <p>
-                >
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="300">
-          <div class="service horizontal d-flex">
-            <div class="service-icon color-3 mb-4">
-              <svg
-                class="bi bi-briefcase"
-                width="1em"
-                height="1em"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M0 12.5A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-6h-1v6a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-6H0v6z"
-                />
-                <path
-                  fill-rule="evenodd"
-                  d="M0 4.5A1.5 1.5 0 0 1 1.5 3h13A1.5 1.5 0 0 1 16 4.5v2.384l-7.614 2.03a1.5 1.5 0 0 1-.772 0L0 6.884V4.5zM1.5 4a.5.5 0 0 0-.5.5v1.616l6.871 1.832a.5.5 0 0 0 .258 0L15 6.116V4.5a.5.5 0 0 0-.5-.5h-13zM5 2.5A1.5 1.5 0 0 1 6.5 1h3A1.5 1.5 0 0 1 11 2.5V3h-1v-.5a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5V3H5v-.5z"
-                />
-              </svg>
-            </div>
-            <div class="service-contents">
-              <h3>{{ advantages[2].name }}</h3>
-              <p>{{ advantages[2].des }}</p>
-              <p>
-              </p>
-            </div>
-          </div>
-        </div>
-        <div class="col-lg-6 mb-4" data-aos="fade-up" data-aos-delay="400">
-          <div class="service horizontal d-flex">
-            <div class="service-icon color-4 mb-4">
-              <svg
-                class="bi bi-collection"
-                width="1em"
-                height="1em"
-                viewBox="0 0 16 16"
-                fill="currentColor"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M14.5 13.5h-13A.5.5 0 0 1 1 13V6a.5.5 0 0 1 .5-.5h13a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-.5.5zm-13 1A1.5 1.5 0 0 1 0 13V6a1.5 1.5 0 0 1 1.5-1.5h13A1.5 1.5 0 0 1 16 6v7a1.5 1.5 0 0 1-1.5 1.5h-13zM2 3a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 0-1h-11A.5.5 0 0 0 2 3zm2-2a.5.5 0 0 0 .5.5h7a.5.5 0 0 0 0-1h-7A.5.5 0 0 0 4 1z"
-                />
-              </svg>
-            </div>
-            <div class="service-contents">
-              <h3>{{ advantages[3].name }}</h3>
-              <p>{{ advantages[3].des }}</p>
-              <p>
-              </p>
-            </div>
-          </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA ── -->
+  <div class="features-cta-section">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-7 text-center" data-aos="fade-up" data-aos-delay="0">
+          <h2 class="features-cta-title">Ready to diagnose your car?</h2>
+          <p class="features-cta-sub">
+            It takes less than a minute to get started. Select your vehicle and let the AI do the heavy lifting.
+          </p>
+          <RouterLink
+            to="/VehicleInfo"
+            class="btn btn-primary"
+            :style="{ background: themeColor, borderColor: themeColor, color: '#fff' }"
+          >
+            Start Diagnosis
+          </RouterLink>
         </div>
       </div>
     </div>
@@ -149,80 +213,180 @@ const advantages = [
 </template>
 
 <style scoped>
-@media (max-width: 767px) {
-  .untree_co-section {
-    padding-top: 3rem;
-    padding-bottom: 3rem;
+/* ── Hero ── */
+.features-hero {
+  background: var(--color-bg-subtle);
+  padding: 100px 0 80px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.features-badge {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+}
+
+.features-hero-title {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.15;
+  margin-bottom: 20px;
+}
+
+.features-hero-sub {
+  font-size: 1.05rem;
+  color: var(--color-text-muted);
+  max-width: 560px;
+  margin: 0 auto 32px;
+}
+
+/* ── Steps ── */
+.steps-section {
+  background: var(--color-bg);
+}
+
+.steps-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  position: relative;
+}
+
+.step-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 32px 24px;
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.step-card:hover {
+  box-shadow: 0 8px 28px var(--color-card-shadow);
+  transform: translateY(-3px);
+}
+
+.step-num {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+  border: 2px solid;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.step-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 10px;
+}
+
+.step-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Arrow connector between steps (hidden on small screens) */
+.step-connector {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .steps-track {
+    grid-template-columns: repeat(4, 1fr);
   }
 
-  .row.mb-4 {
-    margin-bottom: 2rem !important;
-  }
-
-  .service.horizontal {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.9rem;
-    padding: 1.1rem;
-    height: 100%;
-    border-radius: 1rem;
-    background: var(--color-surface, #ffffff);
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-  }
-
-  .service-icon {
-    margin-bottom: 0 !important;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 3.25rem;
-    height: 3.25rem;
-    border-radius: 0.9rem;
-    flex-shrink: 0;
-  }
-
-  .service-icon svg {
-    width: 1.4rem;
-    height: 1.4rem;
-  }
-
-  .service-contents {
-    width: 100%;
-  }
-
-  .service-contents h3 {
-    margin-bottom: 0.5rem;
-    font-size: 1.05rem;
-    line-height: 1.35;
-  }
-
-  .service-contents p {
-    margin-bottom: 0.75rem;
-    line-height: 1.6;
-  }
-
-  .service-contents p:last-child {
-    margin-bottom: 0;
+  .step-connector {
+    display: block;
+    position: absolute;
+    top: 60px;
+    right: -14px;
+    width: 24px;
+    height: 2px;
+    opacity: 0.35;
+    z-index: 1;
   }
 }
 
-@media (max-width: 575px) {
-  .col-lg-6.mb-4 {
-    margin-bottom: 1rem !important;
-  }
+/* ── Feature Cards ── */
+.capabilities-section {
+  background: var(--color-bg-subtle);
+}
 
-  .service.horizontal {
-    padding: 1rem;
-    border-radius: 0.9rem;
-  }
+.feat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  height: 100%;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
 
-  .service-contents h3 {
-    font-size: 1rem;
-  }
+.feat-card:hover {
+  box-shadow: 0 8px 28px var(--color-card-shadow);
+  transform: translateY(-3px);
+}
 
-  .service-contents p {
-    font-size: 0.95rem;
-  }
+.feat-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+/* Reuse the existing color-N palette from the framework */
+.feat-icon-wrap.color-1 { background: rgba(64, 123, 255, 0.12); color: #407BFF; }
+.feat-icon-wrap.color-2 { background: rgba(255, 87, 119, 0.12); color: #ff5777; }
+.feat-icon-wrap.color-3 { background: rgba(255, 173, 51, 0.12); color: #ffad33; }
+.feat-icon-wrap.color-4 { background: rgba(52, 199, 89,  0.12); color: #34c759; }
+
+.feat-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 10px;
+}
+
+.feat-desc {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── CTA ── */
+.features-cta-section {
+  background: var(--color-bg);
+  padding: 80px 0 100px;
+  border-top: 1px solid var(--color-border);
+}
+
+.features-cta-title {
+  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.features-cta-sub {
+  font-size: 1rem;
+  color: var(--color-text-muted);
+  max-width: 480px;
+  margin: 0 auto 28px;
 }
 </style>

@@ -28,7 +28,8 @@ import {
   listFlowchartsForAdmin,
   restoreFlowchartRecordForAdmin,
   deleteFlowchartForAdmin,
-  restoreUserRecordForAdmin
+  restoreUserRecordForAdmin,
+  addFlowchartInstruction
 } from './user.js';
 import { client } from './mongo.js';
 import { getResponse, generateQuestionsPrompt } from './genai.js';
@@ -64,8 +65,21 @@ const app = express();
 app.use(express.json({ limit: '10mb' }));
 
 // Enable CORS
+const allowedOrigins = [
+  process.env.FRONTEND_URL || 'https://car-it-spring-26.vercel.app',
+  'http://localhost:5173',
+  'https://localhost:5173'
+];
 app.use(cors({
-  origin: 'https://localhost:5173', // Allow requests from your Vue dev server
+  origin: (origin, callback) => {
+    // Allow requests with no origin (e.g. mobile apps, curl)
+    const normalizedOrigin = origin ? origin.replace(/\/+$/, '') : origin;
+    if (!normalizedOrigin || allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    }
+  },
   credentials: true // If you’re using cookies or Authorization headers
 }));
 
@@ -121,7 +135,6 @@ function getRequestUserId(req) {
     res.send('Server is running!');
   });
 
-
   app.post('/api/create-user', validateAuth, async (req, res) => {
     try {
       const userId = getRequestUserId(req);
@@ -170,6 +183,31 @@ function getRequestUserId(req) {
   app.get('/api/get-flowcharts', validateAuth, async (req, res) => {
     const flowcharts = await getFlowcharts(getRequestUserId(req));
     res.send(flowcharts);
+  });
+
+  // Append a saved instruction to a specific flowchart for the current user
+  app.post('/api/flowcharts/:flowchartId/instructions', validateAuth, async (req, res) => {
+    try {
+      const userId = getRequestUserId(req);
+      const { flowchartId } = req.params;
+      const { type, nodeId, nodeLabel, question, answer } = req.body || {};
+      const result = await addFlowchartInstruction(userId, flowchartId, {
+        type,
+        nodeId,
+        nodeLabel,
+        question,
+        answer
+      });
+
+      if (typeof result === 'string') {
+        return res.status(400).json({ success: false, message: result });
+      }
+
+      res.json({ success: true, instruction: result.instruction });
+    } catch (err) {
+      console.error('Error saving instruction:', err);
+      res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
   });
 
   app.post('/api/delete-flowchart', validateAuth, async (req, res) => {

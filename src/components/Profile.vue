@@ -299,6 +299,17 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   }
 });
 
+// Helpers for UI labels
+function getVehicleDisplayName(vehicle = {}) {
+  const { year, make, model, trim } = vehicle || {};
+  const base = [year, make, model].filter(Boolean).join(' ');
+  if (base && trim) return `${base} - ${trim}`;
+  if (base) return base;
+  return trim || 'Unknown vehicle';
+}
+
+
+
 </script>
 
 <template>
@@ -374,6 +385,8 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
         <!-- ===== Garage Section ===== -->
         <MyGarage :editable="true" class="mb-5" />
+
+        
 
       </div>
     </div>
@@ -603,6 +616,8 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
   color: var(--color-text-muted);
   margin: 0;
 }
+
+/* Instructions styles removed from Profile; now shown on Flowchart page */
 
 /* ===== Carousel ===== */
 .carousel-section {

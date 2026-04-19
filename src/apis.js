@@ -1,4 +1,4 @@
-import { getToken, refreshAdminStatus } from './auth.js';
+import { getToken } from './auth.js';
 import axios from 'axios'
 
 async function buildHeaders() {
@@ -12,64 +12,47 @@ async function buildHeaders() {
   return headers;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 async function serverGet(endpoint, params) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   const config = { headers: await buildHeaders() };
   if (params) config.params = params;
   try {
     const response = await axios.get(url, config);
     return response.data;
   } catch (err) {
-    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
 
 async function serverPost(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.post(url, data, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
-    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
 
 async function serverPatch(endpoint, data) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.patch(url, data, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
-    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
   }
 }
 
 async function serverDelete(endpoint) {
-  const url = `http://localhost:3000/api/${endpoint}`;
+  const url = `${API_BASE_URL}/api/${endpoint}`;
   try {
     const response = await axios.delete(url, { headers: await buildHeaders() });
     return response.data;
   } catch (err) {
-    await refreshAdminStatusIfNeeded(endpoint, err);
     throw normalizeApiError(err);
-  }
-}
-
-async function refreshAdminStatusIfNeeded(endpoint, err) {
-  const status = err?.response?.status;
-  const isAdminEndpoint = endpoint === 'admin/status' || endpoint.startsWith('admin/');
-
-  if (!isAdminEndpoint || (status !== 401 && status !== 403)) {
-    return;
-  }
-
-  try {
-    await refreshAdminStatus({ suppressErrors: true, force: true });
-  } catch {
-    // Intentionally ignore refresh failures and preserve the original API error.
   }
 }
 
@@ -96,6 +79,11 @@ export async function getFlowchart(vehicle, issues, responses) {
 
 export async function getSavedFlowcharts() {
   return serverGet('get-flowcharts');
+}
+
+export async function saveFlowchartInstruction(flowchartId, payload) {
+  if (!flowchartId) throw new Error('flowchartId is required');
+  return serverPost(`flowcharts/${encodeURIComponent(flowchartId)}/instructions`, payload);
 }
 
 export async function getUserData() {

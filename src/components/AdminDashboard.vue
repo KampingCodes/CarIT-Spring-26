@@ -1688,11 +1688,13 @@ label span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex: 0 0 auto;
-  min-width: 2.5rem;
-  width: 2.5rem;
-  height: 2.35rem;
-  padding: 0;
+  flex: 0 0 auto !important;
+  width: 2.5rem !important;
+  min-width: 2.5rem !important;
+  height: 2.5rem !important;
+  min-height: 2.5rem !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
 }
 
 .compact-icon-button .pi {
@@ -1701,12 +1703,12 @@ label span {
 
 .subtle-icon-button {
   border-color: rgba(64, 123, 255, 0.18);
-  background: rgba(255, 255, 255, 0.78);
+  background: transparent;
 }
 
 .subtle-icon-button.danger {
   border-color: rgba(220, 53, 69, 0.18);
-  background: rgba(255, 255, 255, 0.78);
+  background: transparent;
 }
 
 .actions-cell .btn {
@@ -2259,7 +2261,8 @@ label span {
   background: #172438;
 }
 
-.dark-mode .user-record-card:hover {
+.dark-mode .user-record-card:hover,
+[data-theme="dark"] .user-record-card:hover {
   border-color: #3a5070;
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
 }
@@ -2274,7 +2277,8 @@ label span {
   background: #172438;
 }
 
-.dark-mode .vehicle-record-card:hover {
+.dark-mode .vehicle-record-card:hover,
+[data-theme="dark"] .vehicle-record-card:hover {
   border-color: #3a5070;
   box-shadow: 0 18px 30px rgba(0, 0, 0, 0.3);
 }
@@ -2381,6 +2385,12 @@ label span {
   color: #dbeafe;
 }
 
+.dark-mode .subtle-icon-button:hover {
+  background: rgba(64, 123, 255, 0.25);
+  border-color: rgba(64, 123, 255, 0.5);
+  color: #7fb3ff;
+}
+
 .dark-mode .btn-outline-danger {
   border-color: rgba(248, 113, 113, 0.26);
   color: #fca5a5;
@@ -2433,5 +2443,18 @@ label span {
 .dark-mode .selectable-card.selected {
   border-color: rgba(64, 123, 255, 0.5);
   box-shadow: 0 12px 24px rgba(64, 123, 255, 0.15);
+}
+
+/* Flowchart record delete button — no subtle-icon-button class, boost visibility in dark mode */
+.dark-mode .record-actions .compact-icon-button:not(.subtle-icon-button) {
+  border-color: rgba(220, 53, 69, 0.3);
+  background: transparent;
+  color: #94a3b8;
+}
+
+.dark-mode .record-actions .compact-icon-button:not(.subtle-icon-button):hover {
+  background: rgba(220, 53, 69, 0.3);
+  border-color: rgba(220, 53, 69, 0.6);
+  color: #ff8a8a;
 }
 </style>

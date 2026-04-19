@@ -74,13 +74,26 @@ function extractMermaidCode(flowchartResponse = '') {
     return '';
   }
 
+  // Match ```mermaid ... ``` (preferred)
   const mermaidMatch = flowchartResponse.match(/```mermaid\s*([\s\S]*?)```/i);
   if (mermaidMatch) {
     return mermaidMatch[1].trim();
   }
 
+  // Match plain ``` ... ``` block that contains a graph TD declaration
+  const plainCodeMatch = flowchartResponse.match(/```[^\S\r\n]*\r?\n([\s\S]*?)```/i);
+  if (plainCodeMatch && /graph\s+TD/i.test(plainCodeMatch[1])) {
+    return plainCodeMatch[1].trim();
+  }
+
+  // Match bare graph TD block anywhere in the response
+  const graphMatch = flowchartResponse.match(/(graph\s+TD[\s\S]*?)(?:\n\n|$)/i);
+  if (graphMatch) {
+    return graphMatch[1].trim();
+  }
+
   const trimmed = flowchartResponse.trim();
-  if (trimmed.startsWith('graph TD')) {
+  if (/^graph\s+TD/i.test(trimmed)) {
     return trimmed;
   }
 
