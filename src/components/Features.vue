@@ -2,7 +2,6 @@
 import { themeColor } from "../items";
 const heading = "Features";
 const subHeading = "it fixes your car what else do you need to know";
-const buttonLearnMore = "Learn More";
 
 const advantages = [
   {
@@ -56,12 +55,6 @@ const advantages = [
               <h3>{{ advantages[0].name }}</h3>
               <p>{{ advantages[0].des }}</p>
               <p>
-                <a
-                  href="#"
-                  class="read-more"
-                  :style="[{ color: themeColor }]"
-                  >{{ buttonLearnMore }}</a
-                >
               </p>
             </div>
           </div>
@@ -91,11 +84,6 @@ const advantages = [
               <h3>{{ advantages[1].name }}</h3>
               <p>{{ advantages[1].des }}</p>
               <p>
-                <a
-                  href="#"
-                  class="read-more"
-                  :style="[{ color: themeColor }]"
-                  >{{ buttonLearnMore }}</a
                 >
               </p>
             </div>
@@ -126,12 +114,6 @@ const advantages = [
               <h3>{{ advantages[2].name }}</h3>
               <p>{{ advantages[2].des }}</p>
               <p>
-                <a
-                  href="#"
-                  class="read-more"
-                  :style="[{ color: themeColor }]"
-                  >{{ buttonLearnMore }}</a
-                >
               </p>
             </div>
           </div>
@@ -157,12 +139,6 @@ const advantages = [
               <h3>{{ advantages[3].name }}</h3>
               <p>{{ advantages[3].des }}</p>
               <p>
-                <a
-                  href="#"
-                  class="read-more"
-                  :style="[{ color: themeColor }]"
-                  >{{ buttonLearnMore }}</a
-                >
               </p>
             </div>
           </div>
@@ -171,3 +147,82 @@ const advantages = [
     </div>
   </div>
 </template>
+
+<style scoped>
+@media (max-width: 767px) {
+  .untree_co-section {
+    padding-top: 3rem;
+    padding-bottom: 3rem;
+  }
+
+  .row.mb-4 {
+    margin-bottom: 2rem !important;
+  }
+
+  .service.horizontal {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1.1rem;
+    height: 100%;
+    border-radius: 1rem;
+    background: var(--color-surface, #ffffff);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  }
+
+  .service-icon {
+    margin-bottom: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .service-icon svg {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  .service-contents {
+    width: 100%;
+  }
+
+  .service-contents h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.05rem;
+    line-height: 1.35;
+  }
+
+  .service-contents p {
+    margin-bottom: 0.75rem;
+    line-height: 1.6;
+  }
+
+  .service-contents p:last-child {
+    margin-bottom: 0;
+  }
+}
+
+@media (max-width: 575px) {
+  .col-lg-6.mb-4 {
+    margin-bottom: 1rem !important;
+  }
+
+  .service.horizontal {
+    padding: 1rem;
+    border-radius: 0.9rem;
+  }
+
+  .service-contents h3 {
+    font-size: 1rem;
+  }
+
+  .service-contents p {
+    font-size: 0.95rem;
+  }
+}
+</style>

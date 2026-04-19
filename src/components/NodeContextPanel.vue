@@ -277,6 +277,7 @@ function formatAnswer(text = '') {
 }
 
 .node-context-panel {
+  position: relative;
   width: min(780px, 100%);
   max-height: min(88vh, 900px);
   overflow: auto;
@@ -296,6 +297,7 @@ function formatAnswer(text = '') {
 
 .node-context-header {
   margin-bottom: 1rem;
+  padding-right: 3rem;
 }
 
 .node-context-label {
@@ -317,11 +319,26 @@ function formatAnswer(text = '') {
 }
 
 .node-context-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
   border: none;
   background: transparent;
   font-size: 1.75rem;
   line-height: 1;
   color: #4b5563;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.node-context-close:hover {
+  background: rgba(148, 163, 184, 0.16);
 }
 
 .node-context-close:focus {
@@ -338,6 +355,15 @@ function formatAnswer(text = '') {
   .node-context-footer {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .node-context-header {
+    padding-right: 2.75rem;
+  }
+
+  .node-context-close {
+    top: 0.85rem;
+    right: 0.85rem;
   }
 }
 
@@ -363,6 +389,7 @@ function formatAnswer(text = '') {
   display: flex;
   gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .node-context-primary {
@@ -392,6 +419,12 @@ function formatAnswer(text = '') {
 
 .node-context-hint {
   color: #6c757d;
+}
+
+@media (max-width: 576px) {
+  .node-context-actions {
+    align-items: flex-start;
+  }
 }
 
 .node-context-error {

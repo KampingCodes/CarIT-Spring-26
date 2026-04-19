@@ -164,7 +164,7 @@ watch(() => themeStore.isDark, async () => {
 </script>
 
 <template>
-  <div class="untree_co-home" id="home-section">
+  <div class="untree_co-home flowchart-page" id="home-section">
     <ConfirmDialog ref="confirmDialog" />
     <div class="container">
       <div class="row align-items-start">
@@ -275,6 +275,12 @@ watch(() => themeStore.isDark, async () => {
 </template>
 
 <style scoped>
+.flowchart-page,
+.flowchart-page > .container > .row {
+  padding-top: 4.5rem;
+  min-height: auto;
+}
+
 .carousel-section {
   margin-top: 2rem;
 }
@@ -488,6 +494,11 @@ watch(() => themeStore.isDark, async () => {
 }
 
 @media (max-width: 768px) {
+  .flowchart-page,
+  .flowchart-page > .container > .row {
+    padding-top: 2rem;
+  }
+
   .carousel-btn {
     display: none;
   }

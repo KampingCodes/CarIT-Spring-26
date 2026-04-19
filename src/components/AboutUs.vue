@@ -119,6 +119,10 @@ const rows2 = chunkArray(members2, 2);
 }
 
 @media (max-width: 767.98px) {
+  .untree_co-section#about-section {
+    padding-top: 3rem;
+  }
+
   .member-photo {
     width: 90px;
     height: 90px;

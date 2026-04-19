@@ -365,6 +365,7 @@ svg *,
   background: #407BFF;
   border-color: #407BFF;
   color: #ffffff !important;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .btn.btn-primary:hover,
@@ -372,6 +373,7 @@ svg *,
   background: #2e65e0;
   border-color: #2e65e0;
   color: #ffffff !important;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .btn.btn-outline-primary,
@@ -564,7 +566,6 @@ svg *,
 /* Generic card-style containers */
 [data-theme="dark"] .card,
 [data-theme="dark"] [class*="card-"] {
-  background: var(--color-card-bg);
   border-color: var(--color-border);
 }
 

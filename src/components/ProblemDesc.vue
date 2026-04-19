@@ -109,4 +109,31 @@ function submitProblem() {
   background: #0056b3;
   border-color: #0056b3;
 }
+
+@media (max-width: 768px) {
+  .untree_co-section#features-section {
+    padding-top: 3rem;
+  }
+
+  .problem-desc-offset {
+    margin-top: 0.75rem;
+  }
+
+  .vehicle-blue {
+    font-size: 1.55rem;
+    margin-bottom: 1rem;
+  }
+
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 8.5rem;
+    font-size: 0.95rem;
+    padding: 0.65rem 1.5rem;
+    border-radius: 1.35rem;
+    margin-left: 0;
+  }
+}
 </style>

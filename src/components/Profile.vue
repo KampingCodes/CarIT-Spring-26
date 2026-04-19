@@ -827,6 +827,22 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
 
 /* ===== Mobile Improvements ===== */
 @media (max-width: 768px) {
+  .container.untree_co-section {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .profile-layout {
+    gap: 1rem;
+  }
+
+  .profile-sidebar,
+  .profile-content {
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+    box-sizing: border-box;
+  }
+
   .profile-card {
     padding: 1.25rem 0.75rem;
   }

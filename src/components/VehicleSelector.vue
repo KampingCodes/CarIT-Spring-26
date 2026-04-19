@@ -395,9 +395,9 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
   .vin-decode-btn {
     width: 100%;
-    min-height: 44px;
-    font-size: 14px;
-    padding: 0.5rem 1rem;
+    min-height: 40px;
+    font-size: 0.78rem;
+    padding: 0.42rem 0.9rem;
   }
 
   .vin-input-section h6 {
@@ -443,8 +443,9 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   }
 
   .vin-decode-btn {
-    padding: 0.3rem 0.5rem;
-    font-size: 0.75rem;
+    min-height: 38px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.72rem;
   }
 
   .vin-input-wrapper {

@@ -180,8 +180,9 @@ function scrollToHighlighted() {
   right: 0;
   max-height: 200px;
   overflow-y: auto;
-  background: #fff;
-  border: 1px solid #ced4da;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #0d0d14);
+  border: 1px solid var(--color-border, #ced4da);
   border-top: none;
   border-radius: 0 0 0.375rem 0.375rem;
   list-style: none;
@@ -196,11 +197,13 @@ function scrollToHighlighted() {
   min-height: 44px;
   display: flex;
   align-items: center;
+  background: transparent;
+  color: var(--color-text-primary, #0d0d14);
 }
 .ss-dropdown li:hover,
 .ss-dropdown li.ss-highlighted {
-  background: #407BFF;
-  color: #fff;
+  background: var(--color-brand-light, rgba(64, 123, 255, 0.1));
+  color: var(--color-brand, #407BFF);
 }
 .ss-invalid {
   border-color: #dc3545 !important;
