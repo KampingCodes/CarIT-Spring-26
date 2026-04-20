@@ -195,7 +195,7 @@ watch(garage, (cars) => {
           </div>
           <div v-if="editable" class="d-flex gap-2">
             <button class="btn btn-outline-primary btn-sm" @click.stop="openEditForm(car)">Edit</button>
-            <button class="btn btn-outline-danger btn-sm" @click.stop="promptDelete(car._id)">Remove</button>
+            <button class="btn btn-outline-danger btn-sm garage-remove-btn" @click.stop="promptDelete(car._id)">Remove</button>
           </div>
           <div v-else-if="selectable && selectedCarId === car._id">
             <span class="badge bg-primary">Selected</span>
@@ -333,6 +333,10 @@ watch(garage, (cars) => {
   padding: 6px 14px;
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+[data-theme="dark"] .garage-remove-btn {
+  color: #fff;
 }
 
 /* Badge styling */
