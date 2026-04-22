@@ -1,4 +1,4 @@
-const EXPERIENCE_LEVELS = ['Beginner', 'Intermediate', 'Expert'];
+
 const ACCESS_LEVELS = ['admin', 'superadmin'];
 
 export function getFields(obj = {}, fields = []) {
@@ -22,15 +22,6 @@ export function normalizeText(value, maxLength = 250) {
 export function normalizeOptionalText(value, maxLength = 250) {
   const normalized = normalizeText(value, maxLength);
   return normalized || null;
-}
-
-export function normalizeExperienceLevel(value) {
-  if (value === null || value === undefined || value === '') {
-    return null;
-  }
-
-  const normalized = normalizeText(value, 32);
-  return EXPERIENCE_LEVELS.includes(normalized) ? normalized : null;
 }
 
 export function normalizeAccessLevel(value) {
