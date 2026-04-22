@@ -7,7 +7,9 @@ import Connor from "../assets/images/Connor.jpg";
 import Emmett from "../assets/images/Emmett.jpg";
 import Simon from "../assets/images/Simon.jpg";
 import Eli from "../assets/images/Eli.jpg";
+import Jeyden from "../assets/images/Jeyden.jpg";
 import person from "../assets/images/UntitledPerson.png";
+import Gunner from "../assets/images/gunner.jpg";
 
 const members = [
   { name: 'Aaron', photo: Aaron, email: 'kinga2014@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/kampingcodes/' },
@@ -20,9 +22,9 @@ const members = [
 const members2 = [
   { name: 'Jacob', photo: Jacob, email: 'kronbeckj2040@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/jacobkronbeck/' },
   { name: 'Aaron', photo: AaronS2, email: 'kinga2014@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/kampingcodes/' },
-  { name: 'Gunner', photo: person, email: 'mooreg1748@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/gunner-moore-108030351/' },
+  { name: 'Gunner', photo: Gunner, email: 'mooreg1748@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/gunner-moore-108030351/' },
   { name: 'Blake', photo: Blake, email: 'stinsonb1660@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/blake-stinson-1246872b7/' },
-  { name: 'Jeyden', photo: person, email: 'curranj5223@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/jeyden-curran-613869306/' },
+  { name: 'Jeyden', photo: Jeyden, email: 'curranj5223@my.uwstout.edu', linkedin: 'https://www.linkedin.com/in/jeyden-curran-613869306/' },
 ];
 
 function chunkArray(arr, size) {
