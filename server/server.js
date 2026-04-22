@@ -32,7 +32,6 @@ import {
   addFlowchartInstruction
 } from './user.js';
 import { client } from './mongo.js';
-import { getResponse, generateQuestionsPrompt } from './genai.js';
 import { getFields as filterFields, normalizeAccessLevel, parsePagination } from './helper.js';
 import { generateInitialFlowchartForUser } from './flowchartGeneration.js';
 import { AI_RATE_LIMITS, AI_RATE_LIMIT_WINDOW_MS, createAiRateLimit, createOptionalValidateAuth, getRetryAfterSeconds } from './aiMiddleware.js';
@@ -127,6 +126,19 @@ function getRequestUserId(req) {
   return getAuthenticatedUserId(req);
 }
 
+async function loadAiModule() {
+  try {
+    return await import('./genai.js');
+  } catch (err) {
+    if (err?.message?.includes('GROQ_API_KEY')) {
+      err.status = 503;
+      err.message = 'AI features are unavailable because the GROQ_API_KEY environment variable is not configured.';
+    }
+
+    throw err;
+  }
+}
+
 /**
  * Start the server
  */
@@ -149,17 +161,28 @@ function getRequestUserId(req) {
   });
 
   app.post('/api/generate', optionalValidateAuth, aiRateLimit, async (req, res) => {
-    const msg = req.body.contents;
-    const response = await getResponse(msg);
-    res.send(response);
+    try {
+      const msg = req.body.contents;
+      const { getResponse } = await loadAiModule();
+      const response = await getResponse(msg);
+      res.send(response);
+    } catch (err) {
+      console.error('Error generating AI response:', err);
+      sendApiError(res, err, 'Unable to generate AI response.');
+    }
   });
   
   app.post('/api/gen-questions', optionalValidateAuth, aiRateLimit, async (req, res) => {
-    const { vehicle, issues } = req.body;
-
-    const msg = generateQuestionsPrompt(vehicle, issues);
-    const response = await getResponse(msg);
-    res.send(response);
+    try {
+      const { vehicle, issues } = req.body;
+      const { generateQuestionsPrompt, getResponse } = await loadAiModule();
+      const msg = generateQuestionsPrompt(vehicle, issues);
+      const response = await getResponse(msg);
+      res.send(response);
+    } catch (err) {
+      console.error('Error generating AI questions:', err);
+      sendApiError(res, err, 'Unable to generate diagnostic questions.');
+    }
   });
 
   app.post('/api/gen-flowchart', optionalValidateAuth, aiRateLimit, async (req, res) => {

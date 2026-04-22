@@ -360,8 +360,9 @@ function getVehicleDisplayName(vehicle = {}) {
 
             <!-- Edit Profile Button -->
             <div class="button-group">
-              <button class="btn btn-primary btn-sm w-100" @click="editPage">
-                {{ editMode ? 'Save Profile' : 'Edit Profile' }}
+              <button class="btn profile-action-button profile-edit-button w-100" @click="editPage">
+                <i :class="['pi', editMode ? 'pi-check' : 'pi-pencil']" aria-hidden="true"></i>
+                <span>{{ editMode ? 'Save Profile' : 'Edit Profile' }}</span>
               </button>
             </div>
 
@@ -369,7 +370,7 @@ function getVehicleDisplayName(vehicle = {}) {
             <div class="crash-out-section">
               <div class="crash-out-counter">{{ crashOutCount }}</div>
               <button 
-                class="btn btn-danger btn-sm w-100" 
+                class="btn profile-action-button profile-crash-button w-100" 
                 @click="handleCrashOut" 
                 :disabled="crashOutLoading"
               >
@@ -538,36 +539,44 @@ function getVehicleDisplayName(vehicle = {}) {
   border-radius: 6px;
 }
 
-.btn-primary {
-  background: #007bff;
-  border: none;
-  color: white;
+.profile-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--color-brand, #407bff);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: none;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-  background: #0056b3;
+.profile-action-button i {
+  font-size: 0.9rem;
 }
 
-.btn-primary:active:not(:disabled) {
+.profile-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #2f67e8;
+}
+
+.profile-action-button:active:not(:disabled) {
   transform: translateY(0);
 }
 
-.btn-danger {
-  background: #007bff;
-  border: none;
-  color: white;
+.profile-edit-button {
+  margin-top: 0.1rem;
 }
 
-.btn-danger:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
-  background: #0056b3;
-}
-
-.btn-danger:active:not(:disabled) {
-  transform: translateY(0);
+.profile-crash-button {
+  background: var(--color-brand, #407bff);
 }
 
 .btn:disabled {

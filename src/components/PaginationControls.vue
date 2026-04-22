@@ -229,7 +229,10 @@ onBeforeUnmount(() => {
 }
 
 .page-number {
-  min-width: 2.5rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
 }
 
 .page-button:hover:not(:disabled),
@@ -313,6 +316,13 @@ onBeforeUnmount(() => {
     min-height: 2.35rem;
     min-width: 2.35rem;
     padding: 0.4rem 0.7rem;
+  }
+
+  .page-number {
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
   }
 
   .page-number-group {

@@ -1,9 +1,22 @@
 import { randomUUID } from 'crypto';
-import { generateFlowchartPrompt, getResponse } from './genai.js';
 import { saveFlowchart, upsertCar } from './user.js';
+
+async function loadAiModule() {
+  try {
+    return await import('./genai.js');
+  } catch (err) {
+    if (err?.message?.includes('GROQ_API_KEY')) {
+      err.status = 503;
+      err.message = 'AI flowchart generation is unavailable because the GROQ_API_KEY environment variable is not configured.';
+    }
+
+    throw err;
+  }
+}
 
 export async function generateInitialFlowchartForUser({ userid, vehicle, issues, responses, persist = Boolean(userid) }) {
   const normalizedResponses = normalizeDiagnosticResponses(responses);
+  const { generateFlowchartPrompt, getResponse } = await loadAiModule();
   const prompt = generateFlowchartPrompt(vehicle, issues, normalizedResponses);
   const flowchart = await getResponse(prompt);
   const mermaidCode = sanitizeMermaidCode(extractMermaidCode(flowchart));
