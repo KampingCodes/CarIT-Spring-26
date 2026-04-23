@@ -87,7 +87,6 @@ onBeforeUnmount(() => {
 
     <div class="pagination-actions">
       <div class="page-nav-group">
-        <button class="page-button page-nav-button" aria-label="Go to first page" :disabled="disabled || currentPage <= 1" @click="goToPage(1)">«</button>
         <button class="page-button page-nav-button" aria-label="Go to previous page" :disabled="disabled || currentPage <= 1" @click="goToPage(currentPage - 1)">‹</button>
       </div>
 
@@ -111,7 +110,6 @@ onBeforeUnmount(() => {
 
       <div class="page-nav-group">
         <button class="page-button page-nav-button" aria-label="Go to next page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(currentPage + 1)">›</button>
-        <button class="page-button page-nav-button" aria-label="Go to last page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(totalPages)">»</button>
       </div>
     </div>
   </div>
@@ -229,7 +227,10 @@ onBeforeUnmount(() => {
 }
 
 .page-number {
-  min-width: 2.5rem;
+  width: 2.75rem;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
 }
 
 .page-button:hover:not(:disabled),
@@ -313,6 +314,13 @@ onBeforeUnmount(() => {
     min-height: 2.35rem;
     min-width: 2.35rem;
     padding: 0.4rem 0.7rem;
+  }
+
+  .page-number {
+    width: 2.35rem;
+    min-width: 2.35rem;
+    height: 2.35rem;
+    padding: 0;
   }
 
   .page-number-group {

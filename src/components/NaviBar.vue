@@ -12,7 +12,6 @@ const route = useRoute();
 const navItems = [
   { to: '/', label: 'Home' },
   { to: '/VehicleInfo', label: 'Start' },
-  { to: '/features', label: 'Features' },
   { to: '/aboutus', label: 'About us' },
   { to: '/flowcharts', label: 'Your Flowcharts', requiresAuth: true },
   { to: '/admin', label: 'Admin Dashboard', requiresAdmin: true },
@@ -259,6 +258,12 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
+.nav-actions > li {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+}
+
 .nav-links,
 .nav-actions {
   padding-left: 0;
@@ -277,6 +282,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   margin-right: 10px;
+  line-height: 1;
 }
 
 .nav-action-spacing {
@@ -502,6 +508,16 @@ onBeforeUnmount(() => {
   .desktop-nav-links,
   .desktop-nav-actions {
     display: inline-block !important;
+  }
+
+  .desktop-nav-actions {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .desktop-nav-actions > li {
+    vertical-align: middle;
   }
 
   .mobile-only-controls {
