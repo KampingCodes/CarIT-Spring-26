@@ -12,7 +12,6 @@ const route = useRoute();
 const navItems = [
   { to: '/', label: 'Home' },
   { to: '/VehicleInfo', label: 'Start' },
-  { to: '/features', label: 'Features' },
   { to: '/aboutus', label: 'About us' },
   { to: '/flowcharts', label: 'Your Flowcharts', requiresAuth: true },
   { to: '/admin', label: 'Admin Dashboard', requiresAdmin: true },

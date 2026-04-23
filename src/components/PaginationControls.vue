@@ -87,7 +87,6 @@ onBeforeUnmount(() => {
 
     <div class="pagination-actions">
       <div class="page-nav-group">
-        <button class="page-button page-nav-button" aria-label="Go to first page" :disabled="disabled || currentPage <= 1" @click="goToPage(1)">«</button>
         <button class="page-button page-nav-button" aria-label="Go to previous page" :disabled="disabled || currentPage <= 1" @click="goToPage(currentPage - 1)">‹</button>
       </div>
 
@@ -111,7 +110,6 @@ onBeforeUnmount(() => {
 
       <div class="page-nav-group">
         <button class="page-button page-nav-button" aria-label="Go to next page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(currentPage + 1)">›</button>
-        <button class="page-button page-nav-button" aria-label="Go to last page" :disabled="disabled || currentPage >= totalPages" @click="goToPage(totalPages)">»</button>
       </div>
     </div>
   </div>
