@@ -393,9 +393,13 @@ watch(garage, (cars) => {
   align-items: center;
   justify-content: center;
   width: 38px;
+  min-width: 38px;
   height: 38px;
+  min-height: 38px;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 50%;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 .garage-icon-button i {
