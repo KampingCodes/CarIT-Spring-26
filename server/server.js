@@ -18,6 +18,7 @@ import {
   getCarOptions,
   incrementCrashOut,
   upsertCar,
+  saveFlowchart,
   listUsersForAdmin,
   updateUserRecordForAdmin,
   deleteUserRecordForAdmin,
@@ -29,7 +30,11 @@ import {
   restoreFlowchartRecordForAdmin,
   deleteFlowchartForAdmin,
   restoreUserRecordForAdmin,
-  addFlowchartInstruction
+  addFlowchartInstruction,
+  enableFlowchartSharing,
+  disableFlowchartSharing,
+  getSharedFlowchart,
+  ensureIndexes
 } from './user.js';
 import { client } from './mongo.js';
 import { getFields as filterFields, normalizeAccessLevel, parsePagination } from './helper.js';
@@ -143,6 +148,8 @@ async function loadAiModule() {
  * Start the server
  */
 (function startServer() {
+  ensureIndexes().catch((err) => console.warn('Failed to create indexes:', err.message));
+
   app.get('/', (req, res) => {
     res.send('Server is running!');
   });
@@ -234,6 +241,72 @@ async function loadAiModule() {
     } catch (err) {
       console.error('Error saving instruction:', err);
       res.status(500).json({ success: false, message: err?.message || String(err) });
+    }
+  });
+
+  // ---- Share flowchart endpoints ----
+  app.post('/api/flowcharts/:flowchartId/share', validateAuth, async (req, res) => {
+    try {
+      const userId = getRequestUserId(req);
+      const { flowchartId } = req.params;
+      const result = await enableFlowchartSharing(userId, flowchartId);
+      if (typeof result === 'string') return res.status(400).json({ success: false, message: result });
+      res.json({ success: true, shareToken: result.shareToken });
+    } catch (err) {
+      console.error('Error enabling flowchart sharing:', err);
+      sendJsonError(res, err, 'Unable to enable sharing.');
+    }
+  });
+
+  app.delete('/api/flowcharts/:flowchartId/share', validateAuth, async (req, res) => {
+    try {
+      const userId = getRequestUserId(req);
+      const { flowchartId } = req.params;
+      const result = await disableFlowchartSharing(userId, flowchartId);
+      if (typeof result === 'string') return res.status(400).json({ success: false, message: result });
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error disabling flowchart sharing:', err);
+      sendJsonError(res, err, 'Unable to disable sharing.');
+    }
+  });
+
+  // Public endpoint — no auth required
+  app.get('/api/shared/:shareToken', async (req, res) => {
+    try {
+      const { shareToken } = req.params;
+      const flowchart = await getSharedFlowchart(shareToken);
+      if (!flowchart) return res.status(404).json({ success: false, message: 'Shared flowchart not found.' });
+      // Strip the share token itself from the public response
+      const { shareToken: _token, ...publicData } = flowchart;
+      res.json({ success: true, flowchart: publicData });
+    } catch (err) {
+      console.error('Error loading shared flowchart:', err);
+      sendJsonError(res, err, 'Unable to load shared flowchart.');
+    }
+  });
+
+  // Save a shared flowchart copy to the authenticated user's account
+  app.post('/api/shared/:shareToken/save', validateAuth, async (req, res) => {
+    try {
+      const { shareToken } = req.params;
+      const userId = getRequestUserId(req);
+      const shared = await getSharedFlowchart(shareToken);
+      if (!shared) return res.status(404).json({ success: false, message: 'Shared flowchart not found.' });
+      const result = await saveFlowchart(userId, {
+        vehicle: shared.vehicle,
+        issues: shared.issues,
+        responses: shared.responses,
+        flowchart: shared.flowchart,
+        mermaidCode: shared.mermaidCode,
+        nodeContexts: shared.nodeContexts,
+        instructions: shared.instructions
+      });
+      if (typeof result === 'string') return res.status(400).json({ success: false, message: result });
+      res.json({ success: true, flowchart: result });
+    } catch (err) {
+      console.error('Error saving shared flowchart:', err);
+      sendJsonError(res, err, 'Unable to save shared flowchart.');
     }
   });
 

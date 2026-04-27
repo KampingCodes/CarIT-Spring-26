@@ -94,6 +94,22 @@ export async function deleteFlowchart(flowchartId) {
   return serverPost('delete-flowchart', { flowchartId });
 }
 
+export async function enableFlowchartSharing(flowchartId) {
+  return serverPost(`flowcharts/${encodeURIComponent(flowchartId)}/share`, {});
+}
+
+export async function disableFlowchartSharing(flowchartId) {
+  return serverDelete(`flowcharts/${encodeURIComponent(flowchartId)}/share`);
+}
+
+export async function getSharedFlowchart(shareToken) {
+  return serverGet(`shared/${encodeURIComponent(shareToken)}`);
+}
+
+export async function saveSharedFlowchart(shareToken) {
+  return serverPost(`shared/${encodeURIComponent(shareToken)}/save`, {});
+}
+
 /**
  * Update user data
  * Ex: { name: "John Doe" }
