@@ -67,8 +67,16 @@ function buildPrompt(userQuestion) {
 
   return [
     'You are a helpful automotive diagnostics expert.',
-    'Answer clearly and concisely for a student mechanic.',
-    ' Use "-" for bullets and "1.", "2.", etc. for steps. Do not include any other text, symbols ex: ("*"), or formatting, DO NOT BOLD.',
+    'Answer clearly and concisely for someone who has no prior experience.',
+    'Be specific to the node information provided and the user question, but do not assume any missing vehicle details.',
+    'The first part of your answer should directly address the user question. If the question is about how to perform a step, also include any relevant safety precautions, tools needed, and what to look for in results.',
+    'The second part should be a step-by-step guide. Use "1.", "2.", etc. if there are multiple steps. (The numbers should have 2 spaces after the period for clarity)',
+    'IF THEY ASK HOW TO PERFORM THE STEP, include typical measurements, ranges, and what to do for out-of-range results. If specific vehicle data is missing, TELL THEM TO CHECK THEIR SERVICE MANUAL FOR VEHICLE-SPECIFIC RANGES, but provide general guidance for most passenger cars.',
+    'if the user asks where to find something, give them very specific guidance on where to look and what it typically looks like, but also recommend checking their service manual for vehicle-specific information.',
+    'IF YOU TELL THEM TO LOCATE SOMETHING TELL THEM HOW TO IDENTIFY IT AND WHERE IT IS COMMONLY LOCATED',
+    'Do not include any other text, symbols ex: ("*"), or formatting, DO NOT BOLD.',
+    '',
+    '',
     vehicleBlock,
     nodeBlock,
     flowchartBlock,
