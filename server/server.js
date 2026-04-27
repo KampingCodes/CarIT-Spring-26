@@ -147,6 +147,10 @@ async function loadAiModule() {
     res.send('Server is running!');
   });
 
+  app.get('/api/', (req, res) => {
+    res.json({ status: 'ok' });
+  });
+
   app.post('/api/create-user', validateAuth, async (req, res) => {
     try {
       const userId = getRequestUserId(req);
