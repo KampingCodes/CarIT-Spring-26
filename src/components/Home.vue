@@ -78,7 +78,6 @@ const features = [
     <div class="container">
       <div class="row justify-content-center">
         <div class="col-lg-8 text-center" data-aos="fade-up" data-aos-delay="0">
-          <div class="features-badge" :style="{ color: themeColor }">How It Works</div>
           <h1 class="features-hero-title">Stop Guessing.<br>Start Fixing.</h1>
           <p class="features-hero-sub">
             CARit combines AI-powered diagnostics with real-world repair guidance —

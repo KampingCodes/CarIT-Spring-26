@@ -386,7 +386,8 @@ function normalizeFlowchartRecord(flowchart, index, total) {
     createdAt,
     updatedAt,
     lastRefinedNodeId: typeof flowchart?.lastRefinedNodeId === 'string' ? flowchart.lastRefinedNodeId : '',
-    lastRefinedNodeLabel: typeof flowchart?.lastRefinedNodeLabel === 'string' ? flowchart.lastRefinedNodeLabel : ''
+    lastRefinedNodeLabel: typeof flowchart?.lastRefinedNodeLabel === 'string' ? flowchart.lastRefinedNodeLabel : '',
+    ...(typeof flowchart?.shareToken === 'string' && flowchart.shareToken ? { shareToken: flowchart.shareToken } : {})
   };
 
   const didMutate = !flowchart?.flowchartId
@@ -513,6 +514,76 @@ function normalizeText(value) {
 
 function isValidDate(value) {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value));
+}
+
+/**
+ * Enable public sharing for a flowchart by generating a share token.
+ * @param {string} userid
+ * @param {string} flowchartId
+ * @returns {{ shareToken: string } | string} The share token on success, or an error string
+ */
+export async function enableFlowchartSharing(userid, flowchartId) {
+  if (!userid || !flowchartId) return 'Missing required fields';
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) return 'User not found';
+  const target = flowcharts.find((f) => f.flowchartId === flowchartId);
+  if (!target) return 'Flowchart not found';
+  if (target.shareToken) return { shareToken: target.shareToken };
+  target.shareToken = randomUUID();
+  target.updatedAt = new Date().toISOString();
+  const sorted = sortFlowchartsByUpdatedAt(flowcharts);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: sorted } });
+  return { shareToken: target.shareToken };
+}
+
+/**
+ * Disable sharing for a flowchart by removing its share token.
+ * @param {string} userid
+ * @param {string} flowchartId
+ * @returns {{ success: true } | string}
+ */
+export async function disableFlowchartSharing(userid, flowchartId) {
+  if (!userid || !flowchartId) return 'Missing required fields';
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const { user, flowcharts } = await getNormalizedUserFlowcharts(collection, userid);
+  if (!user) return 'User not found';
+  const target = flowcharts.find((f) => f.flowchartId === flowchartId);
+  if (!target) return 'Flowchart not found';
+  delete target.shareToken;
+  target.updatedAt = new Date().toISOString();
+  const sorted = sortFlowchartsByUpdatedAt(flowcharts);
+  await collection.updateOne({ _id: userid }, { $set: { flowcharts: sorted } });
+  return { success: true };
+}
+
+/**
+ * Look up a flowchart by its public share token (scans across all users).
+ * @param {string} shareToken
+ * @returns {Object | null} The matching flowchart record, or null
+ */
+export async function getSharedFlowchart(shareToken) {
+  if (!shareToken) return null;
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const user = await collection.findOne(
+    { 'flowcharts.shareToken': shareToken },
+    { projection: { 'flowcharts.$': 1 } }
+  );
+  if (!user || !Array.isArray(user.flowcharts) || !user.flowcharts[0]) return null;
+  const flowchart = user.flowcharts[0];
+  if (flowchart.shareToken !== shareToken) return null;
+  return flowchart;
+}
+
+/**
+ * Ensure required database indexes exist. Safe to call on every startup.
+ */
+export async function ensureIndexes() {
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  await collection.createIndex(
+    { 'flowcharts.shareToken': 1 },
+    { sparse: true, name: 'idx_flowcharts_shareToken' }
+  );
 }
 
 /**

@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed, watch } from 'vue';
 import 'primeicons/primeicons.css';
-import { deleteFlowchart, getSavedFlowcharts } from '../apis';
+import { deleteFlowchart, getSavedFlowcharts, enableFlowchartSharing, disableFlowchartSharing } from '../apis';
 import { authState } from '../auth.js';
 import mermaid from 'mermaid/dist/mermaid.esm.min.mjs';
 import ConfirmDialog from './ConfirmDialog.vue';
@@ -13,6 +13,9 @@ import { useThemeStore } from '../stores/theme';
 const flowcharts = ref([]);
 const flowchartSvg = ref({});
 const thumbnailSvg = ref({});
+const shareLoading = ref({});
+const shareCopied = ref(false);
+let shareCopiedTimer = null;
 const loading = ref({});
 const error = ref({});
 const selectedFlowchartId = ref('');
@@ -133,6 +136,57 @@ const scrollCarousel = (direction) => {
 
 const initializeMermaid = () => {
   mermaid.initialize(getMermaidConfig(themeStore.isDark));
+};
+
+const handleEnableShare = async (flowchartId) => {
+  shareLoading.value = { ...shareLoading.value, [flowchartId]: true };
+  try {
+    const result = await enableFlowchartSharing(flowchartId);
+    if (result?.shareToken) {
+      const idx = flowcharts.value.findIndex((f) => f.flowchartId === flowchartId);
+      if (idx !== -1) {
+        flowcharts.value = [
+          ...flowcharts.value.slice(0, idx),
+          { ...flowcharts.value[idx], shareToken: result.shareToken },
+          ...flowcharts.value.slice(idx + 1)
+        ];
+      }
+      copyShareLink(result.shareToken);
+    }
+  } catch (err) {
+    console.error('Error enabling sharing:', err);
+  } finally {
+    shareLoading.value = { ...shareLoading.value, [flowchartId]: false };
+  }
+};
+
+const handleDisableShare = async (flowchartId) => {
+  shareLoading.value = { ...shareLoading.value, [flowchartId]: true };
+  try {
+    await disableFlowchartSharing(flowchartId);
+    const idx = flowcharts.value.findIndex((f) => f.flowchartId === flowchartId);
+    if (idx !== -1) {
+      const updated = { ...flowcharts.value[idx] };
+      delete updated.shareToken;
+      flowcharts.value = [
+        ...flowcharts.value.slice(0, idx),
+        updated,
+        ...flowcharts.value.slice(idx + 1)
+      ];
+    }
+  } catch (err) {
+    console.error('Error disabling sharing:', err);
+  } finally {
+    shareLoading.value = { ...shareLoading.value, [flowchartId]: false };
+  }
+};
+
+const copyShareLink = (shareToken) => {
+  const url = `${window.location.origin}/shared/${shareToken}`;
+  navigator.clipboard.writeText(url).catch(() => {});
+  shareCopied.value = true;
+  clearTimeout(shareCopiedTimer);
+  shareCopiedTimer = setTimeout(() => { shareCopied.value = false; }, 2500);
 };
 
 onMounted(async () => {
@@ -262,6 +316,37 @@ watch(() => themeStore.isDark, async () => {
               <div class="flowchart-header">
                 <h2>{{ getVehicleDisplayName(selectedFlowchart.vehicle) }}</h2>
                 <p><strong>Issues:</strong> {{ selectedFlowchart.issues }}</p>
+                <div class="share-controls">
+                  <template v-if="selectedFlowchart.shareToken">
+                    <span class="share-status"><i class="pi pi-link"></i> Share link active</span>
+                    <button
+                      class="btn-share-action"
+                      @click="copyShareLink(selectedFlowchart.shareToken)"
+                      :title="shareCopied ? 'Copied!' : 'Copy link'"
+                    >
+                      <i :class="shareCopied ? 'pi pi-check' : 'pi pi-copy'"></i>
+                      {{ shareCopied ? 'Copied!' : 'Copy link' }}
+                    </button>
+                    <button
+                      class="btn-share-stop"
+                      @click="handleDisableShare(selectedFlowchart.flowchartId)"
+                      :disabled="shareLoading[selectedFlowchart.flowchartId]"
+                      title="Stop sharing"
+                    >
+                      <i class="pi pi-times"></i> Stop sharing
+                    </button>
+                  </template>
+                  <template v-else>
+                    <button
+                      class="btn-share-action"
+                      @click="handleEnableShare(selectedFlowchart.flowchartId)"
+                      :disabled="shareLoading[selectedFlowchart.flowchartId]"
+                    >
+                      <i class="pi pi-share-alt"></i>
+                      {{ shareLoading[selectedFlowchart.flowchartId] ? 'Generating link...' : 'Share' }}
+                    </button>
+                  </template>
+                </div>
               </div>
 
               <div v-if="selectedFlowchart.responses" class="responses-section">
@@ -499,6 +584,56 @@ watch(() => themeStore.isDark, async () => {
 .flowchart-header p {
   margin-bottom: 1rem;
   color: var(--color-text-secondary);
+}
+
+.share-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+
+.share-status {
+  font-size: 0.88rem;
+  color: #198754;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-weight: 600;
+}
+
+.btn-share-action,
+.btn-share-stop {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-raised);
+  color: var(--color-text-primary);
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-share-action:hover:not(:disabled) {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  color: #fff;
+}
+
+.btn-share-stop:hover:not(:disabled) {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: #fff;
+}
+
+.btn-share-action:disabled,
+.btn-share-stop:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .responses-section {
