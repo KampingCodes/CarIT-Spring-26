@@ -13,6 +13,7 @@ import AboutUs from './components/AboutUs.vue';
 import Register from './components/NewUser.vue';
 import FlowchartPage from './components/FlowchartPage.vue';
 import AdminDashboard from './components/AdminDashboard.vue';
+import ServerUnavailable from './components/ServerUnavailable.vue';
 
 
 
@@ -31,6 +32,7 @@ const routes = [
   { path: '/register', component: Register},
   { path: '/flowcharts', component: FlowchartPage, meta: { requiresAuth: true } },
   { path: '/admin', name: 'AdminDashboard', component: AdminDashboard, meta: { requiresAuth: true, requiresAdmin: true } },
+  { path: '/server-unavailable', name: 'ServerUnavailable', component: ServerUnavailable },
 ];
 
 const router = createRouter({

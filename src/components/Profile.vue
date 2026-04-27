@@ -14,6 +14,8 @@ import ConfirmDialog from './ConfirmDialog.vue';
 // Profile state
 const Name = ref('');
 const Email = ref('@example.com');
+const dataLoading = ref(true);
+const dataError = ref(false);
 const editMode = ref(false);
 const personPhoto = ref(personPicture);
 const previewPhoto = ref(null);
@@ -231,17 +233,32 @@ const getDiagram = async (flowchartObj, idx) => {
 };
 
 // Load user data
-async function loadUserData() {
-  if (!authState.isAuthenticated) return;
-  try {
-    const userData = await getUserData();
-    if (userData?.name) Name.value = userData.name;
-    if (userData?.email) Email.value = userData.email;
-    if (userData?.profilePicture) personPhoto.value = userData.profilePicture;
-    if (userData?.crashOut !== undefined && userData.crashOut !== null) crashOutCount.value = userData.crashOut;
-  } catch (e) {
-    console.warn('Unable to fetch user data:', e?.message || e);
+async function loadUserData(retries = 6, delayMs = 5000) {
+  if (!authState.isAuthenticated) {
+    dataLoading.value = false;
+    return;
   }
+  dataLoading.value = true;
+  dataError.value = false;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const userData = await getUserData();
+      if (userData?.name) Name.value = userData.name;
+      if (userData?.email) Email.value = userData.email;
+      if (userData?.profilePicture) personPhoto.value = userData.profilePicture;
+      if (userData?.crashOut !== undefined && userData.crashOut !== null) crashOutCount.value = userData.crashOut;
+      dataLoading.value = false;
+      return;
+    } catch (e) {
+      console.warn(`Unable to fetch user data (attempt ${attempt + 1}/${retries}):`, e?.message || e);
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+    }
+  }
+  // All retries exhausted
+  dataLoading.value = false;
+  dataError.value = true;
 }
 
 // Load saved flowcharts
@@ -276,10 +293,13 @@ watch(() => themeStore.isDark, () => {
 
 onMounted(async () => {
   initializeMermaid();
-  // Load data if already authenticated
+  // Load data if already authenticated, otherwise skeleton hides once auth resolves
   if (authState.isAuthenticated) {
     await loadUserData();
     await loadFlowcharts();
+  } else {
+    // Auth hasn't resolved yet — keep skeleton; the watch below will trigger load
+    // Don't turn off loading here; wait for authState watch
   }
 });
 
@@ -296,6 +316,8 @@ watch(() => authState.isAuthenticated, async (isAuth) => {
     personPhoto.value = personPicture;
     previewPhoto.value = null;
     flowcharts.value = [];
+    dataLoading.value = false;
+    dataError.value = false;
   }
 });
 
@@ -346,7 +368,12 @@ function getVehicleDisplayName(vehicle = {}) {
           <!-- Profile Info -->
           <div class="profile-info">
             <!-- Name -->
-            <div v-if="!editMode" class="profile-name">
+            <div v-if="dataLoading" class="skeleton skeleton-name"></div>
+            <div v-else-if="dataError" class="profile-server-error">
+              <span>Server unavailable</span>
+              <button class="btn btn-sm profile-action-button mt-2" @click="loadUserData()">Retry</button>
+            </div>
+            <div v-else-if="!editMode" class="profile-name">
               {{ Name }}
             </div>
             <div v-else class="edit-input-wrapper">
@@ -354,13 +381,14 @@ function getVehicleDisplayName(vehicle = {}) {
             </div>
 
             <!-- Email -->
-            <div class="profile-email">
+            <div v-if="dataLoading" class="skeleton skeleton-email"></div>
+            <div v-else-if="!dataError" class="profile-email">
               {{ Email }}
             </div>
 
             <!-- Edit Profile Button -->
             <div class="button-group">
-              <button class="btn profile-action-button profile-edit-button w-100" @click="editPage">
+              <button class="btn profile-action-button profile-edit-button w-100" @click="editPage" :disabled="dataLoading">
                 <i :class="['pi', editMode ? 'pi-check' : 'pi-pencil']" aria-hidden="true"></i>
                 <span>{{ editMode ? 'Save Profile' : 'Edit Profile' }}</span>
               </button>
@@ -368,11 +396,12 @@ function getVehicleDisplayName(vehicle = {}) {
 
             <!-- Crash Out Stats Section -->
             <div class="crash-out-section">
-              <div class="crash-out-counter">{{ crashOutCount }}</div>
+              <div v-if="dataLoading" class="skeleton skeleton-counter"></div>
+              <div v-else class="crash-out-counter">{{ crashOutCount }}</div>
               <button 
                 class="btn profile-action-button profile-crash-button w-100" 
                 @click="handleCrashOut" 
-                :disabled="crashOutLoading"
+                :disabled="crashOutLoading || dataLoading"
               >
                 {{ crashOutLoading ? 'Loading...' : 'Crash Out' }}
               </button>
@@ -385,7 +414,7 @@ function getVehicleDisplayName(vehicle = {}) {
       <div class="profile-content" data-aos="fade-up" data-aos-delay="100">
 
         <!-- ===== Garage Section ===== -->
-        <MyGarage :editable="true" class="mb-5" />
+        <MyGarage :editable="true" :disabled="dataLoading" class="mb-5" />
 
         
 
@@ -892,6 +921,48 @@ function getVehicleDisplayName(vehicle = {}) {
   .carousel-wrapper {
     gap: 0.75rem;
   }
+}
+
+/* ===== Skeleton Loading ===== */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--color-border, #e0e0e0) 25%, color-mix(in srgb, var(--color-border, #e0e0e0) 60%, transparent) 50%, var(--color-border, #e0e0e0) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-name {
+  height: 1.4rem;
+  width: 70%;
+  margin: 0.5rem auto 0;
+}
+
+.skeleton-email {
+  height: 1rem;
+  width: 85%;
+  margin: 0 auto;
+}
+
+.skeleton-counter {
+  height: 2rem;
+  width: 3rem;
+  margin: 0 auto;
+  border-radius: 8px;
+}
+
+.profile-server-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 0.5rem;
 }
 
 </style>

@@ -11,6 +11,7 @@ defineOptions({ inheritAttrs: false });
 const props = defineProps({
   editable: { type: Boolean, default: false },
   selectable: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['select']);
@@ -154,7 +155,7 @@ watch(garage, (cars) => {
   <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
-      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn garage-primary-action" @click="openAddForm">
+      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn garage-primary-action" @click="openAddForm" :disabled="disabled">
         <i class="pi pi-plus" aria-hidden="true"></i>
         <span>Add Vehicle</span>
       </button>
@@ -184,7 +185,7 @@ watch(garage, (cars) => {
 
     <!-- Vehicle list -->
     <div v-else-if="garage.length === 0 && !showAddForm" class="garage-empty">
-      No vehicles in your garage yet.{{ editable ? ' Add one above!' : '' }}
+      No vehicles in your garage yet.
     </div>
     <div v-else class="garage-list">
       <div v-for="car in paginatedGarage" :key="car._id"
