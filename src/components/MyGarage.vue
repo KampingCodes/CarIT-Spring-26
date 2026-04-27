@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue';
+import 'primeicons/primeicons.css';
 import { getGarage, addGarageVehicle, editGarageVehicle, removeGarageVehicle } from '../apis.js';
 import { authState } from '../auth.js';
 import PaginationControls from './PaginationControls.vue';
@@ -153,7 +154,10 @@ watch(garage, (cars) => {
   <div class="garage-section" v-bind="$attrs">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h4 class="mb-0">My Garage</h4>
-      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn btn-primary btn-sm" @click="openAddForm">+ Add Vehicle</button>
+      <button v-if="editable && authState.isAuthenticated && !editingCarId && !showAddForm" class="btn garage-primary-action" @click="openAddForm">
+        <i class="pi pi-plus" aria-hidden="true"></i>
+        <span>Add Vehicle</span>
+      </button>
     </div>
 
     <!-- Not authenticated message -->
@@ -194,8 +198,24 @@ watch(garage, (cars) => {
             <span v-if="car.trim" class="text-muted ms-2"> - {{ car.trim }}</span>
           </div>
           <div v-if="editable" class="d-flex gap-2">
-            <button class="btn btn-outline-primary btn-sm" @click.stop="openEditForm(car)">Edit</button>
-            <button class="btn btn-outline-danger btn-sm garage-remove-btn" @click.stop="promptDelete(car._id)">Remove</button>
+            <button
+              class="btn btn-outline-primary btn-sm garage-icon-button"
+              type="button"
+              aria-label="Edit vehicle"
+              title="Edit vehicle"
+              @click.stop="openEditForm(car)"
+            >
+              <i class="pi pi-pencil" aria-hidden="true"></i>
+            </button>
+            <button
+              class="btn btn-outline-danger btn-sm garage-remove-btn garage-icon-button"
+              type="button"
+              aria-label="Remove vehicle"
+              title="Remove vehicle"
+              @click.stop="promptDelete(car._id)"
+            >
+              <i class="pi pi-trash" aria-hidden="true"></i>
+            </button>
           </div>
           <div v-else-if="selectable && selectedCarId === car._id">
             <span class="badge bg-primary">Selected</span>
@@ -257,6 +277,39 @@ watch(garage, (cars) => {
   color: var(--color-text-primary);
   margin: 0;
   font-size: clamp(1.25rem, 2.5vw, 1.5rem); /* Responsive font size */
+}
+
+.garage-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--color-brand, #407bff);
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: none;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.garage-primary-action i {
+  font-size: 0.9rem;
+}
+
+.garage-primary-action:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #2f67e8;
+  color: #ffffff;
+}
+
+.garage-primary-action:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 /* Add/Edit form styling */
@@ -335,6 +388,20 @@ watch(garage, (cars) => {
   font-weight: 500;
 }
 
+.garage-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.garage-icon-button i {
+  font-size: 0.95rem;
+}
+
 [data-theme="dark"] .garage-remove-btn {
   color: #fff;
 }
@@ -389,6 +456,26 @@ watch(garage, (cars) => {
 .delete-confirm p {
   color: var(--color-text-muted);
   line-height: 1.6;
+}
+
+.delete-confirm .d-flex.gap-2 {
+  gap: 12px !important;
+}
+
+.delete-confirm .btn-danger {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: #ffffff;
+}
+
+.delete-confirm .btn-danger:hover:not(:disabled) {
+  background: #bb2d3b;
+  border-color: #b02a37;
+  color: #ffffff;
+}
+
+.delete-confirm .btn-danger:disabled {
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* Loading state */
