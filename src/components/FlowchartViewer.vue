@@ -1,5 +1,4 @@
 <script setup>
-import Panzoom from '@panzoom/panzoom';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 const props = defineProps({
@@ -37,6 +36,7 @@ const htmlOverflowX = ref('');
 const htmlOverflowY = ref('');
 
 const hasSvg = computed(() => typeof props.svg === 'string' && props.svg.trim().length > 0);
+const viewerAriaLabel = computed(() => `${props.title || 'Flowchart'} viewer`);
 const dotsPatternUrl = `${import.meta.env.BASE_URL}dots.png`;
 const viewerThemeStyle = computed(() => ({
   '--flowchart-dots-image': `url(${dotsPatternUrl})`,
@@ -57,8 +57,12 @@ const defaultFitPadding = 32;
 const defaultFitScaleFactor = 1.12;
 const minZoomScale = 0.1;
 const maxZoomScale = 6;
-const wheelZoomSensitivity = 0.0035;
-const wheelZoomDeltaLimit = 160;
+const wheelZoomSensitivity = 0.0028;
+const wheelZoomDeltaLimit = 240;
+const keyboardZoomFactor = 1.18;
+const keyboardPanStep = 72;
+const pointerDragThreshold = 6;
+const clickSuppressionMs = 240;
 const stageViewportOverscan = 1.5;
 
 function createViewerContext(name, viewportRef, stageRef) {
@@ -66,12 +70,18 @@ function createViewerContext(name, viewportRef, stageRef) {
     name,
     viewportRef,
     stageRef,
-    panzoom: null,
     svgElement: null,
     contentLayout: null,
     cleanup: [],
     rafIds: [],
-    lastPointerClientPoint: null
+    scale: 1,
+    translateX: 0,
+    translateY: 0,
+    activePointers: new Map(),
+    lastSinglePointerPosition: null,
+    pointerStartPosition: null,
+    dragDistance: 0,
+    suppressClickUntil: 0
   };
 }
 
@@ -98,20 +108,28 @@ function cancelPendingFrames(context) {
   context.rafIds = [];
 }
 
-function destroyPanzoom(context) {
-  if (context.panzoom) {
-    context.panzoom.destroy();
-    context.panzoom = null;
+function updateTransform(context) {
+  const stage = context.stageRef.value;
+  if (!stage) {
+    return;
   }
+
+  stage.style.transform = `matrix(${context.scale}, 0, 0, ${context.scale}, ${context.translateX}, ${context.translateY})`;
 }
 
 function resetContext(context) {
   cancelPendingFrames(context);
   removeCleanup(context);
-  destroyPanzoom(context);
   context.svgElement = null;
   context.contentLayout = null;
-  context.lastPointerClientPoint = null;
+  context.scale = 1;
+  context.translateX = 0;
+  context.translateY = 0;
+  context.activePointers.clear();
+  context.lastSinglePointerPosition = null;
+  context.pointerStartPosition = null;
+  context.dragDistance = 0;
+  context.suppressClickUntil = 0;
 
   const viewport = context.viewportRef.value;
   if (viewport) {
@@ -123,6 +141,7 @@ function resetContext(context) {
     stage.innerHTML = '';
     stage.style.width = '0px';
     stage.style.height = '0px';
+    stage.style.transform = 'matrix(1, 0, 0, 1, 0, 0)';
   }
 }
 
@@ -198,8 +217,20 @@ function enhanceNodes(context) {
     nodeElement.setAttribute('aria-label', label);
     nodeElement.classList.add('flowchart-node--interactive');
 
-    const onClick = () => emitNodeActivation(nodeElement);
-    const onFocus = () => emitNodeActivation(nodeElement);
+    const onClick = () => {
+      if (Date.now() < context.suppressClickUntil) {
+        return;
+      }
+
+      emitNodeActivation(nodeElement);
+    };
+    const onFocus = () => {
+      if (Date.now() < context.suppressClickUntil) {
+        return;
+      }
+
+      emitNodeActivation(nodeElement);
+    };
     const onKeydown = (event) => {
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
@@ -217,6 +248,43 @@ function enhanceNodes(context) {
       nodeElement.removeEventListener('keydown', onKeydown);
     });
   });
+}
+
+function getWheelDelta(event, viewportHeight) {
+  if (event.deltaMode === 1) {
+    return event.deltaY * 16;
+  }
+
+  if (event.deltaMode === 2) {
+    return event.deltaY * viewportHeight;
+  }
+
+  return event.deltaY;
+}
+
+function getDistance(points) {
+  if (points.length < 2) {
+    return 0;
+  }
+
+  const [firstPoint, secondPoint] = points;
+  return Math.hypot(secondPoint.x - firstPoint.x, secondPoint.y - firstPoint.y);
+}
+
+function getMidpoint(points) {
+  if (!points.length) {
+    return { x: 0, y: 0 };
+  }
+
+  if (points.length === 1) {
+    return points[0];
+  }
+
+  const [firstPoint, secondPoint] = points;
+  return {
+    x: (firstPoint.x + secondPoint.x) / 2,
+    y: (firstPoint.y + secondPoint.y) / 2
+  };
 }
 
 function setExplicitDimensions(context, bounds) {
@@ -269,58 +337,60 @@ function setExplicitDimensions(context, bounds) {
   svgElement.style.overflow = 'visible';
 }
 
-function bindPanzoom(context) {
+function getFocalPoint(context, clientPoint) {
+  const viewport = context.viewportRef.value;
+  const rect = viewport?.getBoundingClientRect?.();
+
+  if (!rect) {
+    return { x: 0, y: 0 };
+  }
+
+  return {
+    x: clamp(clientPoint.clientX - rect.left, 0, rect.width),
+    y: clamp(clientPoint.clientY - rect.top, 0, rect.height)
+  };
+}
+
+function zoomToPoint(context, nextScale, focalPoint) {
+  const scale = clamp(nextScale, minZoomScale, maxZoomScale);
+  const contentX = (focalPoint.x - context.translateX) / context.scale;
+  const contentY = (focalPoint.y - context.translateY) / context.scale;
+
+  context.scale = scale;
+  context.translateX = focalPoint.x - contentX * scale;
+  context.translateY = focalPoint.y - contentY * scale;
+  updateTransform(context);
+}
+
+function panBy(context, deltaX, deltaY) {
+  context.translateX += deltaX;
+  context.translateY += deltaY;
+  updateTransform(context);
+}
+
+function bindInteractions(context) {
   const viewport = context.viewportRef.value;
   const stage = context.stageRef.value;
   if (!viewport || !stage) {
     return;
   }
 
-  context.panzoom = Panzoom(stage, {
-    minScale: minZoomScale,
-    maxScale: maxZoomScale,
-    origin: '0 0',
-    canvas: true
-  });
+  const stopDragging = () => {
+    if (!context.activePointers.size) {
+      viewport.classList.remove('is-dragging');
+      context.lastSinglePointerPosition = null;
+      context.pointerStartPosition = null;
+      context.dragDistance = 0;
+    }
+  };
 
   const onWheel = (event) => {
     event.preventDefault();
-    context.lastPointerClientPoint = {
-      clientX: event.clientX,
-      clientY: event.clientY
-    };
+    viewport.focus({ preventScroll: true });
 
-    const currentScale = context.panzoom?.getScale?.();
-    if (!currentScale) {
-      return;
-    }
-
-    const deltaScale = event.deltaMode === 1
-      ? event.deltaY * 16
-      : event.deltaMode === 2
-        ? event.deltaY * viewport.clientHeight
-        : event.deltaY;
-
-    const limitedDelta = clamp(deltaScale, -wheelZoomDeltaLimit, wheelZoomDeltaLimit);
-    const nextScale = clamp(
-      currentScale * Math.exp(-limitedDelta * wheelZoomSensitivity),
-      minZoomScale,
-      maxZoomScale
-    );
-
-    const focal = getFocalPoint(context, context.lastPointerClientPoint);
-    context.panzoom?.zoom(nextScale, { animate: false, force: true, focal });
-  };
-
-  const onPointerMove = (event) => {
-    context.lastPointerClientPoint = {
-      clientX: event.clientX,
-      clientY: event.clientY
-    };
-  };
-
-  const onPointerLeave = () => {
-    context.lastPointerClientPoint = null;
+    const limitedDelta = clamp(getWheelDelta(event, viewport.clientHeight), -wheelZoomDeltaLimit, wheelZoomDeltaLimit);
+    const nextScale = context.scale * Math.exp(-limitedDelta * wheelZoomSensitivity);
+    zoomToPoint(context, nextScale, getFocalPoint(context, event));
   };
 
   const onPointerDown = (event) => {
@@ -328,30 +398,172 @@ function bindPanzoom(context) {
       return;
     }
 
-    context.lastPointerClientPoint = {
-      clientX: event.clientX,
-      clientY: event.clientY
-    };
+    const point = getFocalPoint(context, event);
+    context.activePointers.set(event.pointerId, point);
     viewport.classList.add('is-dragging');
+    viewport.focus({ preventScroll: true });
+    viewport.setPointerCapture?.(event.pointerId);
+
+    if (context.activePointers.size === 1) {
+      context.lastSinglePointerPosition = point;
+      context.pointerStartPosition = point;
+      context.dragDistance = 0;
+      return;
+    }
+
+    context.lastSinglePointerPosition = null;
+    context.dragDistance = pointerDragThreshold;
+    context.suppressClickUntil = Date.now() + clickSuppressionMs;
   };
 
-  const onPointerUp = () => {
-    viewport.classList.remove('is-dragging');
+  const onPointerMove = (event) => {
+    if (!context.activePointers.has(event.pointerId)) {
+      return;
+    }
+
+    const previousPoints = Array.from(context.activePointers.values());
+    const nextPoint = getFocalPoint(context, event);
+    context.activePointers.set(event.pointerId, nextPoint);
+    const nextPoints = Array.from(context.activePointers.values());
+
+    if (nextPoints.length === 1) {
+      const previousPoint = context.lastSinglePointerPosition || nextPoint;
+      const deltaX = nextPoint.x - previousPoint.x;
+      const deltaY = nextPoint.y - previousPoint.y;
+
+      if (deltaX || deltaY) {
+        panBy(context, deltaX, deltaY);
+      }
+
+      if (context.pointerStartPosition) {
+        context.dragDistance = Math.max(
+          context.dragDistance,
+          Math.hypot(nextPoint.x - context.pointerStartPosition.x, nextPoint.y - context.pointerStartPosition.y)
+        );
+        if (context.dragDistance >= pointerDragThreshold) {
+          context.suppressClickUntil = Date.now() + clickSuppressionMs;
+        }
+      }
+
+      context.lastSinglePointerPosition = nextPoint;
+      return;
+    }
+
+    if (previousPoints.length < 2) {
+      return;
+    }
+
+    const previousMidpoint = getMidpoint(previousPoints);
+    const nextMidpoint = getMidpoint(nextPoints);
+    const previousDistance = getDistance(previousPoints);
+    const nextDistance = getDistance(nextPoints);
+
+    panBy(context, nextMidpoint.x - previousMidpoint.x, nextMidpoint.y - previousMidpoint.y);
+    if (previousDistance > 0 && nextDistance > 0) {
+      zoomToPoint(context, context.scale * (nextDistance / previousDistance), nextMidpoint);
+    }
+
+    context.dragDistance = pointerDragThreshold;
+    context.suppressClickUntil = Date.now() + clickSuppressionMs;
+  };
+
+  const onPointerEnd = (event) => {
+    if (!context.activePointers.has(event.pointerId)) {
+      return;
+    }
+
+    context.activePointers.delete(event.pointerId);
+    viewport.releasePointerCapture?.(event.pointerId);
+
+    if (context.dragDistance >= pointerDragThreshold) {
+      context.suppressClickUntil = Date.now() + clickSuppressionMs;
+    }
+
+    if (context.activePointers.size === 1) {
+      context.lastSinglePointerPosition = Array.from(context.activePointers.values())[0];
+      context.pointerStartPosition = context.lastSinglePointerPosition;
+      context.dragDistance = 0;
+      return;
+    }
+
+    stopDragging();
+  };
+
+  const onClickCapture = (event) => {
+    if (Date.now() < context.suppressClickUntil) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+
+  const onKeydown = (event) => {
+    if (event.defaultPrevented || event.altKey || event.metaKey || event.ctrlKey) {
+      return;
+    }
+
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      panBy(context, keyboardPanStep, 0);
+      return;
+    }
+
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      panBy(context, -keyboardPanStep, 0);
+      return;
+    }
+
+    if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      panBy(context, 0, keyboardPanStep);
+      return;
+    }
+
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      panBy(context, 0, -keyboardPanStep);
+      return;
+    }
+
+    if (event.key === '+' || event.key === '=' || event.key === 'Add') {
+      event.preventDefault();
+      zoomToPoint(context, context.scale * keyboardZoomFactor, {
+        x: viewport.clientWidth / 2,
+        y: viewport.clientHeight / 2
+      });
+      return;
+    }
+
+    if (event.key === '-' || event.key === '_' || event.key === 'Subtract') {
+      event.preventDefault();
+      zoomToPoint(context, context.scale / keyboardZoomFactor, {
+        x: viewport.clientWidth / 2,
+        y: viewport.clientHeight / 2
+      });
+      return;
+    }
+
+    if (event.key === '0' || event.key === 'Numpad0') {
+      event.preventDefault();
+      fitDiagram(context);
+    }
   };
 
   viewport.addEventListener('wheel', onWheel, { passive: false });
-  viewport.addEventListener('pointermove', onPointerMove);
-  viewport.addEventListener('pointerleave', onPointerLeave);
   viewport.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointerup', onPointerUp);
-  window.addEventListener('pointercancel', onPointerUp);
+  viewport.addEventListener('pointermove', onPointerMove);
+  viewport.addEventListener('pointerup', onPointerEnd);
+  viewport.addEventListener('pointercancel', onPointerEnd);
+  viewport.addEventListener('keydown', onKeydown);
+  stage.addEventListener('click', onClickCapture, true);
 
   context.cleanup.push(() => viewport.removeEventListener('wheel', onWheel));
-  context.cleanup.push(() => viewport.removeEventListener('pointermove', onPointerMove));
-  context.cleanup.push(() => viewport.removeEventListener('pointerleave', onPointerLeave));
   context.cleanup.push(() => viewport.removeEventListener('pointerdown', onPointerDown));
-  context.cleanup.push(() => window.removeEventListener('pointerup', onPointerUp));
-  context.cleanup.push(() => window.removeEventListener('pointercancel', onPointerUp));
+  context.cleanup.push(() => viewport.removeEventListener('pointermove', onPointerMove));
+  context.cleanup.push(() => viewport.removeEventListener('pointerup', onPointerEnd));
+  context.cleanup.push(() => viewport.removeEventListener('pointercancel', onPointerEnd));
+  context.cleanup.push(() => viewport.removeEventListener('keydown', onKeydown));
+  context.cleanup.push(() => stage.removeEventListener('click', onClickCapture, true));
 }
 
 function fitDiagram(context, padding = defaultFitPadding) {
@@ -359,7 +571,7 @@ function fitDiagram(context, padding = defaultFitPadding) {
   const stage = context.stageRef.value;
   const svgElement = context.svgElement || stage?.querySelector('svg');
 
-  if (!viewport || !stage || !svgElement || !context.panzoom) {
+  if (!viewport || !stage || !svgElement) {
     return false;
   }
 
@@ -393,14 +605,13 @@ function fitDiagram(context, padding = defaultFitPadding) {
     minZoomScale,
     maxZoomScale
   );
-
   const desiredLeft = (viewportWidth - contentWidth * scale) / 2;
   const desiredTop = (viewportHeight - contentHeight * scale) / 2;
-  const x = desiredLeft / scale - contentOffsetX;
-  const y = desiredTop / scale - contentOffsetY;
 
-  context.panzoom.zoom(scale, { animate: false, force: true });
-  context.panzoom.pan(x, y, { animate: false, force: true });
+  context.scale = scale;
+  context.translateX = desiredLeft - contentOffsetX * scale;
+  context.translateY = desiredTop - contentOffsetY * scale;
+  updateTransform(context);
   return true;
 }
 
@@ -450,27 +661,13 @@ function mountSvgIntoContext(context) {
   }
 
   enhanceNodes(context);
-  bindPanzoom(context);
+  bindInteractions(context);
   scheduleFit(context);
 }
 
 async function rebuildContext(context) {
   await nextTick();
   mountSvgIntoContext(context);
-}
-
-function getFocalPoint(context, clientPoint) {
-  const viewport = context.viewportRef.value;
-  const rect = viewport?.getBoundingClientRect?.();
-
-  if (!rect) {
-    return { x: 0, y: 0 };
-  }
-
-  return {
-    x: clamp(clientPoint.clientX - rect.left, 0, rect.width),
-    y: clamp(clientPoint.clientY - rect.top, 0, rect.height)
-  };
 }
 
 function resetView(context) {
@@ -519,11 +716,11 @@ function handleOverlayClick() {
 }
 
 function handleWindowResize() {
-  if (inlineContext.panzoom) {
+  if (inlineContext.svgElement) {
     scheduleFit(inlineContext);
   }
 
-  if (isFullscreen.value && fullscreenContext.panzoom) {
+  if (isFullscreen.value && fullscreenContext.svgElement) {
     scheduleFit(fullscreenContext);
   }
 }
@@ -551,6 +748,7 @@ watch(
     if (open) {
       lockBodyScroll();
       await rebuildContext(fullscreenContext);
+      fullscreenViewportRef.value?.focus?.({ preventScroll: true });
       return;
     }
 
@@ -606,6 +804,8 @@ onBeforeUnmount(() => {
       ref="inlineViewportRef"
       class="flowchart-viewport"
       :style="{ '--flowchart-embedded-height': embeddedHeight }"
+      tabindex="0"
+      :aria-label="viewerAriaLabel"
     >
       <div ref="inlineStageRef" class="flowchart-stage"></div>
       <div v-if="!hasSvg" class="flowchart-empty-state">Flowchart unavailable.</div>
@@ -647,7 +847,12 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
-        <div ref="fullscreenViewportRef" class="flowchart-viewport flowchart-viewport--fullscreen">
+        <div
+          ref="fullscreenViewportRef"
+          class="flowchart-viewport flowchart-viewport--fullscreen"
+          tabindex="0"
+          :aria-label="viewerAriaLabel"
+        >
           <div ref="fullscreenStageRef" class="flowchart-stage"></div>
           <div v-if="!hasSvg" class="flowchart-empty-state">Flowchart unavailable.</div>
         </div>
@@ -772,6 +977,11 @@ onBeforeUnmount(() => {
   user-select: none;
   touch-action: none;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.flowchart-viewport:focus-visible {
+  outline: 2px solid var(--flowchart-color-accent);
+  outline-offset: 2px;
 }
 
 .flowchart-viewport.is-dragging {
