@@ -1,7 +1,6 @@
 <script setup>
 import { themeColor } from "../items";
-import { useRoute, useRouter } from 'vue-router';
-import { useVehicleStore } from '../stores/vehicle';
+import { useRouter } from 'vue-router';
 import { authState } from '../auth.js';
 import { addCarRecord, addGarageVehicle } from '../apis.js';
 import { checkRecalls } from '../VINapi.js';
@@ -14,8 +13,6 @@ import { ref, watch } from "vue";
 const vehicleForm = ref({ year: '', make: '', model: '', trim: '' });
 const saving = ref(false);
 const errorMessage = ref('');
-const selectedFromGarage = ref(false);
-const garageRef = ref(null);
 
 // Recall check state
 const recallCount = ref(0);
@@ -24,15 +21,7 @@ const recallError = ref('');
 
 function onGarageSelect(car) {
   vehicleForm.value = { ...car };
-  selectedFromGarage.value = true;
 }
-
-// If the user manually changes a field, clear the garage selection highlight
-watch(vehicleForm, () => {
-  if (selectedFromGarage.value) {
-    selectedFromGarage.value = false;
-  }
-}, { deep: true });
 
 // Check for recalls when vehicle info is complete
 watch(() => vehicleForm.value, async (newVal) => {
@@ -59,9 +48,7 @@ async function performRecallCheck(year, make, model) {
   }
 }
 
-const route = useRoute();
 const router = useRouter();
-const vehicleStore = useVehicleStore();
 
 function isValidYear(val) {
   return /^(18\d{2}|19\d{2}|2\d{3})$/.test(String(val));
@@ -143,7 +130,7 @@ async function submitVehicle() {
             </div>
             <div v-if="recallError" class="alert alert-info">{{ recallError }}</div>
             <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model">
-              <button class="btn btn-primary submit-btn" @click="submitVehicle" :disabled="saving">
+              <button class="btn btn-primary submit-btn submit-btn-desktop" @click="submitVehicle" :disabled="saving">
                 {{ saving ? 'Saving...' : 'Submit' }}
               </button>
             </div>
@@ -152,7 +139,7 @@ async function submitVehicle() {
         <div class="col-lg-7" data-aos="fade-up" data-aos-delay="400">
           <!-- Garage picker for logged-in users -->
           <div v-if="authState.isAuthenticated" class="garage-picker">
-            <MyGarage ref="garageRef" :selectable="true" @select="onGarageSelect" />
+            <MyGarage :selectable="true" @select="onGarageSelect" />
             <div class="divider-text">
               <span>or enter a new vehicle</span>
             </div>
@@ -167,6 +154,12 @@ async function submitVehicle() {
               <strong>Selected Vehicle:</strong><br />
               {{ vehicleForm.year }} {{ vehicleForm.make }} {{ vehicleForm.model }} {{ vehicleForm.trim }}
             </div>
+          </div>
+
+          <div v-if="vehicleForm.year && vehicleForm.make && vehicleForm.model" class="submit-mobile-wrap mt-3">
+            <button class="btn btn-primary submit-btn submit-btn-mobile" @click="submitVehicle" :disabled="saving">
+              {{ saving ? 'Saving...' : 'Submit' }}
+            </button>
           </div>
         </div>
       </div>
@@ -193,29 +186,8 @@ async function submitVehicle() {
   border-color: #0056b3;
 }
 
-.form-row {
-.submit-btn {
-  box-shadow: 0 2px 8px rgba(13,110,253,0.08);
-  transition: background 0.2s, border-color 0.2s;
-}
-.submit-btn:hover {
-  background: #0056b3;
-  border-color: #0056b3;
-}
-  display: flex;
-  align-items: center;
-  margin-bottom: 1.25rem;
-}
-.form-row label.form-label {
-  flex: 0 0 80px;
-  margin-bottom: 0;
-  margin-right: 1rem;
-  text-align: right;
-}
-.form-row .form-select-inline {
-  flex: 1 1 auto;
-  min-width: 180px;
-  max-width: 320px;
+.submit-btn-mobile {
+  display: none;
 }
 
 .vehicle-selector {
@@ -305,6 +277,20 @@ async function submitVehicle() {
     padding: 0.65rem 1.5rem;
     margin-left: 0;
     border-radius: 1.25rem;
+  }
+
+  .submit-btn-desktop {
+    display: none;
+  }
+
+  .submit-mobile-wrap {
+    margin-top: 1.25rem;
+  }
+
+  .submit-btn-mobile {
+    display: block;
+    width: 100%;
+    margin-top: 0;
   }
 }
 </style>
