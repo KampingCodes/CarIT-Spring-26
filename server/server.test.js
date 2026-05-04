@@ -9,6 +9,7 @@ import {
 } from './aiMiddleware.js';
 import { getBootstrapAdminSubjects, sortAuditEntriesByRelevance } from './admin.js';
 import { normalizeAccessLevel, normalizeExperienceLevel, parsePagination } from './helper.js';
+import { buildCanonicalLookupQueries, selectCanonicalFieldValue } from './user.js';
 import { normalizeVehicleRecord } from './vehicleUtils.js';
 
 function createReq({
@@ -209,6 +210,41 @@ test('normalizeVehicleRecord rejects invalid input', () => {
   assert.equal(normalizeVehicleRecord({ year: '1700', make: 'Honda', model: 'Civic' }), null);
   assert.equal(normalizeVehicleRecord({ year: '2016', make: '', model: 'Civic' }), null);
   assert.equal(normalizeVehicleRecord({ year: '2016', make: 'Honda', model: '' }), null);
+});
+
+test('buildCanonicalLookupQueries falls back to broader model matches when year-specific data is missing', () => {
+  const queries = buildCanonicalLookupQueries('model', {
+    year: 2026,
+    make: 'Toyota',
+    model: 'Rav4'
+  });
+
+  assert.equal(queries.length, 3);
+  assert.equal(queries[0].year, 2026);
+  assert.equal(queries[0].make, 'Toyota');
+  assert.ok(queries[0].model instanceof RegExp);
+  assert.equal(queries[0].model.source, '^Rav4$');
+  assert.equal(queries[0].model.flags, 'i');
+
+  assert.equal(queries[1].year, undefined);
+  assert.equal(queries[1].make, 'Toyota');
+  assert.equal(queries[1].model.source, '^Rav4$');
+  assert.equal(queries[1].model.flags, 'i');
+
+  assert.equal(queries[2].year, undefined);
+  assert.equal(queries[2].make, undefined);
+  assert.equal(queries[2].model.source, '^Rav4$');
+  assert.equal(queries[2].model.flags, 'i');
+});
+
+test('selectCanonicalFieldValue prefers the dominant established casing over an isolated typo', () => {
+  const selected = selectCanonicalFieldValue([
+    [{ _id: 'Rav4', count: 1 }],
+    [{ _id: 'RAV4', count: 20 }, { _id: 'Rav4', count: 1 }],
+    [{ _id: 'RAV4', count: 20 }, { _id: 'Rav4', count: 1 }]
+  ]);
+
+  assert.equal(selected, 'RAV4');
 });
 
 test('getBootstrapAdminSubjects trims and de-duplicates configured subjects', () => {

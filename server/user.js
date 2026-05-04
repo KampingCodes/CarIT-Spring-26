@@ -676,11 +676,12 @@ export async function editGarageVehicle(userid, carId, updates) {
   if (!owns) return "Vehicle does not belong to this user";
 
   const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const canonicalUpdates = await canonicalizeVehicleFields(carsCol, updates);
   const setFields = {};
-  if (updates.year !== undefined) setFields.year = Number(updates.year);
-  if (updates.make !== undefined) setFields.make = updates.make;
-  if (updates.model !== undefined) setFields.model = updates.model;
-  if (updates.trim !== undefined) setFields.trim = updates.trim;
+  if (canonicalUpdates.year !== undefined) setFields.year = Number(canonicalUpdates.year);
+  if (canonicalUpdates.make !== undefined) setFields.make = canonicalUpdates.make;
+  if (canonicalUpdates.model !== undefined) setFields.model = canonicalUpdates.model;
+  if (canonicalUpdates.trim !== undefined) setFields.trim = canonicalUpdates.trim;
 
   await carsCol.updateOne({ _id: objectId }, { $set: setFields });
   return { success: true };
@@ -723,6 +724,7 @@ export async function removeFromGarage(userid, carId) {
  */
 export async function getCarOptions(filters = {}) {
   const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
+  const canonicalFilters = await canonicalizeVehicleFields(carsCol, filters);
   
   // Build query objects for each level
   const yearQuery = {};
@@ -730,21 +732,21 @@ export async function getCarOptions(filters = {}) {
   const modelQuery = {};
   const trimQuery = {};
   
-  if (filters.year) {
-    makeQuery.year = Number(filters.year);
-    modelQuery.year = Number(filters.year);
-    trimQuery.year = Number(filters.year);
+  if (canonicalFilters.year) {
+    makeQuery.year = Number(canonicalFilters.year);
+    modelQuery.year = Number(canonicalFilters.year);
+    trimQuery.year = Number(canonicalFilters.year);
   }
-  if (filters.make) {
-    modelQuery.make = filters.make;
-    trimQuery.make = filters.make;
+  if (canonicalFilters.make) {
+    modelQuery.make = canonicalFilters.make;
+    trimQuery.make = canonicalFilters.make;
   }
-  if (filters.model) {
-    trimQuery.model = filters.model;
+  if (canonicalFilters.model) {
+    trimQuery.model = canonicalFilters.model;
   }
 
   // Only fetch trims if year, make, and model are all specified
-  const shouldFetchTrims = filters.year && filters.make && filters.model;
+  const shouldFetchTrims = canonicalFilters.year && canonicalFilters.make && canonicalFilters.model;
 
   const [years, makes, models, trims] = await Promise.all([
     carsCol.distinct('year', yearQuery),
@@ -769,14 +771,168 @@ export async function upsertCar(vehicle) {
   }
 
   const carsCol = client.db(DATABASE).collection(CARS_COLLECTION);
-  const existingCar = await carsCol.findOne(normalizedVehicle);
+  const canonicalVehicle = await canonicalizeVehicleFields(carsCol, normalizedVehicle);
+  const existingCar = await carsCol.findOne(canonicalVehicle);
 
   if (existingCar) {
-    return { _id: existingCar._id.toString(), ...normalizedVehicle };
+    return { _id: existingCar._id.toString(), ...canonicalVehicle };
   }
 
-  const result = await carsCol.insertOne(normalizedVehicle);
-  return { _id: result.insertedId.toString(), ...normalizedVehicle };
+  const result = await carsCol.insertOne(canonicalVehicle);
+  return { _id: result.insertedId.toString(), ...canonicalVehicle };
+}
+
+function buildExactCaseInsensitiveRegex(value) {
+  const escaped = String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`^${escaped}$`, 'i');
+}
+
+export function buildCanonicalLookupQueries(projectionField, filters = {}) {
+  const candidates = [];
+  const seen = new Set();
+
+  const pushCandidate = (candidateFilters) => {
+    const signature = JSON.stringify({
+      year: candidateFilters.year ?? null,
+      make: candidateFilters.make ?? null,
+      model: candidateFilters.model ?? null,
+      trim: candidateFilters.trim ?? null,
+    });
+
+    if (seen.has(signature)) {
+      return;
+    }
+
+    const query = {};
+
+    if (candidateFilters.year !== undefined && candidateFilters.year !== null && candidateFilters.year !== '') {
+      query.year = Number(candidateFilters.year);
+    }
+
+    for (const field of ['make', 'model', 'trim']) {
+      const value = candidateFilters[field];
+      if (value === undefined || value === null || value === '') {
+        continue;
+      }
+
+      query[field] = field === projectionField ? buildExactCaseInsensitiveRegex(value) : value;
+    }
+
+    if (!(projectionField in query)) {
+      return;
+    }
+
+    seen.add(signature);
+    candidates.push(query);
+  };
+
+  if (projectionField === 'make') {
+    pushCandidate({ year: filters.year, make: filters.make });
+    pushCandidate({ make: filters.make });
+    return candidates;
+  }
+
+  if (projectionField === 'model') {
+    pushCandidate({ year: filters.year, make: filters.make, model: filters.model });
+    pushCandidate({ make: filters.make, model: filters.model });
+    pushCandidate({ model: filters.model });
+    return candidates;
+  }
+
+  if (projectionField === 'trim') {
+    pushCandidate({ year: filters.year, make: filters.make, model: filters.model, trim: filters.trim });
+    pushCandidate({ make: filters.make, model: filters.model, trim: filters.trim });
+    return candidates;
+  }
+
+  pushCandidate(filters);
+  return candidates;
+}
+
+function scoreCanonicalCandidate(value, count) {
+  const uppercaseCount = Array.from(String(value)).filter((char) => /[A-Z]/.test(char)).length;
+  const digitCount = Array.from(String(value)).filter((char) => /\d/.test(char)).length;
+  return (count * 1000) + (uppercaseCount * 10) + digitCount;
+}
+
+export function selectCanonicalFieldValue(candidateGroups = []) {
+  const totals = new Map();
+
+  for (const group of candidateGroups) {
+    for (const candidate of group) {
+      if (!candidate?._id) {
+        continue;
+      }
+
+      totals.set(candidate._id, (totals.get(candidate._id) || 0) + Number(candidate.count || 0));
+    }
+  }
+
+  let bestValue = null;
+  let bestScore = Number.NEGATIVE_INFINITY;
+
+  for (const [value, count] of totals.entries()) {
+    const score = scoreCanonicalCandidate(value, count);
+    if (score > bestScore || (score === bestScore && String(value).localeCompare(String(bestValue)) < 0)) {
+      bestValue = value;
+      bestScore = score;
+    }
+  }
+
+  return bestValue;
+}
+
+async function findCanonicalValue(carsCol, projectionField, filters) {
+  const queries = buildCanonicalLookupQueries(projectionField, filters);
+  const candidateGroups = [];
+
+  for (const query of queries) {
+    const matches = await carsCol.aggregate([
+      { $match: query },
+      { $group: { _id: `$${projectionField}`, count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } }
+    ]).toArray();
+
+    if (matches.length > 0) {
+      candidateGroups.push(matches);
+    }
+  }
+
+  return selectCanonicalFieldValue(candidateGroups);
+}
+
+async function canonicalizeVehicleFields(carsCol, vehicle = {}) {
+  const normalized = { ...vehicle };
+
+  if (normalized.year !== undefined && normalized.year !== null && normalized.year !== '') {
+    normalized.year = Number(normalized.year);
+  }
+
+  if (normalized.make) {
+    normalized.make = await findCanonicalValue(carsCol, 'make', {
+      year: normalized.year,
+      make: normalized.make
+    }) || normalized.make;
+  }
+
+  if (normalized.model) {
+    normalized.model = await findCanonicalValue(carsCol, 'model', {
+      year: normalized.year,
+      make: normalized.make,
+      model: normalized.model
+    }) || normalized.model;
+  }
+
+  if (normalized.trim) {
+    normalized.trim = await findCanonicalValue(carsCol, 'trim', {
+      year: normalized.year,
+      make: normalized.make,
+      model: normalized.model,
+      trim: normalized.trim
+    }) || normalized.trim;
+  }
+
+  return normalized;
 }
 
 export async function listUsersForAdmin({ search = '', page = 1, pageSize = 25 } = {}) {

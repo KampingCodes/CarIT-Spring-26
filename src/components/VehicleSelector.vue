@@ -237,25 +237,31 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 .vehicle-selector-container {
   display: flex;
   flex-direction: column;
+  --vehicle-input-radius: 1rem;
+  --vehicle-input-height: 3.55rem;
+  --vehicle-input-shadow: 0 16px 32px rgba(7, 14, 28, 0.12);
+  --vehicle-input-shadow-focus: 0 0 0 0.22rem rgba(64, 123, 255, 0.16), 0 18px 36px rgba(7, 14, 28, 0.16);
 }
 
 .vehicle-selector-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
 .vs-field {
-  flex: 1 1 calc(50% - 0.25rem);
+  flex: 1 1 calc(50% - 0.5rem);
   min-width: 0;
 }
 
 .form-label {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   display: block;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.7rem;
 }
 
 /* Divider Section */
@@ -263,8 +269,8 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   display: flex;
   align-items: center;
   gap: 1rem;
-  margin-top: 1.5rem;
-  margin-bottom: 1.5rem;
+  margin-top: 1.75rem;
+  margin-bottom: 1.75rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
@@ -272,14 +278,15 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 .divider-line {
   flex: 1;
   height: 1px;
-  background-color: var(--color-border);
+  background: linear-gradient(90deg, transparent 0%, var(--color-border) 18%, var(--color-border) 82%, transparent 100%);
 }
 
 .divider-text {
   white-space: nowrap;
   color: var(--color-text-muted);
-  font-weight: 500;
-  font-size: 0.875rem;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.14em;
 }
 
 /* VIN Input Section Styles */
@@ -288,32 +295,60 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 }
 
 .vin-input-section h6 {
-  font-weight: 500;
+  font-weight: 600;
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   margin-bottom: 1rem;
 }
 
 .vin-input-wrapper {
   display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
+  gap: 0.75rem;
+  align-items: stretch;
 }
 
 .vin-input-section .form-control {
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
+  min-height: var(--vehicle-input-height);
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--vehicle-input-radius);
+  background: var(--color-surface);
+  box-shadow: var(--vehicle-input-shadow);
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
   font-family: 'Courier New', monospace;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   flex: 1;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.vin-input-section .form-control::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.vin-input-section .form-control:focus,
+.vin-input-section .form-control:active {
+  border: 1px solid var(--primary, #407bff);
+  background: var(--color-surface);
+  box-shadow: var(--vehicle-input-shadow-focus);
+  color: var(--color-text-primary);
+  transform: none;
 }
 
 .vin-decode-btn {
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  font-weight: 500;
+  min-height: var(--vehicle-input-height);
+  padding: 0.85rem 1.4rem;
+  border-radius: var(--vehicle-input-radius);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   white-space: nowrap;
+  box-shadow: 0 14px 24px rgba(64, 123, 255, 0.22);
 }
 
 .vin-input-section .alert {
@@ -322,8 +357,62 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 }
 
 .vs-field :deep(.form-control) {
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
+  min-height: var(--vehicle-input-height);
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--vehicle-input-radius);
+  background: var(--color-surface);
+  box-shadow: var(--vehicle-input-shadow);
+  color: var(--color-text-primary);
+  font-size: 0.98rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.vs-field :deep(.form-control::placeholder) {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+
+.vs-field :deep(.form-control:focus),
+.vs-field :deep(.form-control:active) {
+  border: 1px solid var(--primary, #407bff);
+  background: var(--color-surface);
+  box-shadow: var(--vehicle-input-shadow-focus);
+  color: var(--color-text-primary);
+  transform: none;
+}
+
+.vs-field :deep(.ss-invalid) {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 0.18rem rgba(220, 53, 69, 0.14), var(--vehicle-input-shadow) !important;
+}
+
+.vs-field :deep(.ss-invalid-msg) {
+  top: calc(100% + 0.35rem);
+  right: 0.2rem;
+  margin-top: 0;
+}
+
+.vs-field :deep(.ss-dropdown) {
+  top: calc(100% + 0.4rem);
+  border: 1px solid var(--color-border);
+  border-radius: calc(var(--vehicle-input-radius) + 0.1rem);
+  background: var(--color-surface);
+  box-shadow: 0 22px 40px rgba(7, 14, 28, 0.18);
+  padding: 0.35rem 0;
+  overflow: hidden;
+}
+
+.vs-field :deep(.ss-dropdown li) {
+  min-height: 46px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+}
+
+.vs-field :deep(.ss-dropdown li:hover),
+.vs-field :deep(.ss-dropdown li.ss-highlighted) {
+  background: rgba(64, 123, 255, 0.12);
+  color: var(--primary, #407bff);
 }
 
 /* Responsive adjustments for very small screens */
@@ -338,8 +427,8 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   }
 
   .form-label {
-    font-size: 0.8rem;
-    margin-bottom: 0.8rem;
+    font-size: 0.72rem;
+    margin-bottom: 0.6rem;
   }
 
   .vin-input-wrapper {
@@ -348,13 +437,32 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
   .vin-input-section .form-control,
   .vs-field :deep(.form-control) {
-    min-height: 42px;
+    min-height: 50px;
     font-size: 14px;
+    padding: 0.85rem 0.95rem;
   }
 
   .vin-decode-btn {
-    min-height: 42px;
-    padding: 0.5rem 0.75rem;
+    min-height: 50px;
+    padding: 0.5rem 1rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .vehicle-selector-row {
+    gap: 0.85rem;
+  }
+
+  .vs-field {
+    flex-basis: 100%;
+  }
+
+  .vin-input-wrapper {
+    flex-direction: column;
+  }
+
+  .vin-decode-btn {
+    width: 100%;
   }
 }
 
@@ -458,17 +566,5 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
     margin-bottom: 1rem !important;
   }
   
-}
-
-.vs-field :deep(.form-control) {
-  padding: 0.375rem 0.5rem;
-  font-size: 0.875rem;
-  width: 100%;
-  border-bottom: none !important;
-}
-
-.vs-field :deep(.form-control:focus) {
-  border-bottom: none !important;
-  box-shadow: none;
 }
 </style>

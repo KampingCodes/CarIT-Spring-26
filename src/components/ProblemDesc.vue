@@ -1,6 +1,6 @@
 <script setup>
 import { useRoute, useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const service1SubHeading = "What's going on with your";
 const route = useRoute();
@@ -9,8 +9,7 @@ const vehicle = route.query;
 
 // Reactive variables
 const problemDescription = ref("");
-const vehicleYear = ref(vehicle.year);
-const vehicleMake = ref(vehicle.make);
+const vehicleLabel = computed(() => [vehicle.year, vehicle.make, vehicle.model, vehicle.trim ? " - " + vehicle.trim : ""].filter(Boolean).join(' '));
 
 // Form submission
 function submitProblem() {
@@ -33,8 +32,8 @@ function submitProblem() {
           <h3 class="heading mb-2" data-aos="fade-up" data-aos-delay="100">
             {{ service1SubHeading }}
           </h3>
-          <div v-if="vehicleYear && vehicleMake" class="vehicle-blue mb-4" data-aos="fade-up" data-aos-delay="120">
-            {{ vehicleYear }} {{ vehicleMake }}
+          <div v-if="vehicleLabel" class="vehicle-blue mb-4" data-aos="fade-up" data-aos-delay="120">
+            {{ vehicleLabel }}
           </div>
           <div class="mb-4" data-aos="fade-up" data-aos-delay="200">
             <p>

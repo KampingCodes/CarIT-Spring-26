@@ -20,7 +20,6 @@ const isOpen = ref(false);
 const highlightIndex = ref(-1);
 const inputRef = ref(null);
 const listRef = ref(null);
-const isInternalUpdate = ref(false);
 const touched = ref(false);
 
 const isInvalid = computed(() => {
@@ -34,12 +33,10 @@ const isInvalid = computed(() => {
   return false;
 });
 
-// Sync external value changes into the search box (but avoid loops)
+// Always accept parent-driven value changes so external selections fully replace
+// any in-progress manual entry on the first update.
 watch(() => props.modelValue, (val) => {
-  if (!isInternalUpdate.value) {
-    search.value = String(val ?? '');
-  }
-  isInternalUpdate.value = false;
+  search.value = String(val ?? '');
 });
 
 const filtered = computed(() => {
@@ -66,7 +63,6 @@ function onInput(e) {
   }
 
   search.value = newValue;
-  isInternalUpdate.value = true;
   emit('update:modelValue', newValue);
   if (!isOpen.value) {
     isOpen.value = true;
@@ -76,7 +72,6 @@ function onInput(e) {
 
 function selectOption(opt) {
   search.value = opt;
-  isInternalUpdate.value = true;
   emit('update:modelValue', opt);
   isOpen.value = false;
   highlightIndex.value = -1;
@@ -100,7 +95,6 @@ function onBlur() {
       const match = props.options.find(opt => String(opt).toLowerCase() === search.value.toLowerCase());
       if (match) {
         search.value = String(match);
-        isInternalUpdate.value = true;
         emit('update:modelValue', String(match));
       }
     }
