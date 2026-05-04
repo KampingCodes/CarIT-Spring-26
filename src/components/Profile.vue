@@ -22,6 +22,8 @@ const previewPhoto = ref(null);
 const profilePictureInput = ref(null);
 const uploadingProfilePicture = ref(false);
 const profilePictureError = ref(null);
+const profileNameError = ref(null);
+const savingProfile = ref(false);
 const crashOutCount = ref(0);
 const crashOutLoading = ref(false);
 const isShaking = ref(false);
@@ -93,13 +95,18 @@ const scrollCarousel = (direction) => {
 const editPage = async () => { 
   if (editMode.value) {
     // Saving changes
-    await saveProfile();
+    const saved = await saveProfile();
     previewPhoto.value = null;
+    if (!saved) {
+      return; // Stay in edit mode if save failed
+    }
   }
   editMode.value = !editMode.value; 
 };
 
 const saveProfile = async () => { 
+  profileNameError.value = null;
+  savingProfile.value = true;
   const updateData = { name: Name.value };
   if (previewPhoto.value) {
     try {
@@ -111,12 +118,27 @@ const saveProfile = async () => {
     } catch (err) {
       profilePictureError.value = 'Failed to upload profile picture: ' + (err?.message || String(err));
       console.error('Profile picture upload error:', err);
-      return;
+      savingProfile.value = false;
+      return false;
     } finally {
       uploadingProfilePicture.value = false;
     }
   }
-  await setUserData(updateData);
+  try {
+    await setUserData(updateData);
+    savingProfile.value = false;
+    return true;
+  } catch (err) {
+    const errorMessage = err?.message || String(err);
+    if (errorMessage.includes('already in use')) {
+      profileNameError.value = 'This profile name is already in use. Please choose a different name.';
+    } else {
+      profileNameError.value = 'Failed to update profile: ' + errorMessage;
+    }
+    console.error('Profile save error:', err);
+    savingProfile.value = false;
+    return false;
+  }
 };
 
 const triggerProfilePictureUpload = () => {
@@ -291,6 +313,13 @@ watch(() => themeStore.isDark, () => {
   flowcharts.value.forEach((f, idx) => getDiagram(f, idx));
 });
 
+// Clear profile name error when user edits the name
+watch(() => Name.value, () => {
+  if (profileNameError.value) {
+    profileNameError.value = null;
+  }
+});
+
 onMounted(async () => {
   initializeMermaid();
   // Load data if already authenticated, otherwise skeleton hides once auth resolves
@@ -378,6 +407,9 @@ function getVehicleDisplayName(vehicle = {}) {
             </div>
             <div v-else class="edit-input-wrapper">
               <input v-model="Name" class="form-control form-control-sm" placeholder="Your name" />
+              <div v-if="profileNameError" class="alert alert-danger alert-sm mt-2">
+                {{ profileNameError }}
+              </div>
             </div>
 
             <!-- Email -->
@@ -388,9 +420,9 @@ function getVehicleDisplayName(vehicle = {}) {
 
             <!-- Edit Profile Button -->
             <div class="button-group">
-              <button class="btn profile-action-button profile-edit-button w-100" @click="editPage" :disabled="dataLoading">
+              <button class="btn profile-action-button profile-edit-button w-100" @click="editPage" :disabled="dataLoading || savingProfile">
                 <i :class="['pi', editMode ? 'pi-check' : 'pi-pencil']" aria-hidden="true"></i>
-                <span>{{ editMode ? 'Save Profile' : 'Edit Profile' }}</span>
+                <span>{{ editMode ? (savingProfile ? 'Saving...' : 'Save Profile') : 'Edit Profile' }}</span>
               </button>
             </div>
 
