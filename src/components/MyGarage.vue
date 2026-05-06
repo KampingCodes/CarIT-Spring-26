@@ -411,6 +411,18 @@ watch(garage, (cars) => {
   color: #fff;
 }
 
+[data-theme="dark"] .garage-section {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .garage-card:hover {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .garage-card-selected {
+  box-shadow: none;
+}
+
 /* Badge styling */
 .garage-card .badge {
   padding: 6px 12px;

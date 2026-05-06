@@ -606,12 +606,12 @@ svg *,
 [data-theme="dark"] .vehicle-card {
   background: var(--color-card-bg);
   border-color: var(--color-border);
-  box-shadow: 0 2px 8px var(--color-card-shadow);
+  box-shadow: none;
 }
 
 [data-theme="dark"] .garage-card:hover,
 [data-theme="dark"] .vehicle-card:hover {
-  box-shadow: 0 6px 20px var(--color-card-shadow);
+  box-shadow: none;
 }
 
 /* ============================================================
@@ -638,6 +638,13 @@ svg *,
 [data-theme="dark"] .dropdown-menu {
   background: var(--color-surface);
   border-color: var(--color-border);
+}
+
+[data-theme="dark"] .searchable-select {
+  box-shadow: none;
+}
+
+[data-theme="dark"] .dropdown-menu {
   box-shadow: 0 4px 16px var(--color-card-shadow);
 }
 
