@@ -263,6 +263,10 @@ async function submitVehicle() {
   white-space: nowrap;
 }
 
+[data-theme="dark"] .vehicle-selector {
+  box-shadow: none;
+}
+
 @media (max-width: 768px) {
   .untree_co-section#features-section {
     padding-top: 1.25rem;

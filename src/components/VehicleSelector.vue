@@ -315,7 +315,7 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   border: 1px solid var(--color-border);
   border-radius: var(--vehicle-input-radius);
   background: var(--color-surface);
-  box-shadow: var(--vehicle-input-shadow);
+  box-shadow: none;
   color: var(--color-text-primary);
   font-size: 0.96rem;
   font-family: 'Courier New', monospace;
@@ -362,7 +362,7 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   border: 1px solid var(--color-border);
   border-radius: var(--vehicle-input-radius);
   background: var(--color-surface);
-  box-shadow: var(--vehicle-input-shadow);
+  box-shadow: none;
   color: var(--color-text-primary);
   font-size: 0.98rem;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, transform 0.2s ease;
@@ -384,7 +384,7 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
 
 .vs-field :deep(.ss-invalid) {
   border-color: #dc3545 !important;
-  box-shadow: 0 0 0 0.18rem rgba(220, 53, 69, 0.14), var(--vehicle-input-shadow) !important;
+  box-shadow: 0 0 0 0.18rem rgba(220, 53, 69, 0.14) !important;
 }
 
 .vs-field :deep(.ss-invalid-msg) {
@@ -470,9 +470,6 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   .vehicle-selector-row {
     flex-direction: column;
     gap: 1rem;
-    border-bottom: none;
-    border-top: 1px solid #43434d;
-    padding-top: 1rem;
   }
 
   .vs-field {
