@@ -52,10 +52,37 @@ export async function updateUserDB(userid, updates) {
   await collection.updateOne({ _id: userid }, { $set: updates });
 }
 
+/**
+ * Check if a profile name is already in use by another user
+ * @param {string} name The profile name to check
+ * @param {string} excludeUserid The user ID to exclude from the check (typically the current user)
+ * @returns {boolean} True if the name is in use by another user
+ */
+export async function isNameInUse(name, excludeUserid) {
+  if (!name) return false;
+  
+  const normalizedName = normalizeText(name).slice(0, 120);
+  const collection = client.db(DATABASE).collection(USER_COLLECTION);
+  const existingUser = await collection.findOne({
+    name: normalizedName,
+    _id: { $ne: excludeUserid }
+  });
+  
+  return !!existingUser;
+}
+
 export async function updateOwnUserProfile(userid, updates) {
   const sanitized = sanitizeUserUpdates(updates, { includeProfilePicture: false });
   if (Object.keys(sanitized).length === 0) {
     return 'No valid fields provided';
+  }
+
+  // Check if name is being updated and if the new name is already in use
+  if (sanitized.name) {
+    const nameInUse = await isNameInUse(sanitized.name, userid);
+    if (nameInUse) {
+      return 'This profile name is already in use by another profile.';
+    }
   }
 
   sanitized.updatedAt = new Date().toISOString();
