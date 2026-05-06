@@ -400,7 +400,8 @@ defineExpose({ refreshCarOptions, handleVINDecode, isValidYear });
   background: var(--color-surface);
   box-shadow: 0 22px 40px rgba(7, 14, 28, 0.18);
   padding: 0.35rem 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .vs-field :deep(.ss-dropdown li) {
